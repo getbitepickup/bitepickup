@@ -1,0 +1,6 @@
+{
+  "name": "SaaS Online Ordering Platform",
+  "description": "A premium, responsive Multi-Restaurant SaaS Online Ordering Platform featuring Admin management, Restaurant kitchen controls, and streamlined Customer online ordering.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

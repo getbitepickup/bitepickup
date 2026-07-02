@@ -1,0 +1,38 @@
+{
+  "name": "bitepickup-backend",
+  "version": "1.0.0",
+  "description": "BitePickup SaaS Platform Backend API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "seed": "node scripts/seed.js"
+  },
+  "keywords": [
+    "saas",
+    "restaurant",
+    "ordering",
+    "api"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "compression": "^1.8.1",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.2",
+    "express-rate-limit": "^6.11.2",
+    "express-validator": "^7.0.1",
+    "helmet": "^7.2.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongodb": "^7.4.0",
+    "mongoose": "^7.8.10",
+    "nodemailer": "^9.0.3",
+    "uuid": "^9.0.1",
+    "winston": "^3.19.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  }
+}
