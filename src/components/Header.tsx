@@ -8,10 +8,19 @@ export default function Header() {
   const location = useLocation();
   const [isLandingPage, setIsLandingPage] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSubdomain, setIsSubdomain] = useState(false);
 
   useEffect(() => {
     // Only show full navigation on the landing page
     setIsLandingPage(location.pathname === '/');
+    
+    // Check if we're on a subdomain
+    const hostname = window.location.hostname;
+    const isMainDomain = hostname === 'hinarok.com' || 
+                         hostname === 'www.hinarok.com' || 
+                         hostname === 'localhost' || 
+                         hostname.includes('vercel.app');
+    setIsSubdomain(!isMainDomain);
   }, [location]);
 
   const handleLogout = () => {
@@ -28,15 +37,29 @@ export default function Header() {
     setIsMobileMenuOpen(false);
   };
 
+  // Get the main domain URL
+  const getMainDomainUrl = () => {
+    const hostname = window.location.hostname;
+    if (hostname.includes('vercel.app') || hostname === 'localhost') {
+      return '/';
+    }
+    return 'https://hinarok.com';
+  };
+
   // Simplified header for non-landing pages (no navigation links)
   if (!isLandingPage) {
     return (
       <nav className="bg-[#33101F] sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between h-16">
-            <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <a 
+              href={getMainDomainUrl()} 
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              target={isSubdomain ? "_blank" : "_self"}
+              rel={isSubdomain ? "noopener noreferrer" : ""}
+            >
               <img src={logoDark} alt="Hinarok" className="h-8 w-auto" />
-            </Link>
+            </a>
             {/* Only show logout when authenticated */}
             {isAuthenticated && (
               <button
@@ -59,9 +82,12 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           
           {/* Brand - Logo */}
-          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <a 
+            href={getMainDomainUrl()} 
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+          >
             <img src={logoDark} alt="Hinarok" className="h-8 w-auto" />
-          </Link>
+          </a>
 
           {/* Desktop Navigation - Only on landing page */}
           <ul className="hidden md:flex items-center gap-8 list-none">

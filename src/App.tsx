@@ -470,67 +470,76 @@ function LandingPortal() {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-                {restaurants.map((restaurant, index) => (
-                  <div
-                    key={restaurant.id}
-                    className="bg-white hover:shadow-xl rounded-2xl overflow-hidden transition-all border border-[#E7C7CF] group"
-                  >
-                    <Link
-                      to={`/restaurant/${restaurant.slug}`}
-                      className="block"
+                {restaurants.map((restaurant, index) => {
+                  // Use subdomain for the link if available, otherwise use slug
+                  const restaurantLink = restaurant.subdomain 
+                    ? `https://${restaurant.subdomain}` 
+                    : `/restaurant/${restaurant.slug}`;
+                  
+                  return (
+                    <div
+                      key={restaurant.id}
+                      className="bg-white hover:shadow-xl rounded-2xl overflow-hidden transition-all border border-[#E7C7CF] group"
                     >
-                      <div className="h-48 overflow-hidden relative">
-                        <img
-                          src={restaurant.coverImage}
-                          alt={restaurant.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                        <div className="absolute bottom-3 left-3">
-                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/20">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                            Open
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="p-5">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-[#FAF3EA]">
-                            <img
-                              src={restaurant.logo}
-                              alt={restaurant.name}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          <div>
-                            <h3 className="font-bold text-[#33101F] text-base group-hover:text-[#C42348] transition-colors">
-                              {restaurant.name}
-                            </h3>
-                            <p className="text-xs text-[#8C6B76]">
-                              {restaurant.cuisine || "Local Cuisine"}
-                            </p>
+                      <a
+                        href={restaurantLink}
+                        target={restaurant.subdomain ? "_blank" : "_self"}
+                        rel={restaurant.subdomain ? "noopener noreferrer" : ""}
+                        className="block"
+                      >
+                        <div className="h-48 overflow-hidden relative">
+                          <img
+                            src={restaurant.coverImage}
+                            alt={restaurant.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                          <div className="absolute bottom-3 left-3">
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/20">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                              Open
+                            </span>
                           </div>
                         </div>
 
-                        <p className="text-sm text-[#6E515B] line-clamp-2 leading-relaxed">
-                          {restaurant.description}
-                        </p>
+                        <div className="p-5">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-[#FAF3EA]">
+                              <img
+                                src={restaurant.logo}
+                                alt={restaurant.name}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <div>
+                              <h3 className="font-bold text-[#33101F] text-base group-hover:text-[#C42348] transition-colors">
+                                {restaurant.name}
+                              </h3>
+                              <p className="text-xs text-[#8C6B76]">
+                                {restaurant.cuisine || "Local Cuisine"}
+                              </p>
+                            </div>
+                          </div>
 
-                        <div className="mt-4 flex items-center justify-between text-xs text-[#8C6B76]">
-                          <span className="flex items-center gap-1">
-                            <span className="w-3 h-3">📍</span>
-                            {restaurant.address}
-                          </span>
-                          <span className="inline-flex items-center gap-1 text-[#C42348] font-semibold group-hover:gap-2 transition-all">
-                            View Menu
-                            <ArrowRight className="w-3.5 h-3.5" />
-                          </span>
+                          <p className="text-sm text-[#6E515B] line-clamp-2 leading-relaxed">
+                            {restaurant.description}
+                          </p>
+
+                          <div className="mt-4 flex items-center justify-between text-xs text-[#8C6B76]">
+                            <span className="flex items-center gap-1">
+                              <span className="w-3 h-3">📍</span>
+                              {restaurant.address}
+                            </span>
+                            <span className="inline-flex items-center gap-1 text-[#C42348] font-semibold group-hover:gap-2 transition-all">
+                              View Menu
+                              <ArrowRight className="w-3.5 h-3.5" />
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </Link>
-                  </div>
-                ))}
+                      </a>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

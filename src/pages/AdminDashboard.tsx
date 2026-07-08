@@ -264,7 +264,7 @@ export default function AdminDashboard() {
     setErrorMessage(null);
 
     const resSlug = slugify(resForm.name);
-    const domain = `${resSlug}.hinarok.com`;
+    const subdomain = `${resSlug}.hinarok.com`;
 
     const dataPayload: any = {
       name: resForm.name.trim(),
@@ -274,6 +274,8 @@ export default function AdminDashboard() {
       logo: resForm.logo.trim(),
       coverImage: resForm.coverImage.trim(),
       isActive: resForm.isActive,
+      slug: resSlug,
+      subdomain: subdomain,
     };
 
     if (editingResId) {
@@ -695,17 +697,16 @@ export default function AdminDashboard() {
                           {/* Actions */}
                           <td className="px-6 py-4">
                             <div className="flex items-center justify-end gap-2.5">
-                              {/* Open storefront Link */}
-                              <button
-                                onClick={() => {
-                                  setCurrentRestaurantId(res.id);
-                                  navigate(`/restaurant/${res.slug}`);
-                                }}
+                              {/* Open storefront Link - Use subdomain or slug */}
+                              <a
+                                href={res.subdomain ? `https://${res.subdomain}` : `/restaurant/${res.slug}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 className="text-[#8C6B76] hover:text-[#C42348] transition-colors p-1"
                                 title="Browse Customer storefront"
                               >
                                 <Eye className="w-4 h-4" />
-                              </button>
+                              </a>
 
                               {/* Onboard kitchen selection */}
                               <button

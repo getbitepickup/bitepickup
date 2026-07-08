@@ -44,6 +44,21 @@ export default function CustomerOrdering() {
     null,
   );
 
+  // Detect if we're on a subdomain
+  const getSubdomainFromHost = () => {
+    const hostname = window.location.hostname;
+    // If it's hinarok.com or www.hinarok.com, no subdomain
+    if (hostname === 'hinarok.com' || hostname === 'www.hinarok.com' || hostname === 'localhost' || hostname === 'bitepickup.vercel.app' || hostname.includes('vercel.app')) {
+      return null;
+    }
+    // Extract subdomain (first part before .hinarok.com)
+    const parts = hostname.split('.');
+    if (parts.length > 2) {
+      return parts[0];
+    }
+    return null;
+  };
+
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -51,13 +66,48 @@ export default function CustomerOrdering() {
         const resData = await getRestaurants();
         setRestaurants(resData);
 
-        // Find restaurant by slug
-        const found = resData.find((r) => r.slug === slug);
+        let found = null;
+
+        // First try: Find by slug (from URL param)
+        if (slug) {
+          found = resData.find((r) => r.slug === slug);
+        }
+
+        // Second try: Find by subdomain (from hostname)
+        if (!found) {
+          const subdomain = getSubdomainFromHost();
+          if (subdomain) {
+            // Try to find by subdomain
+            found = resData.find((r) => {
+              // Check if subdomain matches
+              if (r.subdomain && r.subdomain.includes(subdomain)) {
+                return true;
+              }
+              // Check if slug matches subdomain
+              if (r.slug === subdomain) {
+                return true;
+              }
+              return false;
+            });
+          }
+        }
+
         if (found) {
           setCurrentRestaurant(found);
           setCurrentRestaurantId(found.id);
 
           // Load categories and menu items for this restaurant
+          const catData = await getCategories(found.id);
+          setCategories(catData);
+
+          const menuData = await getMenuItems(found.id);
+          setMenuItems(menuData);
+        } else if (resData.length > 0) {
+          // Fallback: use first restaurant
+          found = resData[0];
+          setCurrentRestaurant(found);
+          setCurrentRestaurantId(found.id);
+
           const catData = await getCategories(found.id);
           setCategories(catData);
 
@@ -84,7 +134,7 @@ export default function CustomerOrdering() {
   // Checkout Form states
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
-  const [customerEmail, setCustomerEmail] = useState(""); // Added missing state
+  const [customerEmail, setCustomerEmail] = useState("");
   const [pickupOption, setPickupOption] = useState<"ASAP" | "scheduled">(
     "ASAP",
   );
