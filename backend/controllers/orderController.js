@@ -4,6 +4,7 @@ const { generateOrderReference, calculateOrderTotals } = require('../utils/helpe
 const { HTTP_STATUS, SUCCESS_MESSAGES, ERROR_MESSAGES, ORDER_STATUS } = require('../utils/constants');
 const logger = require('../utils/logger');
 const mongoose = require('mongoose');
+const { sendOrderConfirmationEmail, sendOrderReadyEmail } = require('../services/emailService');
 
 /**
  * @desc    Get all orders
@@ -316,6 +317,13 @@ exports.createOrder = async (req, res) => {
     // Populate the order with restaurant details
     await order.populate('restaurantId', 'name');
 
+    // Send order confirmation email (async - don't await to not block response)
+    if (order.customerEmail) {
+      sendOrderConfirmationEmail(order).catch(err => {
+        logger.error(`Failed to send confirmation email: ${err.message}`);
+      });
+    }
+
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
       message: SUCCESS_MESSAGES.ORDER_CREATED,
@@ -357,9 +365,19 @@ exports.updateOrderStatus = async (req, res) => {
       });
     }
 
+    const previousStatus = order.status;
     order.status = status;
     order.updatedAt = new Date();
     await order.save();
+
+    // Send email notification when order is marked as READY
+    if (status === 'READY' && previousStatus !== 'READY') {
+      if (order.customerEmail) {
+        sendOrderReadyEmail(order).catch(err => {
+          logger.error(`Failed to send ready email: ${err.message}`);
+        });
+      }
+    }
 
     res.status(HTTP_STATUS.OK).json({
       success: true,

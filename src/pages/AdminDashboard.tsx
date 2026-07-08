@@ -122,8 +122,8 @@ export default function AdminDashboard() {
   };
 
   const simulatedSubdomain = resForm.name
-    ? `${slugify(resForm.name)}.platform.com`
-    : "restaurantname.platform.com";
+    ? `${slugify(resForm.name)}.hinarok.com`
+    : "restaurantname.hinarok.com";
 
   // Generate random password
   const generatePassword = () => {
@@ -264,7 +264,7 @@ export default function AdminDashboard() {
     setErrorMessage(null);
 
     const resSlug = slugify(resForm.name);
-    const domain = `${resSlug}.platform.com`;
+    const domain = `${resSlug}.hinarok.com`;
 
     const dataPayload: any = {
       name: resForm.name.trim(),
@@ -410,21 +410,21 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="min-h-screen bg-[#FAF3EA] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C42348]"></div>
       </div>
     );
   }
 
   if (authError) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <div className="bg-white rounded-2xl p-8 max-w-md text-center shadow-lg border border-gray-200">
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-900 mb-2">
+      <div className="min-h-screen bg-[#FAF3EA] flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl p-8 max-w-md text-center shadow-lg border border-[#E7C7CF]">
+          <AlertCircle className="w-16 h-16 text-[#C42348] mx-auto mb-4" />
+          <h2 className="text-xl font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] mb-2">
             Authentication Error
           </h2>
-          <p className="text-gray-600 text-sm mb-4">
+          <p className="text-[#8C6B76] text-sm mb-4 font-['Inter','Segoe UI',system-ui,sans-serif]">
             Please log out and log back in to refresh your session.
           </p>
           <button
@@ -432,7 +432,7 @@ export default function AdminDashboard() {
               localStorage.clear();
               window.location.href = "/#/login";
             }}
-            className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-semibold hover:bg-indigo-700"
+            className="bg-[#C42348] hover:bg-[#E84C6B] text-white px-6 py-2 rounded-xl font-semibold transition-all font-['Inter','Segoe UI',system-ui,sans-serif]"
           >
             Go to Login
           </button>
@@ -442,24 +442,24 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800 font-sans pb-12">
+    <div className="min-h-screen bg-[#FAF3EA] text-[#33101F] font-['Inter','Segoe UI',system-ui,sans-serif] pb-12">
       {/* Premium Header Brand Banner */}
-      <div className="bg-white border-b border-gray-200 py-6 px-4 md:px-8">
+      <div className="bg-white border-b border-[#E7C7CF] py-6 px-4 md:px-8">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="bg-indigo-600 p-2.5 rounded-xl text-white shadow-sm flex items-center justify-center">
+            <div className="bg-[#C42348] p-2.5 rounded-xl text-white shadow-sm flex items-center justify-center">
               <ShieldCheck className="w-6 h-6" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight">
-                  Platform Owner Center
+                <h1 className="text-xl md:text-2xl font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] tracking-tight">
+                  Hinarok Admin Center
                 </h1>
-                <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-100 uppercase tracking-widest">
+                <span className="text-[10px] font-bold bg-[#C42348]/10 text-[#C42348] px-2 py-0.5 rounded-full border border-[#C42348]/20 uppercase tracking-widest font-['Inter','Segoe UI',system-ui,sans-serif]">
                   SaaS ROOT
                 </span>
               </div>
-              <p className="text-xs text-gray-550 mt-0.5">
+              <p className="text-xs text-[#8C6B76] mt-0.5 font-['Inter','Segoe UI',system-ui,sans-serif]">
                 Scale restaurants, oversee cumulative transacting volume,
                 configure onboarding tiers.
               </p>
@@ -470,7 +470,7 @@ export default function AdminDashboard() {
             <button
               id="add-restaurant-btn"
               onClick={handleOpenAddRes}
-              className="bg-indigo-600 hover:bg-indigo-700 active:translate-y-px text-white font-semibold text-xs py-2.5 px-4 rounded-xl shadow-sm hover:shadow transition-all flex items-center gap-1.5 cursor-pointer text-center"
+              className="bg-[#C42348] hover:bg-[#E84C6B] active:translate-y-px text-white font-semibold text-xs py-2.5 px-4 rounded-xl shadow-sm hover:shadow transition-all flex items-center gap-1.5 cursor-pointer text-center font-['Inter','Segoe UI',system-ui,sans-serif]"
             >
               <Plus className="w-4 h-4" />
               <span>Provision Restaurant</span>
@@ -481,7 +481,7 @@ export default function AdminDashboard() {
 
       {/* Primary Toggles Structure Area */}
       <div className="max-w-7xl mx-auto px-4 md:px-8 mt-6">
-        <div className="flex border-b border-gray-200 overflow-x-auto scrollbar-none">
+        <div className="flex border-b border-[#E7C7CF] overflow-x-auto scrollbar-none">
           {[
             { id: "overview", label: "Overview & Stores", badge: null },
             { id: "subscriptions", label: "Subscription Tiers", badge: "Soon" },
@@ -495,10 +495,10 @@ export default function AdminDashboard() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 whitespace-nowrap cursor-pointer transition-all flex items-center gap-1.5 ${
+              className={`px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 whitespace-nowrap cursor-pointer transition-all flex items-center gap-1.5 font-['Inter','Segoe UI',system-ui,sans-serif] ${
                 activeTab === tab.id
-                  ? "border-indigo-600 text-indigo-600"
-                  : "border-transparent text-gray-500 hover:text-gray-800"
+                  ? "border-[#C42348] text-[#C42348]"
+                  : "border-transparent text-[#8C6B76] hover:text-[#33101F]"
               }`}
             >
               <span>{tab.label}</span>
@@ -526,88 +526,90 @@ export default function AdminDashboard() {
               {/* Metric Card Strips */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Count Restaurants */}
-                <div className="bg-white border border-gray-250 p-5 rounded-2xl shadow-xs">
-                  <div className="flex items-center justify-between text-gray-400">
-                    <span className="text-xs font-bold uppercase tracking-wider">
+                <div className="bg-white border border-[#E7C7CF] p-5 rounded-2xl shadow-xs">
+                  <div className="flex items-center justify-between text-[#8C6B76]">
+                    <span className="text-xs font-bold uppercase tracking-wider font-['Inter','Segoe UI',system-ui,sans-serif]">
                       Total Restaurants
                     </span>
-                    <Globe className="w-4 h-4 text-gray-400" />
+                    <Globe className="w-4 h-4 text-[#8C6B76]" />
                   </div>
-                  <div className="text-3xl font-extrabold text-gray-950 mt-1.5">
+                  <div className="text-3xl font-extrabold text-[#33101F] mt-1.5 font-['Baloo_2','Trebuchet_MS',sans-serif]">
                     {totalRestaurants}
                   </div>
-                  <p className="text-[10px] text-gray-400 mt-1">
+                  <p className="text-[10px] text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                     Succeeding sub-domains
                   </p>
                 </div>
 
                 {/* Active Restaurants */}
-                <div className="bg-white border border-gray-250 p-5 rounded-2xl shadow-xs">
-                  <div className="flex items-center justify-between text-gray-400 font-medium">
-                    <span className="text-xs font-bold uppercase tracking-wider">
+                <div className="bg-white border border-[#E7C7CF] p-5 rounded-2xl shadow-xs">
+                  <div className="flex items-center justify-between text-[#8C6B76] font-medium">
+                    <span className="text-xs font-bold uppercase tracking-wider font-['Inter','Segoe UI',system-ui,sans-serif]">
                       Active Outlets
                     </span>
                     <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
                   </div>
-                  <div className="text-3xl font-extrabold text-gray-950 mt-1.5">
+                  <div className="text-3xl font-extrabold text-[#33101F] mt-1.5 font-['Baloo_2','Trebuchet_MS',sans-serif]">
                     {activeRestaurants}
                   </div>
-                  <p className="text-[10px] text-gray-500 mt-1">
+                  <p className="text-[10px] text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                     Live customer channels
                   </p>
                 </div>
 
                 {/* Total order counts placed */}
-                <div className="bg-white border border-gray-250 p-5 rounded-2xl shadow-xs">
-                  <div className="flex items-center justify-between text-gray-400">
-                    <span className="text-xs font-bold uppercase tracking-wider">
+                <div className="bg-white border border-[#E7C7CF] p-5 rounded-2xl shadow-xs">
+                  <div className="flex items-center justify-between text-[#8C6B76]">
+                    <span className="text-xs font-bold uppercase tracking-wider font-['Inter','Segoe UI',system-ui,sans-serif]">
                       Cumulative Orders
                     </span>
-                    <ShoppingBag className="w-4 h-4 text-indigo-500" />
+                    <ShoppingBag className="w-4 h-4 text-[#C42348]" />
                   </div>
-                  <div className="text-3xl font-extrabold text-gray-950 mt-1.5">
+                  <div className="text-3xl font-extrabold text-[#33101F] mt-1.5 font-['Baloo_2','Trebuchet_MS',sans-serif]">
                     {orders.length}
                   </div>
-                  <p className="text-[10px] text-gray-550 mt-1">
+                  <p className="text-[10px] text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                     Continuous live intake
                   </p>
                 </div>
 
                 {/* Monthly Platform Revenue estimate */}
-                <div className="bg-white border border-gray-250 p-5 rounded-2xl shadow-xs">
-                  <div className="flex items-center justify-between text-gray-400">
-                    <span className="text-xs font-bold uppercase tracking-wider">
+                <div className="bg-white border border-[#E7C7CF] p-5 rounded-2xl shadow-xs">
+                  <div className="flex items-center justify-between text-[#8C6B76]">
+                    <span className="text-xs font-bold uppercase tracking-wider font-['Inter','Segoe UI',system-ui,sans-serif]">
                       Monthly SaaS Revenue
                     </span>
                     <DollarSign className="w-4 h-4 text-emerald-500" />
                   </div>
-                  <div className="text-3xl font-extrabold text-gray-950 mt-1.5">
+                  <div className="text-3xl font-extrabold text-[#33101F] mt-1.5 font-['Baloo_2','Trebuchet_MS',sans-serif]">
                     $0.00
                   </div>
-                  <p className="text-[10px] text-gray-550 mt-1">Coming soon</p>
+                  <p className="text-[10px] text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
+                    Coming soon
+                  </p>
                 </div>
               </div>
 
               {/* Main table and directory list of onboarded stores */}
-              <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-xs">
-                <div className="p-5 border-b border-gray-150 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+              <div className="bg-white border border-[#E7C7CF] rounded-2xl overflow-hidden shadow-xs">
+                <div className="p-5 border-b border-[#E7C7CF] flex flex-col sm:flex-row justify-between sm:items-center gap-3">
                   <div>
-                    <h3 className="font-bold text-gray-900 text-sm">
+                    <h3 className="font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] text-sm">
                       Onboarded Outlets Directory
                     </h3>
-                    <p className="text-xs text-gray-500 mt-0.5">
+                    <p className="text-xs text-[#8C6B76] mt-0.5 font-['Inter','Segoe UI',system-ui,sans-serif]">
                       Control active stores, login routes, or provision menus.
                     </p>
                   </div>
-                  <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-3 py-1 rounded-full border border-gray-150">
+                  <span className="text-xs font-semibold bg-[#FAF3EA] text-[#8C6B76] px-3 py-1 rounded-full border border-[#E7C7CF] font-['Inter','Segoe UI',system-ui,sans-serif]">
                     {restaurants.length} Registered Stores
                   </span>
                 </div>
 
                 {/* Grid list or sleek table of stores */}
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs text-gray-600">
-                    <thead className="bg-gray-50 text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-gray-150">
+                  <table className="w-full text-left text-xs text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">
+                    <thead className="bg-[#FAF3EA] text-[10px] font-bold uppercase tracking-wider text-[#8C6B76] border-b border-[#E7C7CF]">
                       <tr>
                         <th className="px-6 py-4">Restaurant Brand</th>
                         <th className="px-6 py-4">Dynamic Subdomain mapping</th>
@@ -618,13 +620,13 @@ export default function AdminDashboard() {
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100 font-medium">
+                    <tbody className="divide-y divide-[#E7C7CF] font-medium">
                       {restaurants.map((res) => (
-                        <tr key={res.id} className="hover:bg-gray-50/50">
+                        <tr key={res.id} className="hover:bg-[#FAF3EA]/50">
                           {/* Logo title */}
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-lg bg-gray-150 border border-gray-200 overflow-hidden flex-shrink-0">
+                              <div className="w-10 h-10 rounded-lg bg-[#FAF3EA] border border-[#E7C7CF] overflow-hidden flex-shrink-0">
                                 <img
                                   referrerPolicy="no-referrer"
                                   src={res.logo}
@@ -633,10 +635,10 @@ export default function AdminDashboard() {
                                 />
                               </div>
                               <div>
-                                <h4 className="font-bold text-gray-905">
+                                <h4 className="font-bold text-[#33101F] font-['Baloo_2','Trebuchet_MS',sans-serif]">
                                   {res.name}
                                 </h4>
-                                <span className="text-[10px] text-gray-405 font-mono">
+                                <span className="text-[10px] text-[#8C6B76] font-mono">
                                   ID: {res.id}
                                 </span>
                               </div>
@@ -645,20 +647,20 @@ export default function AdminDashboard() {
 
                           {/* Subdomain */}
                           <td className="px-6 py-4">
-                            <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded border border-indigo-100 font-mono text-[10px]">
-                              <Globe className="w-3 h-3 text-indigo-400" />
+                            <span className="inline-flex items-center gap-1 bg-[#C42348]/10 text-[#C42348] px-2 py-0.5 rounded border border-[#C42348]/20 font-mono text-[10px]">
+                              <Globe className="w-3 h-3 text-[#C42348]" />
                               {res.subdomain}
                             </span>
                           </td>
 
                           {/* Address & contact details */}
                           <td className="px-6 py-4 space-y-0.5">
-                            <div className="flex items-center gap-1 font-medium text-gray-805">
-                              <Phone className="w-3 h-3 text-gray-400" />
+                            <div className="flex items-center gap-1 font-medium text-[#33101F]">
+                              <Phone className="w-3 h-3 text-[#8C6B76]" />
                               <span>{res.phone}</span>
                             </div>
-                            <div className="flex items-center gap-1 text-gray-405 text-[11px]">
-                              <MapPin className="w-3 h-3 text-gray-405" />
+                            <div className="flex items-center gap-1 text-[#8C6B76] text-[11px]">
+                              <MapPin className="w-3 h-3 text-[#8C6B76]" />
                               <span className="truncate max-w-[200px]">
                                 {res.address}
                               </span>
@@ -670,7 +672,7 @@ export default function AdminDashboard() {
                             <button
                               id={`toggle-status-btn-${res.id}`}
                               onClick={() => handleToggleActive(res)}
-                              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] uppercase font-bold tracking-wider transition-all cursor-pointer ${
+                              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] uppercase font-bold tracking-wider transition-all cursor-pointer font-['Inter','Segoe UI',system-ui,sans-serif] ${
                                 res.isActive
                                   ? "bg-emerald-50 text-emerald-800 border-emerald-200"
                                   : "bg-rose-50 text-rose-800 border-rose-200"
@@ -699,7 +701,7 @@ export default function AdminDashboard() {
                                   setCurrentRestaurantId(res.id);
                                   navigate(`/restaurant/${res.slug}`);
                                 }}
-                                className="text-gray-400 hover:text-indigo-600 transition-colors p-1"
+                                className="text-[#8C6B76] hover:text-[#C42348] transition-colors p-1"
                                 title="Browse Customer storefront"
                               >
                                 <Eye className="w-4 h-4" />
@@ -711,7 +713,7 @@ export default function AdminDashboard() {
                                   setCurrentRestaurantId(res.id);
                                   navigate("/restaurant-dashboard");
                                 }}
-                                className="text-gray-400 hover:text-amber-500 transition-colors p-1"
+                                className="text-[#8C6B76] hover:text-[#E8A13B] transition-colors p-1"
                                 title="Open Kitchen Portal"
                               >
                                 <Settings className="w-4 h-4" />
@@ -721,7 +723,7 @@ export default function AdminDashboard() {
                               <button
                                 id={`edit-restaurant-${res.id}`}
                                 onClick={() => handleOpenEditRes(res)}
-                                className="text-gray-400 hover:text-gray-900 transition-colors p-1"
+                                className="text-[#8C6B76] hover:text-[#33101F] transition-colors p-1"
                                 title="Edit Onboarding Details"
                               >
                                 <Edit className="w-4 h-4" />
@@ -731,7 +733,7 @@ export default function AdminDashboard() {
                               <button
                                 id={`delete-restaurant-${res.id}`}
                                 onClick={() => handleDeleteRestaurant(res.id)}
-                                className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                                className="text-[#8C6B76] hover:text-[#C42348] transition-colors p-1"
                                 title="De-provision restaurant completely"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -744,7 +746,7 @@ export default function AdminDashboard() {
                         <tr>
                           <td
                             colSpan={5}
-                            className="text-center py-12 text-gray-400"
+                            className="text-center py-12 text-[#8C6B76]"
                           >
                             No restaurants created yet. Click "Provision
                             Restaurant" to add one.
@@ -767,12 +769,12 @@ export default function AdminDashboard() {
               exit={{ opacity: 0, y: -10 }}
               className="max-w-4xl mx-auto space-y-6"
             >
-              <div className="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 space-y-6">
-                <div className="border-b border-gray-150 pb-3">
-                  <h3 className="font-bold text-gray-900 text-sm">
+              <div className="bg-white border border-[#E7C7CF] rounded-2xl p-6 sm:p-8 space-y-6">
+                <div className="border-b border-[#E7C7CF] pb-3">
+                  <h3 className="font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] text-sm">
                     Merchant Subscription Plans
                   </h3>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">
                     Recurring cash bundles collected monthly from platform
                     businesses.
                   </p>
@@ -782,13 +784,13 @@ export default function AdminDashboard() {
                 <div className="bg-amber-50/70 border border-amber-250 rounded-xl p-4 flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="font-bold text-amber-950 text-xs flex items-center gap-1.5">
+                    <h4 className="font-bold text-amber-950 text-xs flex items-center gap-1.5 font-['Inter','Segoe UI',system-ui,sans-serif]">
                       <span>Planned for Future SaaS Release</span>
                       <span className="bg-amber-100 text-amber-800 text-[9px] px-2 py-0.5 rounded-full border border-amber-250 font-bold uppercase">
                         Prototype Preview
                       </span>
                     </h4>
-                    <p className="text-amber-800 text-[11px] mt-1 leading-relaxed">
+                    <p className="text-amber-800 text-[11px] mt-1 leading-relaxed font-['Inter','Segoe UI',system-ui,sans-serif]">
                       This subscription tiers panel manages recurring automated
                       payouts and platform commissions. This is a visual-only
                       mockup demonstrating future SaaS capabilities—all payment
@@ -799,31 +801,31 @@ export default function AdminDashboard() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
                   {/* Tier 1 */}
-                  <div className="border border-gray-200 rounded-xl p-5 space-y-4 bg-gray-50/50 opacity-75 flex flex-col justify-between">
+                  <div className="border border-[#E7C7CF] rounded-xl p-5 space-y-4 bg-[#FAF3EA]/50 opacity-75 flex flex-col justify-between">
                     <div>
-                      <span className="text-[10px] font-bold tracking-wider text-gray-500 uppercase">
+                      <span className="text-[10px] font-bold tracking-wider text-[#8C6B76] uppercase font-['Inter','Segoe UI',system-ui,sans-serif]">
                         Starter Tier
                       </span>
-                      <h4 className="text-lg font-bold text-gray-800 mt-1">
+                      <h4 className="text-lg font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] mt-1">
                         Single Outlet
                       </h4>
-                      <p className="text-[11px] text-gray-400 mt-1">
+                      <p className="text-[11px] text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                         Perfect for local boutique artisan cafes.
                       </p>
                     </div>
-                    <div className="pt-4 border-t border-gray-150">
-                      <div className="text-xl font-black text-gray-650">
+                    <div className="pt-4 border-t border-[#E7C7CF]">
+                      <div className="text-xl font-black text-[#33101F]">
                         $49
-                        <span className="text-xs text-gray-400 font-medium">
+                        <span className="text-xs text-[#8C6B76] font-medium">
                           /mo
                         </span>
                       </div>
-                      <span className="block text-[10px] text-gray-500 mt-1">
+                      <span className="block text-[10px] text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                         Included: 1 store slot, 2% order commission.
                       </span>
                       <button
                         disabled
-                        className="mt-4 w-full bg-gray-100 text-gray-400 border border-gray-200 text-[10px] font-bold uppercase tracking-wider py-2 px-3 rounded-lg cursor-not-allowed"
+                        className="mt-4 w-full bg-[#FAF3EA] text-[#8C6B76] border border-[#E7C7CF] text-[10px] font-bold uppercase tracking-wider py-2 px-3 rounded-lg cursor-not-allowed font-['Inter','Segoe UI',system-ui,sans-serif]"
                       >
                         Coming Soon
                       </button>
@@ -831,34 +833,34 @@ export default function AdminDashboard() {
                   </div>
 
                   {/* Tier 2 */}
-                  <div className="border border-gray-250 opacity-90 rounded-xl p-5 space-y-4 bg-white shadow-xs flex flex-col justify-between relative">
-                    <span className="absolute top-2.5 right-2.5 bg-gray-100 text-gray-600 font-bold text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  <div className="border border-[#E7C7CF] opacity-90 rounded-xl p-5 space-y-4 bg-white shadow-xs flex flex-col justify-between relative">
+                    <span className="absolute top-2.5 right-2.5 bg-[#C42348]/10 text-[#C42348] font-bold text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider font-['Inter','Segoe UI',system-ui,sans-serif]">
                       Popular
                     </span>
                     <div>
-                      <span className="text-[10px] font-bold tracking-wider text-indigo-500 uppercase">
+                      <span className="text-[10px] font-bold tracking-wider text-[#C42348] uppercase font-['Inter','Segoe UI',system-ui,sans-serif]">
                         Growth Plan
                       </span>
-                      <h4 className="text-lg font-bold text-gray-900 mt-1">
+                      <h4 className="text-lg font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] mt-1">
                         Pro Multi-Outlet
                       </h4>
-                      <p className="text-[11px] text-gray-400 mt-1">
+                      <p className="text-[11px] text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                         Designed for scaling fast casual concepts.
                       </p>
                     </div>
-                    <div className="pt-4 border-t border-gray-150">
-                      <div className="text-xl font-black text-indigo-600">
+                    <div className="pt-4 border-t border-[#E7C7CF]">
+                      <div className="text-xl font-black text-[#C42348]">
                         $99
-                        <span className="text-xs text-gray-400 font-medium">
+                        <span className="text-xs text-[#8C6B76] font-medium">
                           /mo
                         </span>
                       </div>
-                      <span className="block text-[10px] text-gray-500 mt-1">
+                      <span className="block text-[10px] text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                         Included: Up to 5 stores, 1% commission.
                       </span>
                       <button
                         disabled
-                        className="mt-4 w-full bg-gray-100 text-gray-400 border border-gray-200 text-[10px] font-bold uppercase tracking-wider py-2 px-3 rounded-lg cursor-not-allowed"
+                        className="mt-4 w-full bg-[#FAF3EA] text-[#8C6B76] border border-[#E7C7CF] text-[10px] font-bold uppercase tracking-wider py-2 px-3 rounded-lg cursor-not-allowed font-['Inter','Segoe UI',system-ui,sans-serif]"
                       >
                         Coming Soon
                       </button>
@@ -866,31 +868,31 @@ export default function AdminDashboard() {
                   </div>
 
                   {/* Tier 3 */}
-                  <div className="border border-gray-200 rounded-xl p-5 space-y-4 bg-gray-50/50 opacity-75 flex flex-col justify-between">
+                  <div className="border border-[#E7C7CF] rounded-xl p-5 space-y-4 bg-[#FAF3EA]/50 opacity-75 flex flex-col justify-between">
                     <div>
-                      <span className="text-[10px] font-bold tracking-wider text-gray-500 uppercase">
+                      <span className="text-[10px] font-bold tracking-wider text-[#8C6B76] uppercase font-['Inter','Segoe UI',system-ui,sans-serif]">
                         Enterprise
                       </span>
-                      <h4 className="text-lg font-bold text-gray-800 mt-1">
+                      <h4 className="text-lg font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] mt-1">
                         Franchise Collective
                       </h4>
-                      <p className="text-[11px] text-gray-400 mt-1">
+                      <p className="text-[11px] text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                         Unlimited scale for continental restaurant chains.
                       </p>
                     </div>
-                    <div className="pt-4 border-t border-gray-150">
-                      <div className="text-xl font-black text-gray-650">
+                    <div className="pt-4 border-t border-[#E7C7CF]">
+                      <div className="text-xl font-black text-[#33101F]">
                         $249
-                        <span className="text-xs text-gray-400 font-medium">
+                        <span className="text-xs text-[#8C6B76] font-medium">
                           /mo
                         </span>
                       </div>
-                      <span className="block text-[10px] text-gray-500 mt-1">
+                      <span className="block text-[10px] text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                         Included: Unlimited stores, 0% platform commission.
                       </span>
                       <button
                         disabled
-                        className="mt-4 w-full bg-gray-100 text-gray-400 border border-gray-200 text-[10px] font-bold uppercase tracking-wider py-2 px-3 rounded-lg cursor-not-allowed"
+                        className="mt-4 w-full bg-[#FAF3EA] text-[#8C6B76] border border-[#E7C7CF] text-[10px] font-bold uppercase tracking-wider py-2 px-3 rounded-lg cursor-not-allowed font-['Inter','Segoe UI',system-ui,sans-serif]"
                       >
                         Coming Soon
                       </button>
@@ -910,16 +912,16 @@ export default function AdminDashboard() {
               exit={{ opacity: 0, y: -10 }}
               className="max-w-4xl mx-auto space-y-6"
             >
-              <div className="bg-white border border-gray-250 p-6 sm:p-8 rounded-2xl space-y-6">
+              <div className="bg-white border border-[#E7C7CF] p-6 sm:p-8 rounded-2xl space-y-6">
                 <div className="flex items-center gap-4">
-                  <div className="bg-rose-50 text-rose-400 p-3 rounded-full flex-shrink-0 border border-rose-100">
+                  <div className="bg-[#C42348]/10 text-[#C42348] p-3 rounded-full flex-shrink-0 border border-[#C42348]/20">
                     <Heart className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-gray-900 text-sm">
+                    <h3 className="font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] text-sm">
                       Sub-Merchant Loyalty Programs
                     </h3>
-                    <p className="text-xs text-gray-500 mt-0.5">
+                    <p className="text-xs text-[#8C6B76] mt-0.5 font-['Inter','Segoe UI',system-ui,sans-serif]">
                       Let merchants activate customizable spin wheel or punch
                       card strategies.
                     </p>
@@ -930,13 +932,13 @@ export default function AdminDashboard() {
                 <div className="bg-amber-50/70 border border-amber-250 rounded-xl p-4 flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="font-bold text-amber-950 text-xs flex items-center gap-1.5">
+                    <h4 className="font-bold text-amber-950 text-xs flex items-center gap-1.5 font-['Inter','Segoe UI',system-ui,sans-serif]">
                       <span>Planned for Future SaaS Release</span>
                       <span className="bg-amber-100 text-amber-800 text-[9px] px-2 py-0.5 rounded-full border border-amber-250 font-bold uppercase">
                         Prototype Preview
                       </span>
                     </h4>
-                    <p className="text-amber-800 text-[11px] mt-1 leading-relaxed">
+                    <p className="text-amber-800 text-[11px] mt-1 leading-relaxed font-['Inter','Segoe UI',system-ui,sans-serif]">
                       Customizable loyalty spin wheels, user points punch cards,
                       and target reward engines are part of the future feature
                       roadmap. Merchants will be able to opt in and configure
@@ -946,20 +948,20 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <div className="bg-gray-50 rounded-xl p-6 border border-gray-150 relative overflow-hidden">
+                <div className="bg-[#FAF3EA] rounded-xl p-6 border border-[#E7C7CF] relative overflow-hidden">
                   <div className="space-y-4 filter blur-[1px] select-none pointer-events-none opacity-40">
-                    <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-                    <div className="h-10 bg-gray-200 rounded"></div>
+                    <div className="h-4 bg-[#E7C7CF] rounded w-1/4"></div>
+                    <div className="h-10 bg-[#E7C7CF] rounded"></div>
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="h-20 bg-gray-200 rounded"></div>
-                      <div className="h-20 bg-gray-200 rounded"></div>
+                      <div className="h-20 bg-[#E7C7CF] rounded"></div>
+                      <div className="h-20 bg-[#E7C7CF] rounded"></div>
                     </div>
                   </div>
                   <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center bg-transparent">
-                    <span className="bg-amber-150 text-amber-900 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-2 border border-amber-250 bg-amber-100 shadow-sm">
+                    <span className="bg-amber-150 text-amber-900 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-2 border border-amber-250 bg-amber-100 shadow-sm font-['Inter','Segoe UI',system-ui,sans-serif]">
                       Coming Soon
                     </span>
-                    <p className="text-xs text-gray-500 font-semibold">
+                    <p className="text-xs text-[#8C6B76] font-semibold font-['Inter','Segoe UI',system-ui,sans-serif]">
                       Interactive Points & Customer Rewards Admin Panel is
                       locked.
                     </p>
@@ -978,12 +980,12 @@ export default function AdminDashboard() {
               exit={{ opacity: 0, y: -10 }}
               className="max-w-xl mx-auto space-y-6"
             >
-              <div className="bg-white border border-gray-250 rounded-2xl p-6 space-y-6 text-xs font-semibold">
-                <div className="border-b border-gray-150 pb-2">
-                  <h3 className="font-bold text-gray-900 text-sm">
+              <div className="bg-white border border-[#E7C7CF] rounded-2xl p-6 space-y-6 text-xs font-semibold">
+                <div className="border-b border-[#E7C7CF] pb-2">
+                  <h3 className="font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] text-sm">
                     System Parameters
                   </h3>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">
                     Configure core web triggers, platform logo descriptors, and
                     API connections.
                   </p>
@@ -993,13 +995,13 @@ export default function AdminDashboard() {
                 <div className="bg-amber-50/70 border border-amber-250 rounded-xl p-4 flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="font-bold text-amber-950 text-xs flex items-center gap-1.5">
+                    <h4 className="font-bold text-amber-950 text-xs flex items-center gap-1.5 font-['Inter','Segoe UI',system-ui,sans-serif]">
                       <span>Planned for Future SaaS Release</span>
-                      <span className="bg-indigo-50 text-indigo-700 text-[9px] px-2 py-0.5 rounded-full border border-indigo-200 font-bold uppercase font-mono">
+                      <span className="bg-[#C42348]/10 text-[#C42348] text-[9px] px-2 py-0.5 rounded-full border border-[#C42348]/20 font-bold uppercase font-mono">
                         MVP ROOT LOCKED
                       </span>
                     </h4>
-                    <p className="text-amber-800 text-[11px] mt-1 leading-relaxed">
+                    <p className="text-amber-800 text-[11px] mt-1 leading-relaxed font-['Inter','Segoe UI',system-ui,sans-serif]">
                       Global platform-wide brand variables, custom SMTP hosts,
                       and commission settlements are configured at the sandbox
                       environment layer—making adjustments here is locked during
@@ -1010,25 +1012,25 @@ export default function AdminDashboard() {
 
                 <div className="space-y-3 opacity-60">
                   <div>
-                    <label className="block text-gray-700 mb-1">
+                    <label className="block text-[#33101F] mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                       Global Platform Branding Name
                     </label>
                     <input
                       type="text"
                       disabled
-                      value="Platform.com Online Order SaaS"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-xl bg-gray-50 text-gray-500 cursor-not-allowed"
+                      value="Hinarok Online Order SaaS"
+                      className="w-full px-3 py-2 border border-[#E7C7CF] rounded-xl bg-[#FAF3EA] text-[#8C6B76] cursor-not-allowed font-['Inter','Segoe UI',system-ui,sans-serif]"
                     />
                   </div>
                   <div>
-                    <label className="block text-gray-700 mb-1">
+                    <label className="block text-[#33101F] mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                       Master Settlement Commission fee (%)
                     </label>
                     <input
                       type="text"
                       disabled
                       value="2.00 %"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-xl bg-gray-50 text-gray-500 cursor-not-allowed"
+                      className="w-full px-3 py-2 border border-[#E7C7CF] rounded-xl bg-[#FAF3EA] text-[#8C6B76] cursor-not-allowed font-['Inter','Segoe UI',system-ui,sans-serif]"
                     />
                   </div>
                 </div>
@@ -1040,9 +1042,9 @@ export default function AdminDashboard() {
 
       {/* MERCHANDISING DIALOG PROVISION MODAL AREA */}
       {showResModal && (
-        <div className="fixed inset-0 z-50 bg-gray-900/40 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white border border-gray-200 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl my-8">
-            <div className="bg-gray-50 px-5 py-4 border-b border-gray-150 flex justify-between items-center text-sm font-bold text-gray-905">
+        <div className="fixed inset-0 z-50 bg-[#33101F]/40 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-[#E7C7CF] rounded-2xl w-full max-w-md overflow-hidden shadow-2xl my-8">
+            <div className="bg-[#FAF3EA] px-5 py-4 border-b border-[#E7C7CF] flex justify-between items-center text-sm font-bold text-[#33101F] font-['Inter','Segoe UI',system-ui,sans-serif]">
               <span>
                 {editingResId
                   ? "Edit Restaurant Parameters"
@@ -1054,7 +1056,7 @@ export default function AdminDashboard() {
                   setCreateSuccess(null);
                   setErrorMessage(null);
                 }}
-                className="text-gray-400 hover:text-gray-900 p-1 cursor-pointer"
+                className="text-[#8C6B76] hover:text-[#33101F] p-1 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1063,42 +1065,42 @@ export default function AdminDashboard() {
             {createSuccess ? (
               <div className="p-6 space-y-4">
                 <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
-                  <div className="flex items-center gap-2 text-emerald-700 font-bold text-sm">
+                  <div className="flex items-center gap-2 text-emerald-700 font-bold text-sm font-['Inter','Segoe UI',system-ui,sans-serif]">
                     <Check className="w-5 h-5" />
                     {createSuccess.message}
                   </div>
                 </div>
-                <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 space-y-2">
-                  <h4 className="text-xs font-bold text-indigo-900 uppercase tracking-wider">
+                <div className="bg-[#C42348]/10 border border-[#C42348]/20 rounded-xl p-4 space-y-2">
+                  <h4 className="text-xs font-bold text-[#C42348] uppercase tracking-wider font-['Inter','Segoe UI',system-ui,sans-serif]">
                     Owner Credentials
                   </h4>
-                  <div className="space-y-1 text-sm">
+                  <div className="space-y-1 text-sm font-['Inter','Segoe UI',system-ui,sans-serif]">
                     <p>
-                      <span className="font-semibold text-gray-600">
+                      <span className="font-semibold text-[#33101F]">
                         Email:
                       </span>{" "}
-                      <span className="font-mono text-indigo-700">
+                      <span className="font-mono text-[#C42348]">
                         {createSuccess.credentials?.email}
                       </span>
                     </p>
                     <p>
-                      <span className="font-semibold text-gray-600">
+                      <span className="font-semibold text-[#33101F]">
                         Password:
                       </span>{" "}
-                      <span className="font-mono text-indigo-700">
+                      <span className="font-mono text-[#C42348]">
                         {createSuccess.credentials?.password}
                       </span>
                     </p>
                     <p>
-                      <span className="font-semibold text-gray-600">
+                      <span className="font-semibold text-[#33101F]">
                         Login URL:
                       </span>{" "}
-                      <span className="font-mono text-indigo-700">
+                      <span className="font-mono text-[#C42348]">
                         {createSuccess.credentials?.loginUrl}
                       </span>
                     </p>
                   </div>
-                  <p className="text-[10px] text-gray-500 mt-2">
+                  <p className="text-[10px] text-[#8C6B76] mt-2 font-['Inter','Segoe UI',system-ui,sans-serif]">
                     ⚠️ Save these credentials now. The password won't be shown
                     again.
                   </p>
@@ -1106,7 +1108,7 @@ export default function AdminDashboard() {
                 <div className="flex gap-2">
                   <button
                     onClick={handleCloseSuccess}
-                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-bold text-sm"
+                    className="flex-1 bg-[#C42348] hover:bg-[#E84C6B] text-white px-4 py-2 rounded-lg font-bold text-sm font-['Inter','Segoe UI',system-ui,sans-serif]"
                   >
                     Done
                   </button>
@@ -1114,7 +1116,7 @@ export default function AdminDashboard() {
                     onClick={() => {
                       setCreateSuccess(null);
                     }}
-                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-bold text-sm"
+                    className="flex-1 bg-[#FAF3EA] hover:bg-[#E7C7CF] text-[#33101F] px-4 py-2 rounded-lg font-bold text-sm font-['Inter','Segoe UI',system-ui,sans-serif]"
                   >
                     Add Another
                   </button>
@@ -1126,13 +1128,13 @@ export default function AdminDashboard() {
                 className="p-5 space-y-4 text-xs font-medium max-h-[70vh] overflow-y-auto"
               >
                 {errorMessage && (
-                  <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-red-700 text-xs">
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-red-700 text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
                     {errorMessage}
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-gray-750 mb-1 font-bold">
+                  <label className="block text-[#33101F] mb-1 font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
                     Restaurant Operational Name
                   </label>
                   <input
@@ -1144,25 +1146,25 @@ export default function AdminDashboard() {
                       setResForm((prev) => ({ ...prev, name: e.target.value }))
                     }
                     placeholder="e.g. Taco Stand"
-                    className="w-full px-3 py-2 border border-gray-200 focus:border-indigo-600 rounded-xl focus:outline-none"
+                    className="w-full px-3 py-2 border border-[#E7C7CF] focus:border-[#C42348] rounded-xl focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif]"
                   />
                 </div>
 
                 {/* Real-time reactive subdomain generator feedback panel */}
-                <div className="bg-indigo-50 border border-indigo-150 rounded-xl p-3 text-indigo-805">
-                  <span className="block font-bold text-[10px] uppercase tracking-wider text-indigo-700">
+                <div className="bg-[#C42348]/10 border border-[#C42348]/20 rounded-xl p-3">
+                  <span className="block font-bold text-[10px] uppercase tracking-wider text-[#C42348] font-['Inter','Segoe UI',system-ui,sans-serif]">
                     Simulated Store URL mapping:
                   </span>
                   <span
                     id="subdomain-preview-badge"
-                    className="block text-xs font-mono font-bold mt-1 text-indigo-809 truncate"
+                    className="block text-xs font-mono font-bold mt-1 text-[#C42348] truncate"
                   >
                     https://{simulatedSubdomain}
                   </span>
                 </div>
 
                 <div>
-                  <label className="block text-gray-750 mb-1 font-bold">
+                  <label className="block text-[#33101F] mb-1 font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
                     Description Promo Caption
                   </label>
                   <textarea
@@ -1176,13 +1178,13 @@ export default function AdminDashboard() {
                     }
                     placeholder="e.g. Spicy street tacos served with slow-cooked carnitas..."
                     rows={2}
-                    className="w-full px-3 py-2 border border-gray-200 focus:border-indigo-600 rounded-xl focus:outline-none"
+                    className="w-full px-3 py-2 border border-[#E7C7CF] focus:border-[#C42348] rounded-xl focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif]"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-gray-750 mb-1 font-bold">
+                    <label className="block text-[#33101F] mb-1 font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
                       Store Phone Channel
                     </label>
                     <input
@@ -1197,11 +1199,11 @@ export default function AdminDashboard() {
                         }))
                       }
                       placeholder="+1 (555) 123-1122"
-                      className="w-full px-3 py-2 border border-gray-200 focus:border-indigo-600 rounded-xl focus:outline-none"
+                      className="w-full px-3 py-2 border border-[#E7C7CF] focus:border-[#C42348] rounded-xl focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif]"
                     />
                   </div>
                   <div>
-                    <label className="block text-gray-750 mb-1 font-bold">
+                    <label className="block text-[#33101F] mb-1 font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
                       Counter Address Coordinates
                     </label>
                     <input
@@ -1216,14 +1218,14 @@ export default function AdminDashboard() {
                         }))
                       }
                       placeholder="789 Taco Boulevard"
-                      className="w-full px-3 py-2 border border-gray-200 focus:border-indigo-600 rounded-xl focus:outline-none"
+                      className="w-full px-3 py-2 border border-[#E7C7CF] focus:border-[#C42348] rounded-xl focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif]"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-gray-750 mb-1 font-bold">
+                    <label className="block text-[#33101F] mb-1 font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
                       Square Logo picture (URL)
                     </label>
                     <input
@@ -1236,11 +1238,11 @@ export default function AdminDashboard() {
                           logo: e.target.value,
                         }))
                       }
-                      className="w-full px-3 py-2 border border-gray-200 focus:border-indigo-600 rounded-xl focus:outline-none"
+                      className="w-full px-3 py-2 border border-[#E7C7CF] focus:border-[#C42348] rounded-xl focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif]"
                     />
                   </div>
                   <div>
-                    <label className="block text-gray-750 mb-1 font-bold">
+                    <label className="block text-[#33101F] mb-1 font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
                       Cover Banner (URL)
                     </label>
                     <input
@@ -1253,7 +1255,7 @@ export default function AdminDashboard() {
                           coverImage: e.target.value,
                         }))
                       }
-                      className="w-full px-3 py-2 border border-gray-200 focus:border-indigo-600 rounded-xl focus:outline-none"
+                      className="w-full px-3 py-2 border border-[#E7C7CF] focus:border-[#C42348] rounded-xl focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif]"
                     />
                   </div>
                 </div>
@@ -1269,16 +1271,16 @@ export default function AdminDashboard() {
                         isActive: e.target.checked,
                       }))
                     }
-                    className="w-4 h-4 rounded text-indigo-600 accent-indigo-600"
+                    className="w-4 h-4 rounded text-[#C42348] accent-[#C42348]"
                   />
-                  <label className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">
+                  <label className="text-[#8C6B76] text-[10px] uppercase font-bold tracking-wider font-['Inter','Segoe UI',system-ui,sans-serif]">
                     Immediately open for public customer sales
                   </label>
                 </div>
 
                 {/* Owner Account Section */}
-                <div className="border-t border-gray-200 pt-4 mt-2">
-                  <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <div className="border-t border-[#E7C7CF] pt-4 mt-2">
+                  <h4 className="text-xs font-bold text-[#33101F] uppercase tracking-wider mb-3 flex items-center gap-2 font-['Inter','Segoe UI',system-ui,sans-serif]">
                     <User className="w-3.5 h-3.5" />
                     {isEditingMode
                       ? "Owner Information (View Only)"
@@ -1287,7 +1289,7 @@ export default function AdminDashboard() {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-gray-750 mb-1 font-bold text-[10px] uppercase tracking-wider">
+                      <label className="block text-[#33101F] mb-1 font-bold text-[10px] uppercase tracking-wider font-['Inter','Segoe UI',system-ui,sans-serif]">
                         Owner First Name
                       </label>
                       <input
@@ -1303,11 +1305,11 @@ export default function AdminDashboard() {
                         }
                         placeholder="John"
                         disabled={isEditingMode}
-                        className={`w-full px-3 py-2 border border-gray-200 focus:border-indigo-600 rounded-xl focus:outline-none text-sm ${isEditingMode ? "bg-gray-100 text-gray-500 cursor-not-allowed" : ""}`}
+                        className={`w-full px-3 py-2 border border-[#E7C7CF] focus:border-[#C42348] rounded-xl focus:outline-none text-sm font-['Inter','Segoe UI',system-ui,sans-serif] ${isEditingMode ? "bg-[#FAF3EA] text-[#8C6B76] cursor-not-allowed" : ""}`}
                       />
                     </div>
                     <div>
-                      <label className="block text-gray-750 mb-1 font-bold text-[10px] uppercase tracking-wider">
+                      <label className="block text-[#33101F] mb-1 font-bold text-[10px] uppercase tracking-wider font-['Inter','Segoe UI',system-ui,sans-serif]">
                         Owner Last Name
                       </label>
                       <input
@@ -1323,18 +1325,18 @@ export default function AdminDashboard() {
                         }
                         placeholder="Doe"
                         disabled={isEditingMode}
-                        className={`w-full px-3 py-2 border border-gray-200 focus:border-indigo-600 rounded-xl focus:outline-none text-sm ${isEditingMode ? "bg-gray-100 text-gray-500 cursor-not-allowed" : ""}`}
+                        className={`w-full px-3 py-2 border border-[#E7C7CF] focus:border-[#C42348] rounded-xl focus:outline-none text-sm font-['Inter','Segoe UI',system-ui,sans-serif] ${isEditingMode ? "bg-[#FAF3EA] text-[#8C6B76] cursor-not-allowed" : ""}`}
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 mt-2">
                     <div>
-                      <label className="block text-gray-750 mb-1 font-bold text-[10px] uppercase tracking-wider">
+                      <label className="block text-[#33101F] mb-1 font-bold text-[10px] uppercase tracking-wider font-['Inter','Segoe UI',system-ui,sans-serif]">
                         Owner Email
                       </label>
                       <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#8C6B76]" />
                         <input
                           id="owner-email-modal-input"
                           type="email"
@@ -1348,12 +1350,12 @@ export default function AdminDashboard() {
                           }
                           placeholder="owner@restaurant.com"
                           disabled={isEditingMode}
-                          className={`w-full px-8 py-2 border border-gray-200 focus:border-indigo-600 rounded-xl focus:outline-none text-sm ${isEditingMode ? "bg-gray-100 text-gray-500 cursor-not-allowed" : ""}`}
+                          className={`w-full px-8 py-2 border border-[#E7C7CF] focus:border-[#C42348] rounded-xl focus:outline-none text-sm font-['Inter','Segoe UI',system-ui,sans-serif] ${isEditingMode ? "bg-[#FAF3EA] text-[#8C6B76] cursor-not-allowed" : ""}`}
                         />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-gray-750 mb-1 font-bold text-[10px] uppercase tracking-wider">
+                      <label className="block text-[#33101F] mb-1 font-bold text-[10px] uppercase tracking-wider font-['Inter','Segoe UI',system-ui,sans-serif]">
                         Owner Phone
                       </label>
                       <input
@@ -1369,18 +1371,18 @@ export default function AdminDashboard() {
                         }
                         placeholder="+1 (555) 000-0000"
                         disabled={isEditingMode}
-                        className={`w-full px-3 py-2 border border-gray-200 focus:border-indigo-600 rounded-xl focus:outline-none text-sm ${isEditingMode ? "bg-gray-100 text-gray-500 cursor-not-allowed" : ""}`}
+                        className={`w-full px-3 py-2 border border-[#E7C7CF] focus:border-[#C42348] rounded-xl focus:outline-none text-sm font-['Inter','Segoe UI',system-ui,sans-serif] ${isEditingMode ? "bg-[#FAF3EA] text-[#8C6B76] cursor-not-allowed" : ""}`}
                       />
                     </div>
                   </div>
 
                   <div className="mt-2">
-                    <label className="block text-gray-750 mb-1 font-bold text-[10px] uppercase tracking-wider">
+                    <label className="block text-[#33101F] mb-1 font-bold text-[10px] uppercase tracking-wider font-['Inter','Segoe UI',system-ui,sans-serif]">
                       Owner Password
                     </label>
                     <div className="flex gap-2">
                       <div className="relative flex-1">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#8C6B76]" />
                         <input
                           id="owner-password-modal-input"
                           type="text"
@@ -1398,20 +1400,20 @@ export default function AdminDashboard() {
                               : "Auto-generated or custom password"
                           }
                           disabled={isEditingMode}
-                          className={`w-full px-8 py-2 border border-gray-200 focus:border-indigo-600 rounded-xl focus:outline-none text-sm font-mono ${isEditingMode ? "bg-gray-100 text-gray-500 cursor-not-allowed" : ""}`}
+                          className={`w-full px-8 py-2 border border-[#E7C7CF] focus:border-[#C42348] rounded-xl focus:outline-none text-sm font-mono ${isEditingMode ? "bg-[#FAF3EA] text-[#8C6B76] cursor-not-allowed" : ""}`}
                         />
                       </div>
                       {!isEditingMode && (
                         <button
                           type="button"
                           onClick={generatePassword}
-                          className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-semibold whitespace-nowrap"
+                          className="px-3 py-2 bg-[#FAF3EA] hover:bg-[#E7C7CF] text-[#33101F] rounded-xl text-xs font-semibold whitespace-nowrap font-['Inter','Segoe UI',system-ui,sans-serif]"
                         >
                           Generate
                         </button>
                       )}
                     </div>
-                    <p className="text-[10px] text-gray-400 mt-1">
+                    <p className="text-[10px] text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                       {isEditingMode
                         ? "Password is masked for security. To change, contact the restaurant owner directly."
                         : "Give this password to the restaurant owner for login"}
@@ -1419,7 +1421,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <div className="flex gap-2 justify-end pt-3 border-t border-gray-200">
+                <div className="flex gap-2 justify-end pt-3 border-t border-[#E7C7CF]">
                   <button
                     type="button"
                     onClick={() => {
@@ -1427,7 +1429,7 @@ export default function AdminDashboard() {
                       setCreateSuccess(null);
                       setErrorMessage(null);
                     }}
-                    className="bg-gray-100 hover:bg-gray-250 text-gray-600 px-4 py-2 rounded-lg cursor-pointer font-bold"
+                    className="bg-[#FAF3EA] hover:bg-[#E7C7CF] text-[#33101F] px-4 py-2 rounded-lg cursor-pointer font-bold font-['Inter','Segoe UI',system-ui,sans-serif]"
                   >
                     Cancel
                   </button>
@@ -1435,7 +1437,7 @@ export default function AdminDashboard() {
                     id="save-res-modal-submit"
                     type="submit"
                     disabled={isSubmitting}
-                    className={`bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg cursor-pointer font-bold ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
+                    className={`bg-[#C42348] hover:bg-[#E84C6B] text-white px-4 py-2 rounded-lg cursor-pointer font-bold font-['Inter','Segoe UI',system-ui,sans-serif] ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
                     {isSubmitting
                       ? "Saving..."

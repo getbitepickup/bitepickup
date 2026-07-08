@@ -3,7 +3,7 @@ const logger = require('../utils/logger');
 
 /**
  * Email service for sending transactional emails
- * Currently configured for development/testing
+ * Configured for both development and production
  */
 
 // Create transporter based on environment
@@ -47,7 +47,7 @@ const transporter = createTransporter();
 const sendEmail = async ({ to, subject, html, text }) => {
   try {
     const mailOptions = {
-      from: process.env.EMAIL_FROM || 'noreply@bitepickup.com',
+      from: process.env.EMAIL_FROM || 'noreply@hinarok.com',
       to,
       subject,
       html,
@@ -67,16 +67,43 @@ const sendEmail = async ({ to, subject, html, text }) => {
  * Send welcome email to new user
  */
 const sendWelcomeEmail = async (user) => {
-  const subject = 'Welcome to BitePickup!';
+  const subject = 'Welcome to Hinarok!';
   const html = `
-    <h1>Welcome to BitePickup, ${user.firstName}!</h1>
-    <p>We're excited to have you on board.</p>
-    <p>Your account has been created successfully.</p>
-    <p>Email: ${user.email}</p>
-    <p>Role: ${user.role}</p>
-    <br>
-    <p>Best regards,</p>
-    <p>The BitePickup Team</p>
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f9f9f9;">
+      <div style="background:#fff;border-radius:12px;padding:30px;box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+        <div style="text-align:center;margin-bottom:24px;">
+          <h1 style="color:#C42348;margin:0;">hinarok</h1>
+          <p style="color:#666;margin:4px 0 0;">pickup ordering</p>
+        </div>
+        
+        <h2 style="color:#33101F;margin:0 0 8px;">Welcome to Hinarok, ${user.firstName}! 🎉</h2>
+        <p style="color:#666;">We're excited to have you on board.</p>
+        <p style="color:#666;">Your account has been created successfully.</p>
+        
+        <div style="background:#FAF3EA;border-radius:8px;padding:16px;margin:20px 0;">
+          <p style="margin:4px 0;font-size:14px;color:#33101F;">
+            <strong>Email:</strong> ${user.email}
+          </p>
+          <p style="margin:4px 0;font-size:14px;color:#33101F;">
+            <strong>Role:</strong> ${user.role}
+          </p>
+        </div>
+        
+        <p style="color:#666;">You can now log in and start managing your restaurant.</p>
+        
+        <div style="text-align:center;margin:24px 0;">
+          <a href="${process.env.CLIENT_URL}/login" style="display:inline-block;background:#C42348;color:#fff;padding:12px 32px;border-radius:999px;text-decoration:none;font-weight:bold;">
+            Go to Dashboard
+          </a>
+        </div>
+        
+        <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
+        
+        <p style="color:#999;font-size:12px;text-align:center;margin:0;">
+          Powered by <strong style="color:#C42348;">hinarok</strong>
+        </p>
+      </div>
+    </div>
   `;
 
   return sendEmail({
@@ -91,17 +118,35 @@ const sendWelcomeEmail = async (user) => {
  */
 const sendPasswordResetEmail = async (user, resetToken) => {
   const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`;
-  const subject = 'Reset Your BitePickup Password';
+  const subject = 'Reset Your Hinarok Password';
   const html = `
-    <h1>Password Reset Request</h1>
-    <p>Hi ${user.firstName},</p>
-    <p>You requested to reset your password. Click the link below to reset it:</p>
-    <a href="${resetUrl}" style="display:inline-block;padding:10px 20px;background:#f59e0b;color:#000;text-decoration:none;border-radius:5px;">Reset Password</a>
-    <p>This link will expire in 1 hour.</p>
-    <p>If you didn't request this, please ignore this email.</p>
-    <br>
-    <p>Best regards,</p>
-    <p>The BitePickup Team</p>
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f9f9f9;">
+      <div style="background:#fff;border-radius:12px;padding:30px;box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+        <div style="text-align:center;margin-bottom:24px;">
+          <h1 style="color:#C42348;margin:0;">hinarok</h1>
+          <p style="color:#666;margin:4px 0 0;">pickup ordering</p>
+        </div>
+        
+        <h2 style="color:#33101F;margin:0 0 8px;">Password Reset Request</h2>
+        <p style="color:#666;">Hi ${user.firstName},</p>
+        <p style="color:#666;">You requested to reset your password. Click the link below to reset it:</p>
+        
+        <div style="text-align:center;margin:24px 0;">
+          <a href="${resetUrl}" style="display:inline-block;background:#E8A13B;color:#33101F;padding:12px 32px;border-radius:999px;text-decoration:none;font-weight:bold;">
+            Reset Password
+          </a>
+        </div>
+        
+        <p style="color:#666;font-size:13px;">This link will expire in 1 hour.</p>
+        <p style="color:#666;font-size:13px;">If you didn't request this, please ignore this email.</p>
+        
+        <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
+        
+        <p style="color:#999;font-size:12px;text-align:center;margin:0;">
+          Powered by <strong style="color:#C42348;">hinarok</strong>
+        </p>
+      </div>
+    </div>
   `;
 
   return sendEmail({
@@ -115,74 +160,203 @@ const sendPasswordResetEmail = async (user, resetToken) => {
  * Send order confirmation email to customer
  */
 const sendOrderConfirmationEmail = async (order) => {
+  // Skip if no email provided
+  if (!order.customerEmail) {
+    logger.info(`No email provided for order ${order.orderReference}, skipping confirmation email`);
+    return null;
+  }
+
   const subject = `Order Confirmation #${order.orderReference}`;
   
   // Build order items list
   const itemsList = order.items.map(item => `
     <tr>
-      <td>${item.quantity}x ${item.name}</td>
-      <td>$${(item.price * item.quantity).toFixed(2)}</td>
+      <td style="padding:8px;border-bottom:1px solid #eee;">${item.quantity}x ${item.name}</td>
+      <td style="padding:8px;border-bottom:1px solid #eee;text-align:right;">$${(item.price * item.quantity).toFixed(2)}</td>
     </tr>
   `).join('');
 
   const html = `
-    <h1>Order Confirmation</h1>
-    <p>Hi ${order.customerName},</p>
-    <p>Your order has been received and is being prepared.</p>
-    
-    <h2>Order Details</h2>
-    <p><strong>Order #:</strong> ${order.orderReference}</p>
-    <p><strong>Status:</strong> ${order.status}</p>
-    <p><strong>Pickup Time:</strong> ${order.pickupTimeOption === 'ASAP' ? 'ASAP' : order.scheduledTime}</p>
-    
-    <h3>Items:</h3>
-    <table style="width:100%;border-collapse:collapse;">
-      <tr style="background:#f3f4f6;">
-        <th style="padding:8px;text-align:left;">Item</th>
-        <th style="padding:8px;text-align:right;">Total</th>
-      </tr>
-      ${itemsList}
-      <tr style="border-top:2px solid #000;">
-        <td style="padding:8px;"><strong>Subtotal</strong></td>
-        <td style="padding:8px;text-align:right;">$${order.subtotal.toFixed(2)}</td>
-      </tr>
-      <tr>
-        <td style="padding:8px;">Tax</td>
-        <td style="padding:8px;text-align:right;">$${order.taxAmount.toFixed(2)}</td>
-      </tr>
-      <tr>
-        <td style="padding:8px;">Service Fee</td>
-        <td style="padding:8px;text-align:right;">$${order.serviceFee.toFixed(2)}</td>
-      </tr>
-      <tr style="font-weight:bold;">
-        <td style="padding:8px;">Total</td>
-        <td style="padding:8px;text-align:right;">$${order.totalPrice.toFixed(2)}</td>
-      </tr>
-    </table>
-    
-    ${order.specialInstructions ? `<p><strong>Special Instructions:</strong> ${order.specialInstructions}</p>` : ''}
-    
-    <p><strong>Payment Method:</strong> ${order.paymentMethod === 'online' ? 'Paid Online' : 'Pay at Pickup'}</p>
-    
-    <br>
-    <p>Thank you for ordering with ${order.restaurantName}!</p>
-    <p>Track your order: ${process.env.CLIENT_URL}/track/${order.orderReference}</p>
-    <br>
-    <p>Best regards,</p>
-    <p>The BitePickup Team</p>
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f9f9f9;">
+      <div style="background:#fff;border-radius:12px;padding:30px;box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+        <div style="text-align:center;margin-bottom:24px;">
+          <h1 style="color:#C42348;margin:0;">hinarok</h1>
+          <p style="color:#666;margin:4px 0 0;">pickup ordering</p>
+        </div>
+        
+        <div style="background:#EFF8EE;border-radius:8px;padding:12px;text-align:center;margin-bottom:20px;">
+          <p style="margin:0;font-size:14px;color:#2E6B34;font-weight:600;">✅ Order Confirmed!</p>
+        </div>
+        
+        <h2 style="color:#33101F;margin:0 0 8px;">Hi ${order.customerName},</h2>
+        <p style="color:#666;margin:0 0 4px;">Your order from <strong>${order.restaurantName}</strong> has been received and is being prepared.</p>
+        
+        <div style="background:#FAF3EA;border-radius:8px;padding:16px;margin:20px 0;">
+          <p style="margin:4px 0;font-size:14px;color:#33101F;">
+            <strong>Order #:</strong> ${order.orderReference}
+          </p>
+          <p style="margin:4px 0;font-size:14px;color:#33101F;">
+            <strong>Pickup Time:</strong> ${order.pickupTimeOption === 'ASAP' ? 'ASAP (15-20 min)' : order.scheduledTime}
+          </p>
+          <p style="margin:4px 0;font-size:14px;color:#33101F;">
+            <strong>Restaurant:</strong> ${order.restaurantName}
+          </p>
+        </div>
+        
+        <h3 style="color:#33101F;margin:20px 0 12px;">Order Items</h3>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+          <thead>
+            <tr style="background:#f3f3f3;">
+              <th style="padding:10px;text-align:left;font-size:13px;">Item</th>
+              <th style="padding:10px;text-align:right;font-size:13px;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsList}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td style="padding:10px;font-weight:bold;">Subtotal</td>
+              <td style="padding:10px;text-align:right;font-weight:bold;">$${order.subtotal.toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td style="padding:4px 10px;">Tax</td>
+              <td style="padding:4px 10px;text-align:right;">$${order.taxAmount.toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td style="padding:4px 10px;">Service Fee</td>
+              <td style="padding:4px 10px;text-align:right;">$${order.serviceFee.toFixed(2)}</td>
+            </tr>
+            <tr style="font-size:18px;">
+              <td style="padding:10px;font-weight:bold;">Total</td>
+              <td style="padding:10px;text-align:right;font-weight:bold;color:#C42348;">$${order.totalPrice.toFixed(2)}</td>
+            </tr>
+          </tfoot>
+        </table>
+        
+        ${order.specialInstructions ? `
+          <div style="background:#FFF1E4;border-radius:8px;padding:12px;margin:16px 0;">
+            <p style="margin:0;font-size:13px;color:#33101F;">
+              <strong>Special Instructions:</strong> "${order.specialInstructions}"
+            </p>
+          </div>
+        ` : ''}
+        
+        <div style="background:#FAF3EA;border-radius:8px;padding:12px;text-align:center;margin:16px 0;">
+          <p style="margin:0;font-size:14px;color:#33101F;">
+            📍 Pickup at: <strong>${order.restaurantName}</strong>
+          </p>
+        </div>
+        
+        <p style="color:#666;font-size:13px;margin:20px 0 8px;">
+          You'll receive another email when your order is ready for pickup.
+        </p>
+        
+        <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
+        
+        <p style="color:#999;font-size:12px;text-align:center;margin:0;">
+          Thank you for ordering with ${order.restaurantName}!<br />
+          Powered by <strong style="color:#C42348;">hinarok</strong>
+        </p>
+      </div>
+    </div>
   `;
 
-  return sendEmail({
-    to: order.customerEmail || order.customerPhone + '@example.com',
-    subject,
-    html,
-  });
+  try {
+    const info = await sendEmail({
+      to: order.customerEmail,
+      subject,
+      html,
+    });
+    logger.info(`Order confirmation email sent to ${order.customerEmail}: ${info.messageId}`);
+    return info;
+  } catch (error) {
+    logger.error(`Failed to send order confirmation email: ${error.message}`);
+    // Don't throw - we don't want to fail the order if email fails
+    return null;
+  }
 };
 
 /**
- * Send order status update email
+ * Send order ready notification email
+ */
+const sendOrderReadyEmail = async (order) => {
+  // Skip if no email provided
+  if (!order.customerEmail) {
+    logger.info(`No email provided for order ${order.orderReference}, skipping ready email`);
+    return null;
+  }
+
+  const subject = `Your order is ready for pickup! #${order.orderReference}`;
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f9f9f9;">
+      <div style="background:#fff;border-radius:12px;padding:30px;box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+        <div style="text-align:center;margin-bottom:24px;">
+          <h1 style="color:#C42348;margin:0;">hinarok</h1>
+          <p style="color:#666;margin:4px 0 0;">pickup ordering</p>
+        </div>
+        
+        <div style="background:#EFF8EE;border-radius:12px;padding:20px;text-align:center;margin-bottom:20px;">
+          <h2 style="color:#2E6B34;margin:0;">✅ Order Ready for Pickup!</h2>
+        </div>
+        
+        <h2 style="color:#33101F;margin:0 0 8px;">Hi ${order.customerName},</h2>
+        <p style="color:#666;margin:0 0 4px;">Your order from <strong>${order.restaurantName}</strong> is now <strong style="color:#2E6B34;">ready for pickup</strong>!</p>
+        
+        <div style="background:#FAF3EA;border-radius:8px;padding:16px;margin:20px 0;">
+          <p style="margin:4px 0;font-size:14px;color:#33101F;">
+            <strong>Order #:</strong> ${order.orderReference}
+          </p>
+          <p style="margin:4px 0;font-size:14px;color:#33101F;">
+            <strong>Restaurant:</strong> ${order.restaurantName}
+          </p>
+          <p style="margin:4px 0;font-size:14px;color:#33101F;">
+            <strong>Pickup Time:</strong> ${order.pickupTimeOption === 'ASAP' ? 'ASAP' : order.scheduledTime}
+          </p>
+        </div>
+        
+        <div style="background:#FFF1E4;border-radius:8px;padding:12px;text-align:center;margin:16px 0;">
+          <p style="margin:0;font-size:14px;color:#33101F;font-weight:600;">
+            📍 Head to the restaurant to grab your order!
+          </p>
+        </div>
+        
+        <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
+        
+        <p style="color:#999;font-size:12px;text-align:center;margin:0;">
+          Thank you for ordering with ${order.restaurantName}!<br />
+          Powered by <strong style="color:#C42348;">hinarok</strong>
+        </p>
+      </div>
+    </div>
+  `;
+
+  try {
+    const info = await sendEmail({
+      to: order.customerEmail,
+      subject,
+      html,
+    });
+    logger.info(`Order ready email sent to ${order.customerEmail}: ${info.messageId}`);
+    return info;
+  } catch (error) {
+    logger.error(`Failed to send order ready email: ${error.message}`);
+    // Don't throw - we don't want to fail the order if email fails
+    return null;
+  }
+};
+
+/**
+ * Send order status update email (generic)
  */
 const sendOrderStatusUpdateEmail = async (order) => {
+  // Skip if no email provided
+  if (!order.customerEmail) {
+    logger.info(`No email provided for order ${order.orderReference}, skipping status update email`);
+    return null;
+  }
+
   const subject = `Order #${order.orderReference} Status Update`;
   const statusMessages = {
     'NEW': 'has been received and is being prepared.',
@@ -192,23 +366,47 @@ const sendOrderStatusUpdateEmail = async (order) => {
   };
 
   const html = `
-    <h1>Order Status Update</h1>
-    <p>Hi ${order.customerName},</p>
-    <p>Your order #${order.orderReference} ${statusMessages[order.status] || 'has been updated.'}</p>
-    <p><strong>Current Status:</strong> ${order.status}</p>
-    <p><strong>Restaurant:</strong> ${order.restaurantName}</p>
-    <br>
-    <p>Track your order: ${process.env.CLIENT_URL}/track/${order.orderReference}</p>
-    <br>
-    <p>Best regards,</p>
-    <p>The BitePickup Team</p>
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f9f9f9;">
+      <div style="background:#fff;border-radius:12px;padding:30px;box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+        <div style="text-align:center;margin-bottom:24px;">
+          <h1 style="color:#C42348;margin:0;">hinarok</h1>
+          <p style="color:#666;margin:4px 0 0;">pickup ordering</p>
+        </div>
+        
+        <h2 style="color:#33101F;margin:0 0 8px;">Order Status Update</h2>
+        <p style="color:#666;">Hi ${order.customerName},</p>
+        <p style="color:#666;">Your order #${order.orderReference} ${statusMessages[order.status] || 'has been updated.'}</p>
+        
+        <div style="background:#FAF3EA;border-radius:8px;padding:16px;margin:20px 0;">
+          <p style="margin:4px 0;font-size:14px;color:#33101F;">
+            <strong>Current Status:</strong> ${order.status}
+          </p>
+          <p style="margin:4px 0;font-size:14px;color:#33101F;">
+            <strong>Restaurant:</strong> ${order.restaurantName}
+          </p>
+        </div>
+        
+        <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
+        
+        <p style="color:#999;font-size:12px;text-align:center;margin:0;">
+          Powered by <strong style="color:#C42348;">hinarok</strong>
+        </p>
+      </div>
+    </div>
   `;
 
-  return sendEmail({
-    to: order.customerEmail || order.customerPhone + '@example.com',
-    subject,
-    html,
-  });
+  try {
+    const info = await sendEmail({
+      to: order.customerEmail,
+      subject,
+      html,
+    });
+    logger.info(`Order status update email sent to ${order.customerEmail}: ${info.messageId}`);
+    return info;
+  } catch (error) {
+    logger.error(`Failed to send order status update email: ${error.message}`);
+    return null;
+  }
 };
 
 module.exports = {
@@ -216,5 +414,6 @@ module.exports = {
   sendWelcomeEmail,
   sendPasswordResetEmail,
   sendOrderConfirmationEmail,
+  sendOrderReadyEmail,
   sendOrderStatusUpdateEmail,
 };

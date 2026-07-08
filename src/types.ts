@@ -37,7 +37,7 @@ export interface Restaurant {
   address: string;
   isActive: boolean;
   
-  // Custom Settings ADDED
+  // Custom Settings
   isOrderingPaused?: boolean;
   businessHours?: BusinessHours;
   pickupSettings?: PickupSettings;
@@ -60,7 +60,7 @@ export interface MenuItem {
   image: string;
   isAvailable: boolean;
   
-  // Custom Settings ADDED
+  // Custom Settings
   availability?: 'available' | 'out_of_stock' | 'hidden';
 }
 
@@ -78,6 +78,7 @@ export interface Order {
   restaurantName: string;
   customerName: string;
   customerPhone: string;
+  customerEmail?: string; // NEW: Added for email notifications
   items: OrderItem[];
   totalPrice: number;
   pickupTimeOption: 'ASAP' | 'scheduled';
@@ -86,11 +87,12 @@ export interface Order {
   status: 'NEW' | 'PREPARING' | 'READY' | 'COMPLETED';
   timestamp: string;
   
-  // Custom Settings ADDED
+  // Custom Settings
   specialInstructions?: string;
   taxAmount?: number;
   serviceFee?: number;
   finalTotal?: number;
+  orderReference?: string; // NEW: Added for tracking
 }
 
 export interface CartItem {
@@ -99,4 +101,19 @@ export interface CartItem {
   price: number;
   quantity: number;
   image?: string;
+}
+
+// User related types
+export interface User {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  role: 'admin' | 'restaurant_owner' | 'customer';
+  restaurantId?: string;
+  isActive: boolean;
+  lastLogin?: string;
+  createdAt: string;
+  updatedAt: string;
 }

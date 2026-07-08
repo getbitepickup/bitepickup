@@ -360,17 +360,17 @@ export default function RestaurantDashboard() {
     }
   }, [currentRestaurant?.id]);
 
-  // Status color mapping
+  // Status color mapping - Updated to Hinarok palette
   const getStatusColor = (status: string) => {
     switch (status) {
       case "NEW":
-        return "bg-rose-100 text-rose-700 border-rose-200";
+        return "bg-[#C42348]/20 text-[#C42348] border-[#C42348]/30";
       case "PREPARING":
-        return "bg-amber-100 text-amber-700 border-amber-200";
+        return "bg-[#E8A13B]/20 text-[#E8A13B] border-[#E8A13B]/30";
       case "READY":
         return "bg-emerald-100 text-emerald-700 border-emerald-200";
       case "COMPLETED":
-        return "bg-blue-100 text-blue-700 border-blue-200";
+        return "bg-[#33101F]/20 text-[#33101F] border-[#33101F]/30";
       default:
         return "bg-gray-100 text-gray-700 border-gray-200";
     }
@@ -634,19 +634,21 @@ export default function RestaurantDashboard() {
 
   if (loading || authLoading) {
     return (
-      <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500"></div>
+      <div className="min-h-screen bg-[#FAF3EA] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C42348]"></div>
       </div>
     );
   }
 
   if (!currentRestaurant) {
     return (
-      <div className="min-h-screen bg-neutral-950 text-white flex items-center justify-center p-6 text-center">
+      <div className="min-h-screen bg-[#FAF3EA] text-[#33101F] flex items-center justify-center p-6 text-center">
         <div>
-          <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto mb-3" />
-          <h2 className="text-xl font-bold">No Restaurant Found</h2>
-          <p className="text-gray-400 text-xs mt-1 max-w-sm">
+          <AlertTriangle className="w-12 h-12 text-[#C42348] mx-auto mb-3" />
+          <h2 className="text-xl font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F]">
+            No Restaurant Found
+          </h2>
+          <p className="text-[#8C6B76] text-xs mt-1 max-w-sm font-['Inter','Segoe UI',system-ui,sans-serif]">
             {user?.role === "restaurant_owner"
               ? "You do not have a restaurant assigned to your account. Please contact the platform administrator."
               : "Please select a restaurant from the admin panel first."}
@@ -654,14 +656,14 @@ export default function RestaurantDashboard() {
           {user?.role === "admin" ? (
             <button
               onClick={() => navigate("/admin")}
-              className="mt-4 bg-amber-500 hover:bg-amber-600 text-neutral-950 px-6 py-2 rounded-lg font-semibold"
+              className="mt-4 bg-[#C42348] hover:bg-[#E84C6B] text-white px-6 py-2 rounded-lg font-semibold font-['Inter','Segoe UI',system-ui,sans-serif]"
             >
               Go to Admin Panel
             </button>
           ) : (
             <button
               onClick={() => navigate("/")}
-              className="mt-4 bg-amber-500 hover:bg-amber-600 text-neutral-950 px-6 py-2 rounded-lg font-semibold"
+              className="mt-4 bg-[#C42348] hover:bg-[#E84C6B] text-white px-6 py-2 rounded-lg font-semibold font-['Inter','Segoe UI',system-ui,sans-serif]"
             >
               Go to Home
             </button>
@@ -680,11 +682,11 @@ export default function RestaurantDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-gray-100 font-sans pb-16">
+    <div className="min-h-screen bg-[#FAF3EA] text-[#33101F] font-['Inter','Segoe UI',system-ui,sans-serif] pb-16">
       {/* Dynamic Sub-header Context Banner */}
-      <div className="bg-neutral-900 border-b border-neutral-800 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white border-b border-[#E7C7CF] px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-neutral-800 border border-neutral-700 overflow-hidden flex-shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-[#FAF3EA] border border-[#E7C7CF] overflow-hidden flex-shrink-0">
             <img
               referrerPolicy="no-referrer"
               src={currentRestaurant.logo}
@@ -694,17 +696,17 @@ export default function RestaurantDashboard() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-bold text-white tracking-tight">
+              <h2 className="text-lg font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] tracking-tight">
                 {currentRestaurant.name} Dashboard
               </h2>
               <span
-                className={`h-2.5 w-2.5 rounded-full ${currentRestaurant.isActive ? "bg-emerald-500" : "bg-red-500"}`}
+                className={`h-2.5 w-2.5 rounded-full ${currentRestaurant.isActive ? "bg-emerald-500" : "bg-[#C42348]"}`}
                 title={
                   currentRestaurant.isActive ? "Active Store" : "Inactive Store"
                 }
               ></span>
             </div>
-            <p className="text-xs text-neutral-400">
+            <p className="text-xs text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">
               Manage order feeds, categories, menu pricing, and graphics layout.
             </p>
           </div>
@@ -713,7 +715,7 @@ export default function RestaurantDashboard() {
 
       {/* Tabs list */}
       <div className="max-w-7xl mx-auto px-6 mt-6">
-        <div className="flex border-b border-neutral-800 overflow-x-auto">
+        <div className="flex border-b border-[#E7C7CF] overflow-x-auto">
           {[
             {
               id: "orders",
@@ -736,15 +738,15 @@ export default function RestaurantDashboard() {
               id={`tab-${tab.id}`}
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+              className={`px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap font-['Inter','Segoe UI',system-ui,sans-serif] ${
                 activeTab === tab.id
-                  ? "border-amber-500 text-amber-400"
-                  : "border-transparent text-neutral-400 hover:text-neutral-200"
+                  ? "border-[#C42348] text-[#C42348]"
+                  : "border-transparent text-[#8C6B76] hover:text-[#33101F]"
               }`}
             >
               <span>{tab.label}</span>
               {tab.badge !== undefined && tab.badge > 0 && (
-                <span className="bg-neutral-800 text-amber-400 text-[10px] py-0.5 px-2 rounded-full border border-neutral-700">
+                <span className="bg-[#FAF3EA] text-[#C42348] text-[10px] py-0.5 px-2 rounded-full border border-[#E7C7CF]">
                   {tab.badge}
                 </span>
               )}
@@ -771,35 +773,35 @@ export default function RestaurantDashboard() {
                     label: "Unread / New",
                     count: newOrders.length,
                     color:
-                      "border-l-4 border-rose-500 bg-rose-950/25 text-rose-400",
+                      "border-l-4 border-[#C42348] bg-[#C42348]/10 text-[#C42348]",
                   },
                   {
                     label: "Cooking",
                     count: preparingOrders.length,
                     color:
-                      "border-l-4 border-amber-500 bg-amber-950/25 text-amber-400",
+                      "border-l-4 border-[#E8A13B] bg-[#E8A13B]/10 text-[#E8A13B]",
                   },
                   {
                     label: "Awaiting Pickup",
                     count: readyOrders.length,
                     color:
-                      "border-l-4 border-emerald-500 bg-emerald-950/25 text-emerald-400",
+                      "border-l-4 border-emerald-500 bg-emerald-500/10 text-emerald-500",
                   },
                   {
                     label: "Total Historical Orders",
                     count: activeRestaurantOrders.length,
                     color:
-                      "border-l-4 border-neutral-700 bg-neutral-900/40 text-neutral-400",
+                      "border-l-4 border-[#E7C7CF] bg-white/40 text-[#8C6B76]",
                   },
                 ].map((stat, idx) => (
                   <div
                     key={idx}
-                    className={`p-4 rounded-xl border border-neutral-800/80 ${stat.color}`}
+                    className={`p-4 rounded-xl border border-[#E7C7CF] ${stat.color}`}
                   >
-                    <div className="text-[10px] font-bold uppercase tracking-wider opacity-80">
+                    <div className="text-[10px] font-bold uppercase tracking-wider opacity-80 font-['Inter','Segoe UI',system-ui,sans-serif]">
                       {stat.label}
                     </div>
-                    <div className="text-2xl font-extrabold mt-1">
+                    <div className="text-2xl font-['Baloo_2','Trebuchet_MS',sans-serif] font-extrabold mt-1">
                       {stat.count}
                     </div>
                   </div>
@@ -809,15 +811,15 @@ export default function RestaurantDashboard() {
               {/* Kitchen Pipeline Board */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* COLUMN 1: NEW INCOMING ORDERS */}
-                <div className="bg-neutral-900/50 rounded-2xl border border-neutral-800 p-4 min-h-[500px]">
-                  <div className="flex items-center justify-between pb-3 border-b border-neutral-800 mb-4">
+                <div className="bg-white/50 rounded-2xl border border-[#E7C7CF] p-4 min-h-[500px]">
+                  <div className="flex items-center justify-between pb-3 border-b border-[#E7C7CF] mb-4">
                     <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span>
-                      <h3 className="font-bold text-white text-sm">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#C42348] animate-pulse"></span>
+                      <h3 className="font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] text-sm">
                         NEW INCOMING FEED
                       </h3>
                     </div>
-                    <span className="text-[10px] font-bold bg-rose-950 text-rose-400 px-2 py-0.5 rounded-md border border-rose-800">
+                    <span className="text-[10px] font-bold bg-[#C42348]/10 text-[#C42348] px-2 py-0.5 rounded-md border border-[#C42348]/20 font-['Inter','Segoe UI',system-ui,sans-serif]">
                       {newOrders.length} ticket
                       {newOrders.length !== 1 ? "s" : ""}
                     </span>
@@ -825,27 +827,29 @@ export default function RestaurantDashboard() {
 
                   <div className="space-y-4">
                     {newOrders.length === 0 ? (
-                      <div className="text-center py-16 text-neutral-500">
+                      <div className="text-center py-16 text-[#8C6B76]">
                         <CheckSquare className="w-8 h-8 mx-auto stroke-1 opacity-45 mb-2" />
-                        <p className="text-xs">No pending unread orders.</p>
+                        <p className="text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
+                          No pending unread orders.
+                        </p>
                       </div>
                     ) : (
                       newOrders.map((order) => (
                         <div
                           id={`order-card-${order.id}`}
                           key={order.id}
-                          className="bg-neutral-900 border-2 border-rose-500 rounded-xl p-4 space-y-4 shadow-lg"
+                          className="bg-white border-2 border-[#C42348] rounded-xl p-4 space-y-4 shadow-lg"
                         >
-                          <div className="flex justify-between items-start border-b border-neutral-800 pb-2">
+                          <div className="flex justify-between items-start border-b border-[#E7C7CF] pb-2">
                             <div>
-                              <span className="font-mono text-xs font-semibold text-rose-400">
+                              <span className="font-mono text-xs font-semibold text-[#C42348]">
                                 {order.id}
                               </span>
-                              <h4 className="font-sans text-xs text-neutral-400 font-bold mt-0.5">
+                              <h4 className="font-sans text-xs text-[#8C6B76] font-bold mt-0.5">
                                 {order.customerName}
                               </h4>
                             </div>
-                            <span className="text-[10px] font-mono text-neutral-400">
+                            <span className="text-[10px] font-mono text-[#8C6B76]">
                               {new Date(order.timestamp).toLocaleTimeString(
                                 [],
                                 { hour: "2-digit", minute: "2-digit" },
@@ -857,11 +861,11 @@ export default function RestaurantDashboard() {
                             {order.items.map((item) => (
                               <div
                                 key={item.id}
-                                className="flex justify-between text-neutral-200"
+                                className="flex justify-between text-[#33101F]"
                               >
-                                <span className="font-bold text-neutral-100">
+                                <span className="font-bold text-[#33101F]">
                                   {item.quantity}x{" "}
-                                  <span className="font-normal text-neutral-300">
+                                  <span className="font-normal text-[#8C6B76]">
                                     {item.name}
                                   </span>
                                 </span>
@@ -870,25 +874,25 @@ export default function RestaurantDashboard() {
                                 </span>
                               </div>
                             ))}
-                            <div className="border-t border-neutral-800 pt-2 flex justify-between font-extrabold text-white">
+                            <div className="border-t border-[#E7C7CF] pt-2 flex justify-between font-extrabold text-[#33101F]">
                               <span>Total Net:</span>
                               <span>${order.totalPrice.toFixed(2)}</span>
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-2 text-[10px] p-2 bg-neutral-950 rounded-lg text-neutral-400 border border-neutral-800">
+                          <div className="grid grid-cols-2 gap-2 text-[10px] p-2 bg-[#FAF3EA] rounded-lg text-[#8C6B76] border border-[#E7C7CF]">
                             <div>
-                              <span className="block font-semibold">
+                              <span className="block font-semibold font-['Inter','Segoe UI',system-ui,sans-serif]">
                                 Timing Type:
                               </span>
-                              <span className="text-rose-400 font-bold">
+                              <span className="text-[#C42348] font-bold">
                                 {order.pickupTimeOption === "ASAP"
                                   ? "ASAP"
                                   : order.scheduledTime}
                               </span>
                             </div>
                             <div>
-                              <span className="block font-semibold">
+                              <span className="block font-semibold font-['Inter','Segoe UI',system-ui,sans-serif]">
                                 Payment:
                               </span>
                               <span className="capitalize">
@@ -900,8 +904,8 @@ export default function RestaurantDashboard() {
                           </div>
 
                           {order.specialInstructions && (
-                            <div className="p-2 bg-rose-500/10 border border-rose-500/20 text-rose-300 text-[10px] rounded-lg">
-                              <span className="block font-bold">
+                            <div className="p-2 bg-[#C42348]/10 border border-[#C42348]/20 text-[#C42348] text-[10px] rounded-lg">
+                              <span className="block font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
                                 Special Instructions:
                               </span>
                               <p className="italic mt-0.5">
@@ -921,7 +925,7 @@ export default function RestaurantDashboard() {
                                 );
                                 setOrders(ordersData);
                               }}
-                              className="flex-1 bg-amber-500 hover:bg-amber-600 text-neutral-950 text-xs font-extrabold py-2 rounded-lg transition-colors cursor-pointer"
+                              className="flex-1 bg-[#E8A13B] hover:bg-[#F0B84D] text-[#33101F] text-xs font-extrabold py-2 rounded-lg transition-colors cursor-pointer font-['Inter','Segoe UI',system-ui,sans-serif]"
                             >
                               Accept & Prepare
                             </button>
@@ -933,15 +937,15 @@ export default function RestaurantDashboard() {
                 </div>
 
                 {/* COLUMN 2: ACTIVE PREPARING ORDERS */}
-                <div className="bg-neutral-900/50 rounded-2xl border border-neutral-800 p-4 min-h-[500px]">
-                  <div className="flex items-center justify-between pb-3 border-b border-neutral-800 mb-4">
+                <div className="bg-white/50 rounded-2xl border border-[#E7C7CF] p-4 min-h-[500px]">
+                  <div className="flex items-center justify-between pb-3 border-b border-[#E7C7CF] mb-4">
                     <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
-                      <h3 className="font-bold text-white text-sm">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#E8A13B] animate-pulse"></span>
+                      <h3 className="font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] text-sm">
                         PREPARING IN KITCHEN
                       </h3>
                     </div>
-                    <span className="text-[10px] font-bold bg-amber-950 text-amber-400 px-2 py-0.5 rounded-md border border-amber-800">
+                    <span className="text-[10px] font-bold bg-[#E8A13B]/10 text-[#E8A13B] px-2 py-0.5 rounded-md border border-[#E8A13B]/20 font-['Inter','Segoe UI',system-ui,sans-serif]">
                       {preparingOrders.length} ticket
                       {preparingOrders.length !== 1 ? "s" : ""}
                     </span>
@@ -949,26 +953,28 @@ export default function RestaurantDashboard() {
 
                   <div className="space-y-4">
                     {preparingOrders.length === 0 ? (
-                      <div className="text-center py-16 text-neutral-500">
+                      <div className="text-center py-16 text-[#8C6B76]">
                         <CheckSquare className="w-8 h-8 mx-auto stroke-1 opacity-45 mb-2" />
-                        <p className="text-xs">No orders cooking presently.</p>
+                        <p className="text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
+                          No orders cooking presently.
+                        </p>
                       </div>
                     ) : (
                       preparingOrders.map((order) => (
                         <div
                           key={order.id}
-                          className="bg-neutral-900 border-2 border-amber-500 rounded-xl p-4 space-y-4 shadow-lg"
+                          className="bg-white border-2 border-[#E8A13B] rounded-xl p-4 space-y-4 shadow-lg"
                         >
-                          <div className="flex justify-between items-start border-b border-neutral-800 pb-2">
+                          <div className="flex justify-between items-start border-b border-[#E7C7CF] pb-2">
                             <div>
-                              <span className="font-mono text-xs font-semibold text-amber-400">
+                              <span className="font-mono text-xs font-semibold text-[#E8A13B]">
                                 {order.id}
                               </span>
-                              <h4 className="font-sans text-xs text-neutral-400 font-bold mt-0.5">
+                              <h4 className="font-sans text-xs text-[#8C6B76] font-bold mt-0.5">
                                 {order.customerName}
                               </h4>
                             </div>
-                            <span className="text-[10px] font-mono text-neutral-400">
+                            <span className="text-[10px] font-mono text-[#8C6B76]">
                               {new Date(order.timestamp).toLocaleTimeString(
                                 [],
                                 { hour: "2-digit", minute: "2-digit" },
@@ -980,11 +986,11 @@ export default function RestaurantDashboard() {
                             {order.items.map((item) => (
                               <div
                                 key={item.id}
-                                className="flex justify-between text-neutral-200"
+                                className="flex justify-between text-[#33101F]"
                               >
-                                <span className="font-bold text-neutral-100">
+                                <span className="font-bold text-[#33101F]">
                                   {item.quantity}x{" "}
-                                  <span className="text-neutral-300 font-normal">
+                                  <span className="font-normal text-[#8C6B76]">
                                     {item.name}
                                   </span>
                                 </span>
@@ -993,25 +999,25 @@ export default function RestaurantDashboard() {
                                 </span>
                               </div>
                             ))}
-                            <div className="border-t border-neutral-800 pt-2 flex justify-between font-extrabold text-white">
+                            <div className="border-t border-[#E7C7CF] pt-2 flex justify-between font-extrabold text-[#33101F]">
                               <span>Total Net:</span>
                               <span>${order.totalPrice.toFixed(2)}</span>
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-2 text-[10px] p-2 bg-neutral-950 rounded-lg text-neutral-400 border border-neutral-800">
+                          <div className="grid grid-cols-2 gap-2 text-[10px] p-2 bg-[#FAF3EA] rounded-lg text-[#8C6B76] border border-[#E7C7CF]">
                             <div>
-                              <span className="block font-semibold">
+                              <span className="block font-semibold font-['Inter','Segoe UI',system-ui,sans-serif]">
                                 Timing Type:
                               </span>
-                              <span className="text-amber-400 font-bold">
+                              <span className="text-[#E8A13B] font-bold">
                                 {order.pickupTimeOption === "ASAP"
                                   ? "ASAP"
                                   : order.scheduledTime}
                               </span>
                             </div>
                             <div>
-                              <span className="block font-semibold">
+                              <span className="block font-semibold font-['Inter','Segoe UI',system-ui,sans-serif]">
                                 Phone:
                               </span>
                               <span className="font-mono">
@@ -1021,8 +1027,8 @@ export default function RestaurantDashboard() {
                           </div>
 
                           {order.specialInstructions && (
-                            <div className="p-2 bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[10px] rounded-lg">
-                              <span className="block font-bold">
+                            <div className="p-2 bg-[#E8A13B]/10 border border-[#E8A13B]/20 text-[#E8A13B] text-[10px] rounded-lg">
+                              <span className="block font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
                                 Special Instructions:
                               </span>
                               <p className="italic mt-0.5">
@@ -1042,7 +1048,7 @@ export default function RestaurantDashboard() {
                                 );
                                 setOrders(ordersData);
                               }}
-                              className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-neutral-950 text-xs font-extrabold py-2 rounded-lg transition-colors cursor-pointer"
+                              className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-extrabold py-2 rounded-lg transition-colors cursor-pointer font-['Inter','Segoe UI',system-ui,sans-serif]"
                             >
                               Ready for Pickup
                             </button>
@@ -1054,15 +1060,15 @@ export default function RestaurantDashboard() {
                 </div>
 
                 {/* COLUMN 3: READY ORDERS */}
-                <div className="bg-neutral-900/50 rounded-2xl border border-neutral-800 p-4 min-h-[500px]">
-                  <div className="flex items-center justify-between pb-3 border-b border-neutral-800 mb-4">
+                <div className="bg-white/50 rounded-2xl border border-[#E7C7CF] p-4 min-h-[500px]">
+                  <div className="flex items-center justify-between pb-3 border-b border-[#E7C7CF] mb-4">
                     <div className="flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                      <h3 className="font-bold text-white text-sm">
+                      <h3 className="font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] text-sm">
                         AWAITING CORNER PICKUP
                       </h3>
                     </div>
-                    <span className="text-[10px] font-bold bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded-md border border-emerald-800">
+                    <span className="text-[10px] font-bold bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-md border border-emerald-500/20 font-['Inter','Segoe UI',system-ui,sans-serif]">
                       {readyOrders.length} ticket
                       {readyOrders.length !== 1 ? "s" : ""}
                     </span>
@@ -1070,26 +1076,28 @@ export default function RestaurantDashboard() {
 
                   <div className="space-y-4">
                     {readyOrders.length === 0 ? (
-                      <div className="text-center py-16 text-neutral-500">
+                      <div className="text-center py-16 text-[#8C6B76]">
                         <CheckSquare className="w-8 h-8 mx-auto stroke-1 opacity-45 mb-2" />
-                        <p className="text-xs">No orders pending pick-up.</p>
+                        <p className="text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
+                          No orders pending pick-up.
+                        </p>
                       </div>
                     ) : (
                       readyOrders.map((order) => (
                         <div
                           key={order.id}
-                          className="bg-neutral-900 border-2 border-emerald-500 rounded-xl p-4 space-y-4 shadow-lg animate-pulse"
+                          className="bg-white border-2 border-emerald-500 rounded-xl p-4 space-y-4 shadow-lg animate-pulse"
                         >
-                          <div className="flex justify-between items-start border-b border-neutral-800 pb-2">
+                          <div className="flex justify-between items-start border-b border-[#E7C7CF] pb-2">
                             <div>
-                              <span className="font-mono text-xs font-semibold text-emerald-400">
+                              <span className="font-mono text-xs font-semibold text-emerald-500">
                                 {order.id}
                               </span>
-                              <h4 className="font-sans text-xs text-neutral-400 font-bold mt-0.5">
+                              <h4 className="font-sans text-xs text-[#8C6B76] font-bold mt-0.5">
                                 {order.customerName}
                               </h4>
                             </div>
-                            <span className="text-[10px] font-mono text-neutral-400">
+                            <span className="text-[10px] font-mono text-[#8C6B76]">
                               {new Date(order.timestamp).toLocaleTimeString(
                                 [],
                                 { hour: "2-digit", minute: "2-digit" },
@@ -1101,11 +1109,11 @@ export default function RestaurantDashboard() {
                             {order.items.map((item) => (
                               <div
                                 key={item.id}
-                                className="flex justify-between text-neutral-200"
+                                className="flex justify-between text-[#33101F]"
                               >
-                                <span className="font-bold text-neutral-100">
+                                <span className="font-bold text-[#33101F]">
                                   {item.quantity}x{" "}
-                                  <span className="font-normal text-neutral-300">
+                                  <span className="font-normal text-[#8C6B76]">
                                     {item.name}
                                   </span>
                                 </span>
@@ -1114,23 +1122,23 @@ export default function RestaurantDashboard() {
                                 </span>
                               </div>
                             ))}
-                            <div className="border-t border-neutral-800 pt-2 flex justify-between font-extrabold text-white">
+                            <div className="border-t border-[#E7C7CF] pt-2 flex justify-between font-extrabold text-[#33101F]">
                               <span>Total Net:</span>
                               <span>${order.totalPrice.toFixed(2)}</span>
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-2 text-[10px] p-2 bg-neutral-950 rounded-lg text-neutral-200 border border-neutral-800">
+                          <div className="grid grid-cols-2 gap-2 text-[10px] p-2 bg-[#FAF3EA] rounded-lg text-[#8C6B76] border border-[#E7C7CF]">
                             <div>
-                              <span className="block font-semibold">
+                              <span className="block font-semibold font-['Inter','Segoe UI',system-ui,sans-serif]">
                                 Ready Status:
                               </span>
-                              <span className="text-emerald-400 font-bold">
+                              <span className="text-emerald-500 font-bold">
                                 READY TO HANDOFF
                               </span>
                             </div>
                             <div>
-                              <span className="block font-semibold">
+                              <span className="block font-semibold font-['Inter','Segoe UI',system-ui,sans-serif]">
                                 Phone:
                               </span>
                               <span className="font-mono">
@@ -1140,8 +1148,8 @@ export default function RestaurantDashboard() {
                           </div>
 
                           {order.specialInstructions && (
-                            <div className="p-2 bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-[10px] rounded-lg">
-                              <span className="block font-bold">
+                            <div className="p-2 bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 text-[10px] rounded-lg">
+                              <span className="block font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
                                 Special Instructions:
                               </span>
                               <p className="italic mt-0.5">
@@ -1161,7 +1169,7 @@ export default function RestaurantDashboard() {
                                 );
                                 setOrders(ordersData);
                               }}
-                              className="flex-1 bg-neutral-850 border border-neutral-700 hover:bg-neutral-800 text-white text-xs font-semibold py-2 rounded-lg transition-all cursor-pointer"
+                              className="flex-1 bg-[#FAF3EA] border border-[#E7C7CF] hover:bg-[#E7C7CF] text-[#33101F] text-xs font-semibold py-2 rounded-lg transition-all cursor-pointer font-['Inter','Segoe UI',system-ui,sans-serif]"
                             >
                               Arrived & Completed
                             </button>
@@ -1186,28 +1194,30 @@ export default function RestaurantDashboard() {
             >
               {/* Stats */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-neutral-900/50 rounded-xl border border-neutral-800 p-4">
-                  <div className="text-xs text-neutral-400">
+                <div className="bg-white/50 rounded-xl border border-[#E7C7CF] p-4">
+                  <div className="text-xs text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">
                     Total Completed Orders
                   </div>
-                  <div className="text-2xl font-bold text-white">
+                  <div className="text-2xl font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F]">
                     {completedOrders.length}
                   </div>
                 </div>
-                <div className="bg-neutral-900/50 rounded-xl border border-neutral-800 p-4">
-                  <div className="text-xs text-neutral-400">Total Revenue</div>
-                  <div className="text-2xl font-bold text-emerald-400">
+                <div className="bg-white/50 rounded-xl border border-[#E7C7CF] p-4">
+                  <div className="text-xs text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">
+                    Total Revenue
+                  </div>
+                  <div className="text-2xl font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-emerald-500">
                     $
                     {completedOrders
                       .reduce((sum, o) => sum + (o.totalPrice || 0), 0)
                       .toFixed(2)}
                   </div>
                 </div>
-                <div className="bg-neutral-900/50 rounded-xl border border-neutral-800 p-4">
-                  <div className="text-xs text-neutral-400">
+                <div className="bg-white/50 rounded-xl border border-[#E7C7CF] p-4">
+                  <div className="text-xs text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">
                     Average Order Value
                   </div>
-                  <div className="text-2xl font-bold text-amber-400">
+                  <div className="text-2xl font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#E8A13B]">
                     $
                     {completedOrders.length > 0
                       ? (
@@ -1224,25 +1234,25 @@ export default function RestaurantDashboard() {
               {/* Search */}
               <div className="flex items-center gap-4">
                 <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8C6B76]" />
                   <input
                     type="text"
                     placeholder="Search past orders..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 bg-neutral-900 border border-neutral-700 rounded-xl text-sm text-neutral-200 focus:outline-none focus:border-amber-500 placeholder-neutral-500"
+                    className="w-full pl-9 pr-4 py-2 bg-white border border-[#E7C7CF] rounded-xl text-sm text-[#33101F] focus:outline-none focus:border-[#C42348] placeholder-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]"
                   />
                 </div>
-                <span className="text-xs text-neutral-500">
+                <span className="text-xs text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">
                   {filteredCompletedOrders.length} orders found
                 </span>
               </div>
 
               {/* Orders Table */}
-              <div className="bg-neutral-900 rounded-2xl border border-neutral-800 overflow-hidden">
+              <div className="bg-white rounded-2xl border border-[#E7C7CF] overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs text-neutral-300">
-                    <thead className="bg-neutral-800/50 text-[10px] font-bold uppercase tracking-wider text-neutral-400 border-b border-neutral-700">
+                  <table className="w-full text-left text-xs text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">
+                    <thead className="bg-[#FAF3EA] text-[10px] font-bold uppercase tracking-wider text-[#8C6B76] border-b border-[#E7C7CF]">
                       <tr>
                         <th className="px-6 py-4">Order ID</th>
                         <th className="px-6 py-4">Customer</th>
@@ -1252,12 +1262,12 @@ export default function RestaurantDashboard() {
                         <th className="px-6 py-4">Date</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-neutral-800/60">
+                    <tbody className="divide-y divide-[#E7C7CF]/60">
                       {filteredCompletedOrders.length === 0 ? (
                         <tr>
                           <td
                             colSpan={6}
-                            className="text-center py-12 text-neutral-500"
+                            className="text-center py-12 text-[#8C6B76]"
                           >
                             {searchQuery
                               ? "No past orders matching your search."
@@ -1268,17 +1278,17 @@ export default function RestaurantDashboard() {
                         filteredCompletedOrders.map((order) => (
                           <tr
                             key={order.id}
-                            className="hover:bg-neutral-800/40"
+                            className="hover:bg-[#FAF3EA]/40"
                           >
-                            <td className="px-6 py-4 font-mono text-[11px] font-semibold text-amber-400">
+                            <td className="px-6 py-4 font-mono text-[11px] font-semibold text-[#C42348]">
                               #{order.orderReference || order.id?.slice(-6)}
                             </td>
                             <td className="px-6 py-4">
                               <div>
-                                <div className="font-medium text-white">
+                                <div className="font-medium text-[#33101F]">
                                   {order.customerName}
                                 </div>
-                                <div className="text-[10px] text-neutral-400">
+                                <div className="text-[10px] text-[#8C6B76]">
                                   {order.customerPhone}
                                 </div>
                               </div>
@@ -1288,18 +1298,18 @@ export default function RestaurantDashboard() {
                                 {order.items
                                   ?.slice(0, 2)
                                   .map((item: any, idx: number) => (
-                                    <div key={idx} className="text-neutral-300">
+                                    <div key={idx} className="text-[#8C6B76]">
                                       {item.quantity}x {item.name}
                                     </div>
                                   ))}
                                 {order.items?.length > 2 && (
-                                  <div className="text-neutral-500 text-[10px]">
+                                  <div className="text-[#8C6B76] text-[10px]">
                                     +{order.items.length - 2} more items
                                   </div>
                                 )}
                               </div>
                             </td>
-                            <td className="px-6 py-4 font-bold text-white">
+                            <td className="px-6 py-4 font-bold text-[#33101F]">
                               ${order.totalPrice?.toFixed(2) || "0.00"}
                             </td>
                             <td className="px-6 py-4">
@@ -1311,12 +1321,12 @@ export default function RestaurantDashboard() {
                                 {getStatusLabel(order.status)}
                               </span>
                             </td>
-                            <td className="px-6 py-4 text-neutral-400">
+                            <td className="px-6 py-4 text-[#8C6B76]">
                               {new Date(
                                 order.createdAt || order.timestamp,
                               ).toLocaleDateString()}
                               <br />
-                              <span className="text-[10px] text-neutral-500">
+                              <span className="text-[10px] text-[#8C6B76]">
                                 {new Date(
                                   order.createdAt || order.timestamp,
                                 ).toLocaleTimeString([], {
@@ -1344,19 +1354,19 @@ export default function RestaurantDashboard() {
               exit={{ opacity: 0, y: -10 }}
               className="space-y-6"
             >
-              <div className="flex justify-between items-center bg-neutral-900 p-4 rounded-xl border border-neutral-800">
+              <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-[#E7C7CF]">
                 <div>
-                  <h3 className="font-bold text-white text-sm">
+                  <h3 className="font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] text-sm">
                     Dishes and Menu Items
                   </h3>
-                  <p className="text-xs text-neutral-400">
+                  <p className="text-xs text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">
                     Total catalog dishes configured: {storeItems.length} items
                   </p>
                 </div>
                 <button
                   id="add-dish-btn"
                   onClick={handleOpenAddItem}
-                  className="bg-amber-500 hover:bg-amber-600 text-neutral-950 px-4 py-2 rounded-lg text-xs font-extrabold flex items-center gap-1.5 cursor-pointer"
+                  className="bg-[#C42348] hover:bg-[#E84C6B] text-white px-4 py-2 rounded-lg text-xs font-extrabold flex items-center gap-1.5 cursor-pointer font-['Inter','Segoe UI',system-ui,sans-serif]"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Add New Dish</span>
@@ -1372,10 +1382,10 @@ export default function RestaurantDashboard() {
                   return (
                     <div
                       key={item.id}
-                      className="bg-neutral-900 border border-neutral-850 rounded-2xl overflow-hidden shadow-md flex flex-col justify-between"
+                      className="bg-white border border-[#E7C7CF] rounded-2xl overflow-hidden shadow-md flex flex-col justify-between"
                     >
                       <div>
-                        <div className="h-40 bg-neutral-800 relative">
+                        <div className="h-40 bg-[#FAF3EA] relative">
                           <img
                             referrerPolicy="no-referrer"
                             src={item.image}
@@ -1383,18 +1393,18 @@ export default function RestaurantDashboard() {
                             className="w-full h-full object-cover"
                           />
                           <div className="absolute top-2 right-2 flex gap-1">
-                            <span className="bg-neutral-950/80 backdrop-blur-md text-[10px] font-bold text-amber-400 px-2 py-0.5 rounded-full border border-neutral-800">
+                            <span className="bg-white/90 backdrop-blur-md text-[10px] font-bold text-[#C42348] px-2 py-0.5 rounded-full border border-[#E7C7CF] font-['Inter','Segoe UI',system-ui,sans-serif]">
                               {catName}
                             </span>
                             <span
-                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border font-['Inter','Segoe UI',system-ui,sans-serif] ${
                                 (item.availability || "available") ===
                                 "out_of_stock"
-                                  ? "bg-amber-950/80 text-amber-400 border-amber-800"
+                                  ? "bg-[#E8A13B]/20 text-[#E8A13B] border-[#E8A13B]/30"
                                   : (item.availability || "available") ===
                                       "hidden"
-                                    ? "bg-red-950/80 text-red-400 border-red-800"
-                                    : "bg-emerald-950/80 text-emerald-400 border-emerald-800"
+                                    ? "bg-[#C42348]/20 text-[#C42348] border-[#C42348]/30"
+                                    : "bg-emerald-500/20 text-emerald-600 border-emerald-500/30"
                               }`}
                             >
                               {(item.availability || "available") ===
@@ -1410,39 +1420,39 @@ export default function RestaurantDashboard() {
 
                         <div className="p-4 space-y-2">
                           <div className="flex justify-between items-start gap-2">
-                            <h4 className="font-bold text-white text-sm leading-tight">
+                            <h4 className="font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] text-sm leading-tight">
                               {item.name}
                             </h4>
-                            <span className="text-amber-400 font-extrabold font-mono text-sm">
+                            <span className="text-[#C42348] font-extrabold font-mono text-sm">
                               ${item.price.toFixed(2)}
                             </span>
                           </div>
-                          <p className="text-xs text-neutral-400 line-clamp-2 leading-relaxed">
+                          <p className="text-xs text-[#8C6B76] line-clamp-2 leading-relaxed font-['Inter','Segoe UI',system-ui,sans-serif]">
                             {item.description}
                           </p>
                         </div>
                       </div>
 
-                      <div className="border-t border-neutral-850 p-3 bg-neutral-900/40 flex justify-between gap-2">
-                        <div className="flex-1 flex gap-1 justify-between bg-neutral-950/60 p-1 rounded-xl border border-neutral-800">
+                      <div className="border-t border-[#E7C7CF] p-3 bg-white/40 flex justify-between gap-2">
+                        <div className="flex-1 flex gap-1 justify-between bg-[#FAF3EA] p-1 rounded-xl border border-[#E7C7CF]">
                           {[
                             {
                               value: "available",
                               label: "In Stock",
                               bgActive:
-                                "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+                                "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
                             },
                             {
                               value: "out_of_stock",
                               label: "Out",
                               bgActive:
-                                "bg-amber-500/10 text-amber-400 border-amber-500/20",
+                                "bg-[#E8A13B]/10 text-[#E8A13B] border-[#E8A13B]/20",
                             },
                             {
                               value: "hidden",
                               label: "Hide",
                               bgActive:
-                                "bg-red-500/10 text-red-500 border-red-500/20",
+                                "bg-[#C42348]/10 text-[#C42348] border-[#C42348]/20",
                             },
                           ].map((state) => {
                             const isSelected =
@@ -1462,10 +1472,10 @@ export default function RestaurantDashboard() {
                                   );
                                   setMenuItems(menuData);
                                 }}
-                                className={`flex-1 text-[9px] font-bold py-1 px-1.5 rounded-lg border transition-all cursor-pointer ${
+                                className={`flex-1 text-[9px] font-bold py-1 px-1.5 rounded-lg border transition-all cursor-pointer font-['Inter','Segoe UI',system-ui,sans-serif] ${
                                   isSelected
                                     ? `${state.bgActive} border-opacity-100 font-extrabold shadow-sm`
-                                    : "border-transparent text-neutral-400 hover:text-neutral-200"
+                                    : "border-transparent text-[#8C6B76] hover:text-[#33101F]"
                                 }`}
                               >
                                 {state.label}
@@ -1478,7 +1488,7 @@ export default function RestaurantDashboard() {
                           <button
                             id={`edit-item-${item.id}`}
                             onClick={() => handleOpenEditItem(item)}
-                            className="bg-neutral-800 hover:bg-neutral-700 text-neutral-300 p-2 rounded-lg border border-neutral-700 cursor-pointer"
+                            className="bg-[#FAF3EA] hover:bg-[#E7C7CF] text-[#8C6B76] p-2 rounded-lg border border-[#E7C7CF] cursor-pointer"
                             title="Edit specifications"
                           >
                             <Edit className="w-3.5 h-3.5" />
@@ -1487,7 +1497,7 @@ export default function RestaurantDashboard() {
                           <button
                             id={`delete-item-${item.id}`}
                             onClick={() => handleDeleteItem(item.id)}
-                            className="bg-neutral-850 hover:bg-red-950 hover:text-red-400 hover:border-red-900 text-neutral-400 p-2 rounded-lg border border-neutral-700 cursor-pointer"
+                            className="bg-[#FAF3EA] hover:bg-[#C42348]/10 hover:text-[#C42348] hover:border-[#C42348]/30 text-[#8C6B76] p-2 rounded-lg border border-[#E7C7CF] cursor-pointer"
                             title="Delete permanently"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -1499,9 +1509,9 @@ export default function RestaurantDashboard() {
                 })}
 
                 {storeItems.length === 0 && (
-                  <div className="col-span-full text-center py-16 bg-neutral-900 rounded-2xl border border-dashed border-neutral-800">
-                    <Coffee className="w-12 h-12 text-neutral-600 mx-auto mb-3 stroke-1" />
-                    <p className="text-neutral-400 text-xs">
+                  <div className="col-span-full text-center py-16 bg-white rounded-2xl border border-dashed border-[#E7C7CF]">
+                    <Coffee className="w-12 h-12 text-[#8C6B76] mx-auto mb-3 stroke-1" />
+                    <p className="text-[#8C6B76] text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
                       No food items added to the catalog feed.
                     </p>
                   </div>
@@ -1519,12 +1529,12 @@ export default function RestaurantDashboard() {
               exit={{ opacity: 0, y: -10 }}
               className="space-y-6"
             >
-              <div className="flex justify-between items-center bg-neutral-900 p-4 rounded-xl border border-neutral-800">
+              <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-[#E7C7CF]">
                 <div>
-                  <h3 className="font-bold text-white text-sm">
+                  <h3 className="font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] text-sm">
                     Menu Food Categories
                   </h3>
-                  <p className="text-xs text-neutral-400">
+                  <p className="text-xs text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">
                     Setup specific groupings (e.g. "Wood-Fired Pizza", "Soft
                     Beverages").
                   </p>
@@ -1532,7 +1542,7 @@ export default function RestaurantDashboard() {
                 <button
                   id="add-category-btn"
                   onClick={handleOpenAddCat}
-                  className="bg-amber-500 hover:bg-amber-600 text-neutral-950 px-4 py-2 rounded-lg text-xs font-extrabold flex items-center gap-1.5 cursor-pointer"
+                  className="bg-[#C42348] hover:bg-[#E84C6B] text-white px-4 py-2 rounded-lg text-xs font-extrabold flex items-center gap-1.5 cursor-pointer font-['Inter','Segoe UI',system-ui,sans-serif]"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Create Category</span>
@@ -1540,9 +1550,9 @@ export default function RestaurantDashboard() {
               </div>
 
               {/* Categories list table */}
-              <div className="bg-neutral-900 rounded-2xl border border-neutral-800 overflow-hidden">
-                <table className="w-full text-left text-xs text-neutral-300">
-                  <thead className="bg-neutral-850 text-[10px] font-bold uppercase tracking-wider text-neutral-400 border-b border-neutral-800">
+              <div className="bg-white rounded-2xl border border-[#E7C7CF] overflow-hidden">
+                <table className="w-full text-left text-xs text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">
+                  <thead className="bg-[#FAF3EA] text-[10px] font-bold uppercase tracking-wider text-[#8C6B76] border-b border-[#E7C7CF]">
                     <tr>
                       <th className="px-6 py-4">Category Handle ID</th>
                       <th className="px-6 py-4">Title Heading Name</th>
@@ -1550,21 +1560,21 @@ export default function RestaurantDashboard() {
                       <th className="px-6 py-4 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-neutral-800/80">
+                  <tbody className="divide-y divide-[#E7C7CF]/80">
                     {storeCategories.map((cat) => {
                       const dishesCount = storeItems.filter(
                         (i) => i.categoryId === cat.id,
                       ).length;
                       return (
-                        <tr key={cat.id} className="hover:bg-neutral-850/40">
-                          <td className="px-6 py-4 font-mono text-neutral-500">
+                        <tr key={cat.id} className="hover:bg-[#FAF3EA]/40">
+                          <td className="px-6 py-4 font-mono text-[#8C6B76]">
                             {cat.id}
                           </td>
-                          <td className="px-6 py-4 font-semibold text-white">
+                          <td className="px-6 py-4 font-semibold text-[#33101F] font-['Baloo_2','Trebuchet_MS',sans-serif]">
                             {cat.name}
                           </td>
                           <td className="px-6 py-4">
-                            <span className="bg-neutral-800 text-neutral-300 px-2.5 py-1 rounded-md border border-neutral-750 text-[10px] font-bold">
+                            <span className="bg-[#FAF3EA] text-[#8C6B76] px-2.5 py-1 rounded-md border border-[#E7C7CF] text-[10px] font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
                               {dishesCount} nested recipes
                             </span>
                           </td>
@@ -1572,16 +1582,16 @@ export default function RestaurantDashboard() {
                             <button
                               id={`edit-cat-${cat.id}`}
                               onClick={() => handleOpenEditCat(cat)}
-                              className="text-amber-400 hover:text-amber-500 font-semibold flex items-center gap-1 cursor-pointer"
+                              className="text-[#C42348] hover:text-[#E84C6B] font-semibold flex items-center gap-1 cursor-pointer font-['Inter','Segoe UI',system-ui,sans-serif]"
                             >
                               <Edit className="w-3.5 h-3.5" />
                               <span>Edit</span>
                             </button>
-                            <span className="text-neutral-700">|</span>
+                            <span className="text-[#E7C7CF]">|</span>
                             <button
                               id={`delete-cat-${cat.id}`}
                               onClick={() => handleDeleteCat(cat.id)}
-                              className="text-neutral-500 hover:text-rose-400 font-semibold flex items-center gap-1 cursor-pointer"
+                              className="text-[#8C6B76] hover:text-[#C42348] font-semibold flex items-center gap-1 cursor-pointer font-['Inter','Segoe UI',system-ui,sans-serif]"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                               <span>Delete</span>
@@ -1595,7 +1605,7 @@ export default function RestaurantDashboard() {
                       <tr>
                         <td
                           colSpan={4}
-                          className="text-center py-12 text-neutral-500 italic"
+                          className="text-center py-12 text-[#8C6B76] italic font-['Inter','Segoe UI',system-ui,sans-serif]"
                         >
                           No categories structured. Create one to begin layout.
                         </td>
@@ -1618,13 +1628,13 @@ export default function RestaurantDashboard() {
             >
               <form
                 onSubmit={handleSaveProfile}
-                className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 sm:p-8 space-y-6"
+                className="bg-white border border-[#E7C7CF] rounded-2xl p-6 sm:p-8 space-y-6"
               >
                 <div>
-                  <h3 className="text-base font-bold text-white">
+                  <h3 className="text-base font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F]">
                     Store Profile & Digital Identity
                   </h3>
-                  <p className="text-xs text-neutral-400 mt-1">
+                  <p className="text-xs text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                     Configure layout, cover banners, and contact coordinates for
                     the customer storefront.
                   </p>
@@ -1632,36 +1642,36 @@ export default function RestaurantDashboard() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-1">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-[#8C6B76] mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                       Store Name
                     </label>
                     <input
                       type="text"
                       disabled
                       value={currentRestaurant.name}
-                      className="w-full px-3.5 py-2 bg-neutral-950 border border-neutral-800 rounded-xl text-xs text-neutral-500 cursor-not-allowed focus:outline-none"
+                      className="w-full px-3.5 py-2 bg-[#FAF3EA] border border-[#E7C7CF] rounded-xl text-xs text-[#8C6B76] cursor-not-allowed focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif]"
                     />
-                    <p className="text-[10px] text-neutral-500 mt-1">
+                    <p className="text-[10px] text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                       Name can only be configured by Platform Owner admins.
                     </p>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-1">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-[#8C6B76] mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                       Store URL
                     </label>
                     <input
                       type="text"
                       disabled
                       value={currentRestaurant.subdomain}
-                      className="w-full px-3.5 py-2 bg-neutral-950 border border-neutral-800 rounded-xl text-xs text-neutral-500 cursor-not-allowed focus:outline-none"
+                      className="w-full px-3.5 py-2 bg-[#FAF3EA] border border-[#E7C7CF] rounded-xl text-xs text-[#8C6B76] cursor-not-allowed focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif]"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-1">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-[#8C6B76] mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                       Store Description
                     </label>
                     <textarea
@@ -1674,14 +1684,14 @@ export default function RestaurantDashboard() {
                         }))
                       }
                       rows={3}
-                      className="w-full px-3.5 py-2 bg-neutral-950 border border-neutral-800 focus:border-amber-500 rounded-xl text-xs text-neutral-200 focus:outline-none"
+                      className="w-full px-3.5 py-2 bg-[#FAF3EA] border border-[#E7C7CF] focus:border-[#C42348] rounded-xl text-xs text-[#33101F] focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif]"
                       placeholder="Chef-crafted specialty foods..."
                     />
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-1">
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-[#8C6B76] mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                         Store Phone
                       </label>
                       <input
@@ -1694,12 +1704,12 @@ export default function RestaurantDashboard() {
                             phone: e.target.value,
                           }))
                         }
-                        className="w-full px-3.5 py-2 bg-neutral-950 border border-neutral-800 focus:border-amber-500 rounded-xl text-xs text-neutral-200 focus:outline-none"
+                        className="w-full px-3.5 py-2 bg-[#FAF3EA] border border-[#E7C7CF] focus:border-[#C42348] rounded-xl text-xs text-[#33101F] focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif]"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-1">
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-[#8C6B76] mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                         Store Address
                       </label>
                       <input
@@ -1712,14 +1722,14 @@ export default function RestaurantDashboard() {
                             address: e.target.value,
                           }))
                         }
-                        className="w-full px-3.5 py-2 bg-neutral-950 border border-neutral-800 focus:border-amber-500 rounded-xl text-xs text-neutral-200 focus:outline-none"
+                        className="w-full px-3.5 py-2 bg-[#FAF3EA] border border-[#E7C7CF] focus:border-[#C42348] rounded-xl text-xs text-[#33101F] focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif]"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-1">
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-[#8C6B76] mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                         Logo URL
                       </label>
                       <input
@@ -1732,12 +1742,12 @@ export default function RestaurantDashboard() {
                             logo: e.target.value,
                           }))
                         }
-                        className="w-full px-3.5 py-2 bg-neutral-950 border border-neutral-800 focus:border-amber-500 rounded-xl text-xs text-neutral-200 focus:outline-none"
+                        className="w-full px-3.5 py-2 bg-[#FAF3EA] border border-[#E7C7CF] focus:border-[#C42348] rounded-xl text-xs text-[#33101F] focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif]"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-1">
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-[#8C6B76] mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                         Cover Image URL
                       </label>
                       <input
@@ -1750,17 +1760,17 @@ export default function RestaurantDashboard() {
                             coverImage: e.target.value,
                           }))
                         }
-                        className="w-full px-3.5 py-2 bg-neutral-950 border border-neutral-800 focus:border-amber-500 rounded-xl text-xs text-neutral-200 focus:outline-none"
+                        className="w-full px-3.5 py-2 bg-[#FAF3EA] border border-[#E7C7CF] focus:border-[#C42348] rounded-xl text-xs text-[#33101F] focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif]"
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-4 border-t border-neutral-800">
+                <div className="flex justify-end pt-4 border-t border-[#E7C7CF]">
                   <button
                     id="save-profile-btn"
                     type="submit"
-                    className="bg-amber-500 hover:bg-amber-600 active:scale-95 text-neutral-950 px-5 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer"
+                    className="bg-[#C42348] hover:bg-[#E84C6B] active:scale-95 text-white px-5 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer font-['Inter','Segoe UI',system-ui,sans-serif]"
                   >
                     <Save className="w-4 h-4" />
                     <span>Save Branding Profile</span>
@@ -1781,14 +1791,14 @@ export default function RestaurantDashboard() {
             >
               <form onSubmit={handleSaveSettings} className="space-y-6">
                 {/* 1. Pause Ordering Settings Card */}
-                <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 sm:p-8 space-y-4">
+                <div className="bg-white border border-[#E7C7CF] rounded-2xl p-6 sm:p-8 space-y-4">
                   <div className="flex items-start justify-between">
                     <div>
-                      <h3 className="text-base font-bold text-white flex items-center gap-2">
-                        <Sliders className="w-5 h-5 text-amber-500" />
+                      <h3 className="text-base font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] flex items-center gap-2">
+                        <Sliders className="w-5 h-5 text-[#C42348]" />
                         <span>Interactive Ordering Status</span>
                       </h3>
-                      <p className="text-xs text-neutral-400 mt-1">
+                      <p className="text-xs text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                         Temporarily pause incoming tickets during busy rush
                         hours or seasonal holidays.
                       </p>
@@ -1796,25 +1806,25 @@ export default function RestaurantDashboard() {
 
                     <div className="flex flex-col items-end">
                       {isOrderingPaused ? (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse">
-                          <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#E8A13B]/10 text-[#E8A13B] border border-[#E8A13B]/20 animate-pulse font-['Inter','Segoe UI',system-ui,sans-serif]">
+                          <span className="w-2 h-2 rounded-full bg-[#E8A13B] animate-ping"></span>
                           Ordering Paused
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                          <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 font-['Inter','Segoe UI',system-ui,sans-serif]">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                           Accepting Orders
                         </span>
                       )}
                     </div>
                   </div>
 
-                  <div className="bg-neutral-950 border border-neutral-800 p-4 rounded-xl flex items-center justify-between">
+                  <div className="bg-[#FAF3EA] border border-[#E7C7CF] p-4 rounded-xl flex items-center justify-between">
                     <div>
-                      <span className="block text-xs font-bold text-white">
+                      <span className="block text-xs font-bold text-[#33101F] font-['Inter','Segoe UI',system-ui,sans-serif]">
                         Pause Ordering Instantly
                       </span>
-                      <span className="block text-[11px] text-neutral-500 mt-0.5">
+                      <span className="block text-[11px] text-[#8C6B76] mt-0.5 font-['Inter','Segoe UI',system-ui,sans-serif]">
                         Toggle to prevent checkout and warn visitors
                         immediately.
                       </span>
@@ -1823,7 +1833,7 @@ export default function RestaurantDashboard() {
                       type="button"
                       id="toggle-pause-ordering-btn"
                       onClick={() => setIsOrderingPaused(!isOrderingPaused)}
-                      className={`w-14 h-8 rounded-full transition-all relative p-1 cursor-pointer focus:outline-none ${isOrderingPaused ? "bg-amber-500" : "bg-neutral-850"}`}
+                      className={`w-14 h-8 rounded-full transition-all relative p-1 cursor-pointer focus:outline-none ${isOrderingPaused ? "bg-[#E8A13B]" : "bg-[#E7C7CF]"}`}
                     >
                       <div
                         className={`w-6 h-6 rounded-full bg-white shadow-md transition-all transform ${isOrderingPaused ? "translate-x-6" : "translate-x-0"}`}
@@ -1833,13 +1843,13 @@ export default function RestaurantDashboard() {
                 </div>
 
                 {/* 2. Business Hours Setup Card */}
-                <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 sm:p-8 space-y-6">
+                <div className="bg-white border border-[#E7C7CF] rounded-2xl p-6 sm:p-8 space-y-6">
                   <div>
-                    <h3 className="text-base font-bold text-white flex items-center gap-2">
-                      <Clock className="w-5 h-5 text-indigo-400" />
+                    <h3 className="text-base font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] flex items-center gap-2">
+                      <Clock className="w-5 h-5 text-[#C42348]" />
                       <span>Weekly Store Business Hours</span>
                     </h3>
-                    <p className="text-xs text-neutral-400 mt-1">
+                    <p className="text-xs text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                       Set custom daily schedules. Closed days will be clearly
                       communicated on the storefront menu.
                     </p>
@@ -1865,10 +1875,10 @@ export default function RestaurantDashboard() {
                       return (
                         <div
                           key={day}
-                          className="grid grid-cols-1 sm:grid-cols-12 items-center gap-4 bg-neutral-950/40 hover:bg-neutral-950/70 p-3.5 rounded-xl border border-neutral-800/60 transition-all text-xs"
+                          className="grid grid-cols-1 sm:grid-cols-12 items-center gap-4 bg-[#FAF3EA]/40 hover:bg-[#FAF3EA] p-3.5 rounded-xl border border-[#E7C7CF]/60 transition-all text-xs"
                         >
                           <div className="sm:col-span-4 flex items-center justify-between">
-                            <span className="font-bold text-white text-xs min-w-[80px]">
+                            <span className="font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] text-xs min-w-[80px]">
                               {day}
                             </span>
                             <button
@@ -1883,10 +1893,10 @@ export default function RestaurantDashboard() {
                                   },
                                 }));
                               }}
-                              className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase border transition-all cursor-pointer ${
+                              className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase border transition-all cursor-pointer font-['Inter','Segoe UI',system-ui,sans-serif] ${
                                 dayHours.isOpen
-                                  ? "bg-indigo-950 text-indigo-400 border-indigo-900 hover:bg-indigo-900/65"
-                                  : "bg-neutral-850 text-neutral-500 border-neutral-800 hover:bg-neutral-850"
+                                  ? "bg-[#C42348]/10 text-[#C42348] border-[#C42348]/20 hover:bg-[#C42348]/20"
+                                  : "bg-[#FAF3EA] text-[#8C6B76] border-[#E7C7CF] hover:bg-[#E7C7CF]"
                               }`}
                             >
                               {dayHours.isOpen ? "Open Day" : "Closed"}
@@ -1897,7 +1907,7 @@ export default function RestaurantDashboard() {
                             {dayHours.isOpen ? (
                               <>
                                 <div className="flex-1">
-                                  <label className="block text-[10px] uppercase font-bold text-neutral-500 mb-1">
+                                  <label className="block text-[10px] uppercase font-bold text-[#8C6B76] mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                                     Opens at
                                   </label>
                                   <select
@@ -1911,7 +1921,7 @@ export default function RestaurantDashboard() {
                                         },
                                       }));
                                     }}
-                                    className="w-full px-2.5 py-1.5 bg-neutral-950 border border-neutral-800 text-neutral-300 rounded-lg text-xs focus:outline-none focus:border-indigo-500"
+                                    className="w-full px-2.5 py-1.5 bg-[#FAF3EA] border border-[#E7C7CF] text-[#33101F] rounded-lg text-xs focus:outline-none focus:border-[#C42348] font-['Inter','Segoe UI',system-ui,sans-serif]"
                                   >
                                     {[
                                       "06:00 AM",
@@ -1931,11 +1941,11 @@ export default function RestaurantDashboard() {
                                     ))}
                                   </select>
                                 </div>
-                                <span className="text-neutral-600 mt-4 font-bold">
+                                <span className="text-[#8C6B76] mt-4 font-bold">
                                   to
                                 </span>
                                 <div className="flex-1">
-                                  <label className="block text-[10px] uppercase font-bold text-neutral-500 mb-1">
+                                  <label className="block text-[10px] uppercase font-bold text-[#8C6B76] mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                                     Closes at
                                   </label>
                                   <select
@@ -1949,7 +1959,7 @@ export default function RestaurantDashboard() {
                                         },
                                       }));
                                     }}
-                                    className="w-full px-2.5 py-1.5 bg-neutral-950 border border-neutral-800 text-neutral-300 rounded-lg text-xs focus:outline-none focus:border-indigo-500"
+                                    className="w-full px-2.5 py-1.5 bg-[#FAF3EA] border border-[#E7C7CF] text-[#33101F] rounded-lg text-xs focus:outline-none focus:border-[#C42348] font-['Inter','Segoe UI',system-ui,sans-serif]"
                                   >
                                     {[
                                       "05:00 PM",
@@ -1971,7 +1981,7 @@ export default function RestaurantDashboard() {
                                 </div>
                               </>
                             ) : (
-                              <div className="flex-1 bg-neutral-950/60 text-center py-2 text-neutral-600 font-medium italic rounded-lg border border-neutral-900">
+                              <div className="flex-1 bg-[#FAF3EA] text-center py-2 text-[#8C6B76] font-medium italic rounded-lg border border-[#E7C7CF] font-['Inter','Segoe UI',system-ui,sans-serif]">
                                 Store is locked or deactivated on this day.
                               </div>
                             )}
@@ -1983,22 +1993,22 @@ export default function RestaurantDashboard() {
                 </div>
 
                 {/* 3. Pickup Settings Card */}
-                <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 sm:p-8 space-y-6">
+                <div className="bg-white border border-[#E7C7CF] rounded-2xl p-6 sm:p-8 space-y-6">
                   <div>
-                    <h3 className="text-base font-bold text-white flex items-center gap-2">
-                      <Check className="w-5 h-5 text-emerald-400" />
+                    <h3 className="text-base font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] flex items-center gap-2">
+                      <Check className="w-5 h-5 text-emerald-500" />
                       <span>Pickup Strategy Coordinations</span>
                     </h3>
-                    <p className="text-xs text-neutral-400 mt-1">
+                    <p className="text-xs text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                       Configure pickup logistics, advanced scheduling
                       restrictions, and kitchen dispatch times.
                     </p>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="bg-neutral-950 p-4 border border-neutral-850 rounded-xl space-y-2">
+                    <div className="bg-[#FAF3EA] p-4 border border-[#E7C7CF] rounded-xl space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="block text-xs font-bold text-white">
+                        <span className="block text-xs font-bold text-[#33101F] font-['Inter','Segoe UI',system-ui,sans-serif]">
                           ASAP Ordering Option
                         </span>
                         <input
@@ -2011,18 +2021,18 @@ export default function RestaurantDashboard() {
                               allowAsap: e.target.checked,
                             }))
                           }
-                          className="w-4 h-4 rounded text-amber-500 accent-amber-500 cursor-pointer"
+                          className="w-4 h-4 rounded text-[#C42348] accent-[#C42348] cursor-pointer"
                         />
                       </div>
-                      <p className="text-[10px] text-neutral-500 leading-normal">
+                      <p className="text-[10px] text-[#8C6B76] leading-normal font-['Inter','Segoe UI',system-ui,sans-serif]">
                         Show ASAP estimate and recommend pickups at earliest
                         convenience.
                       </p>
                     </div>
 
-                    <div className="bg-neutral-950 p-4 border border-neutral-850 rounded-xl space-y-2">
+                    <div className="bg-[#FAF3EA] p-4 border border-[#E7C7CF] rounded-xl space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="block text-xs font-bold text-white">
+                        <span className="block text-xs font-bold text-[#33101F] font-['Inter','Segoe UI',system-ui,sans-serif]">
                           Advanced Scheduled Bookings
                         </span>
                         <input
@@ -2035,18 +2045,18 @@ export default function RestaurantDashboard() {
                               allowScheduled: e.target.checked,
                             }))
                           }
-                          className="w-4 h-4 rounded text-amber-500 accent-amber-500 cursor-pointer"
+                          className="w-4 h-4 rounded text-[#C42348] accent-[#C42348] cursor-pointer"
                         />
                       </div>
-                      <p className="text-[10px] text-neutral-500 leading-normal">
+                      <p className="text-[10px] text-[#8C6B76] leading-normal font-['Inter','Segoe UI',system-ui,sans-serif]">
                         Allow customers to pick exact schedules on future hours
                         of open days.
                       </p>
                     </div>
                   </div>
 
-                  <div className="bg-neutral-950 p-4 border border-neutral-850 rounded-xl">
-                    <label className="block text-xs font-bold text-white mb-1.5">
+                  <div className="bg-[#FAF3EA] p-4 border border-[#E7C7CF] rounded-xl">
+                    <label className="block text-xs font-bold text-[#33101F] mb-1.5 font-['Inter','Segoe UI',system-ui,sans-serif]">
                       Average Cooking/Preparation Time
                     </label>
                     <select
@@ -2058,7 +2068,7 @@ export default function RestaurantDashboard() {
                           prepTimeMinutes: parseInt(e.target.value),
                         }))
                       }
-                      className="w-full px-3.5 py-2.5 bg-neutral-950 border border-neutral-800 focus:border-amber-500 rounded-xl focus:outline-none text-neutral-300 text-xs"
+                      className="w-full px-3.5 py-2.5 bg-white border border-[#E7C7CF] focus:border-[#C42348] rounded-xl focus:outline-none text-[#33101F] text-xs font-['Inter','Segoe UI',system-ui,sans-serif]"
                     >
                       <option value={15}>
                         ⚡ ASAP Express Estimate (15 min)
@@ -2071,7 +2081,7 @@ export default function RestaurantDashboard() {
                         🍗 Elaborate slow roasted recipes (60 min)
                       </option>
                     </select>
-                    <p className="text-[10px] text-neutral-500 mt-1.5">
+                    <p className="text-[10px] text-[#8C6B76] mt-1.5 font-['Inter','Segoe UI',system-ui,sans-serif]">
                       Used to render precise estimated availability on the
                       customer success ticket receipt.
                     </p>
@@ -2079,13 +2089,13 @@ export default function RestaurantDashboard() {
                 </div>
 
                 {/* 4. Taxes & Fees Card */}
-                <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 sm:p-8 space-y-6">
+                <div className="bg-white border border-[#E7C7CF] rounded-2xl p-6 sm:p-8 space-y-6">
                   <div>
-                    <h3 className="text-base font-bold text-white flex items-center gap-2">
-                      <DollarSign className="w-5 h-5 text-sky-400" />
+                    <h3 className="text-base font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] flex items-center gap-2">
+                      <DollarSign className="w-5 h-5 text-[#C42348]" />
                       <span>SaaS Platform Taxes & Flat Fees</span>
                     </h3>
-                    <p className="text-xs text-neutral-400 mt-1">
+                    <p className="text-xs text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                       Set state business taxation and platform flat processing
                       fee percentages.
                     </p>
@@ -2093,7 +2103,7 @@ export default function RestaurantDashboard() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-1">
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-[#8C6B76] mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                         State/Local Sales Tax (%)
                       </label>
                       <input
@@ -2107,12 +2117,12 @@ export default function RestaurantDashboard() {
                             taxRatePercent: parseFloat(e.target.value) || 0,
                           }))
                         }
-                        className="w-full px-3.5 py-2 bg-neutral-950 border border-neutral-800 focus:border-amber-500 rounded-xl text-xs text-neutral-200 focus:outline-none"
+                        className="w-full px-3.5 py-2 bg-[#FAF3EA] border border-[#E7C7CF] focus:border-[#C42348] rounded-xl text-xs text-[#33101F] focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif]"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-1">
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-[#8C6B76] mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                         Flat Web Service Fee ($)
                       </label>
                       <input
@@ -2126,17 +2136,17 @@ export default function RestaurantDashboard() {
                             serviceFeeAmount: parseFloat(e.target.value) || 0,
                           }))
                         }
-                        className="w-full px-3.5 py-2 bg-neutral-950 border border-neutral-800 focus:border-amber-500 rounded-xl text-xs text-neutral-200 focus:outline-none"
+                        className="w-full px-3.5 py-2 bg-[#FAF3EA] border border-[#E7C7CF] focus:border-[#C42348] rounded-xl text-xs text-[#33101F] focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif]"
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-4 border-t border-neutral-800">
+                <div className="flex justify-end pt-4 border-t border-[#E7C7CF]">
                   <button
                     id="save-restaurant-settings-btn"
                     type="submit"
-                    className="bg-amber-500 hover:bg-amber-600 active:scale-95 text-neutral-950 px-6 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+                    className="bg-[#C42348] hover:bg-[#E84C6B] active:scale-95 text-white px-6 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer shadow-md font-['Inter','Segoe UI',system-ui,sans-serif]"
                   >
                     <Save className="w-4 h-4" />
                     <span>Save All Restaurant Settings</span>
@@ -2150,22 +2160,22 @@ export default function RestaurantDashboard() {
 
       {/* CATEGORY DIALOG MODAL LAYOUT */}
       {showCatModal && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl">
-            <div className="bg-neutral-850 p-4 border-b border-neutral-800 flex justify-between items-center text-sm font-bold text-white">
+        <div className="fixed inset-0 z-50 bg-[#33101F]/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-[#E7C7CF] rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl">
+            <div className="bg-[#FAF3EA] p-4 border-b border-[#E7C7CF] flex justify-between items-center text-sm font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F]">
               <span>
                 {editingCatId ? "Edit Food Category" : "Create Food Category"}
               </span>
               <button
                 onClick={() => setShowCatModal(false)}
-                className="text-neutral-400 hover:text-white p-1"
+                className="text-[#8C6B76] hover:text-[#33101F] p-1"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
             <form onSubmit={handleSaveCat} className="p-5 space-y-4">
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-400 mb-1.5">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#8C6B76] mb-1.5 font-['Inter','Segoe UI',system-ui,sans-serif]">
                   Category Name
                 </label>
                 <input
@@ -2175,7 +2185,7 @@ export default function RestaurantDashboard() {
                   value={catNameInput}
                   onChange={(e) => setCatNameInput(e.target.value)}
                   placeholder="e.g. Handmade Tacos"
-                  className="w-full px-3.5 py-2 bg-neutral-950 border border-neutral-800 focus:border-amber-500 rounded-xl text-xs text-neutral-200 focus:outline-none"
+                  className="w-full px-3.5 py-2 bg-[#FAF3EA] border border-[#E7C7CF] focus:border-[#C42348] rounded-xl text-xs text-[#33101F] focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif]"
                 />
               </div>
 
@@ -2183,14 +2193,14 @@ export default function RestaurantDashboard() {
                 <button
                   type="button"
                   onClick={() => setShowCatModal(false)}
-                  className="bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs px-4 py-2 rounded-lg cursor-pointer font-medium"
+                  className="bg-[#FAF3EA] hover:bg-[#E7C7CF] text-[#8C6B76] text-xs px-4 py-2 rounded-lg cursor-pointer font-medium font-['Inter','Segoe UI',system-ui,sans-serif]"
                 >
                   Cancel
                 </button>
                 <button
                   id="save-cat-modal-btn"
                   type="submit"
-                  className="bg-amber-500 hover:bg-amber-600 text-neutral-950 text-xs px-4 py-2 rounded-lg cursor-pointer font-bold"
+                  className="bg-[#C42348] hover:bg-[#E84C6B] text-white text-xs px-4 py-2 rounded-lg cursor-pointer font-bold font-['Inter','Segoe UI',system-ui,sans-serif]"
                 >
                   Save Changes
                 </button>
@@ -2202,15 +2212,15 @@ export default function RestaurantDashboard() {
 
       {/* MENU ITEM DIALOG MODAL LAYOUT */}
       {showItemModal && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
-            <div className="bg-neutral-850 p-4 border-b border-neutral-800 flex justify-between items-center text-sm font-bold text-white">
+        <div className="fixed inset-0 z-50 bg-[#33101F]/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-[#E7C7CF] rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div className="bg-[#FAF3EA] p-4 border-b border-[#E7C7CF] flex justify-between items-center text-sm font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F]">
               <span>
                 {editingItemId ? "Edit Catalog Dish" : "Add Catalog Dish"}
               </span>
               <button
                 onClick={() => setShowItemModal(false)}
-                className="text-neutral-400 hover:text-white p-1"
+                className="text-[#8C6B76] hover:text-[#33101F] p-1"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2218,7 +2228,7 @@ export default function RestaurantDashboard() {
             <form onSubmit={handleSaveItem} className="p-5 space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-400 mb-1">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#8C6B76] mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                     Dish Name
                   </label>
                   <input
@@ -2230,12 +2240,12 @@ export default function RestaurantDashboard() {
                       setItemForm((prev) => ({ ...prev, name: e.target.value }))
                     }
                     placeholder="e.g. Classic cheeseburger"
-                    className="w-full px-3.5 py-2 bg-neutral-950 border border-neutral-800 focus:border-amber-500 rounded-xl focus:outline-none"
+                    className="w-full px-3.5 py-2 bg-[#FAF3EA] border border-[#E7C7CF] focus:border-[#C42348] rounded-xl focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-400 mb-1">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#8C6B76] mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                     Price ($)
                   </label>
                   <input
@@ -2251,12 +2261,12 @@ export default function RestaurantDashboard() {
                       }))
                     }
                     placeholder="e.g. 14.50"
-                    className="w-full px-3.5 py-2 bg-neutral-950 border border-neutral-800 focus:border-amber-500 rounded-xl focus:outline-none font-mono"
+                    className="w-full px-3.5 py-2 bg-[#FAF3EA] border border-[#E7C7CF] focus:border-[#C42348] rounded-xl focus:outline-none font-mono font-['Inter','Segoe UI',system-ui,sans-serif]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-400 mb-1">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#8C6B76] mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                     Category
                   </label>
                   <select
@@ -2268,7 +2278,7 @@ export default function RestaurantDashboard() {
                         categoryId: e.target.value,
                       }))
                     }
-                    className="w-full px-3.5 py-2.5 bg-neutral-950 border border-neutral-800 focus:border-amber-500 rounded-xl focus:outline-none text-neutral-300"
+                    className="w-full px-3.5 py-2.5 bg-[#FAF3EA] border border-[#E7C7CF] focus:border-[#C42348] rounded-xl focus:outline-none text-[#33101F] font-['Inter','Segoe UI',system-ui,sans-serif]"
                   >
                     {storeCategories.map((cat) => (
                       <option key={cat.id} value={cat.id}>
@@ -2283,7 +2293,7 @@ export default function RestaurantDashboard() {
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-400 mb-1">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#8C6B76] mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                   Description
                 </label>
                 <textarea
@@ -2297,12 +2307,12 @@ export default function RestaurantDashboard() {
                   }
                   placeholder="Double beef patty cheddar pickles signature sauce..."
                   rows={2}
-                  className="w-full px-3.5 py-2 bg-neutral-950 border border-neutral-800 focus:border-amber-500 rounded-xl focus:outline-none"
+                  className="w-full px-3.5 py-2 bg-[#FAF3EA] border border-[#E7C7CF] focus:border-[#C42348] rounded-xl focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif]"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-400 mb-1">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#8C6B76] mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                   Image URL
                 </label>
                 <input
@@ -2313,12 +2323,12 @@ export default function RestaurantDashboard() {
                     setItemForm((prev) => ({ ...prev, image: e.target.value }))
                   }
                   placeholder="https://images.unsplash.com/..."
-                  className="w-full px-3.5 py-2 bg-neutral-950 border border-neutral-800 focus:border-amber-500 rounded-xl focus:outline-none"
+                  className="w-full px-3.5 py-2 bg-[#FAF3EA] border border-[#E7C7CF] focus:border-[#C42348] rounded-xl focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif]"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-400 mb-1.5">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#8C6B76] mb-1.5 font-['Inter','Segoe UI',system-ui,sans-serif]">
                   Availability Status
                 </label>
                 <select
@@ -2330,7 +2340,7 @@ export default function RestaurantDashboard() {
                       availability: e.target.value as any,
                     }))
                   }
-                  className="w-full px-3.5 py-2.5 bg-neutral-950 border border-neutral-800 focus:border-amber-500 rounded-xl focus:outline-none text-neutral-300"
+                  className="w-full px-3.5 py-2.5 bg-[#FAF3EA] border border-[#E7C7CF] focus:border-[#C42348] rounded-xl focus:outline-none text-[#33101F] font-['Inter','Segoe UI',system-ui,sans-serif]"
                 >
                   <option value="available">🟢 Available (On Menu)</option>
                   <option value="out_of_stock">
@@ -2340,18 +2350,18 @@ export default function RestaurantDashboard() {
                 </select>
               </div>
 
-              <div className="flex gap-2 justify-end pt-3 border-t border-neutral-800">
+              <div className="flex gap-2 justify-end pt-3 border-t border-[#E7C7CF]">
                 <button
                   type="button"
                   onClick={() => setShowItemModal(false)}
-                  className="bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs px-4 py-2 rounded-lg cursor-pointer font-medium"
+                  className="bg-[#FAF3EA] hover:bg-[#E7C7CF] text-[#8C6B76] text-xs px-4 py-2 rounded-lg cursor-pointer font-medium font-['Inter','Segoe UI',system-ui,sans-serif]"
                 >
                   Cancel
                 </button>
                 <button
                   id="save-item-modal-btn"
                   type="submit"
-                  className="bg-amber-500 hover:bg-amber-600 text-neutral-950 text-xs px-4 py-2 rounded-lg cursor-pointer font-bold"
+                  className="bg-[#C42348] hover:bg-[#E84C6B] text-white text-xs px-4 py-2 rounded-lg cursor-pointer font-bold font-['Inter','Segoe UI',system-ui,sans-serif]"
                 >
                   Save Item
                 </button>

@@ -1,9 +1,32 @@
 @import "tailwindcss";
 
+/* ====== HINAROK LOCAL VARIABLE FONTS ====== */
+
+/* Baloo 2 - Variable Display Font */
+@font-face {
+  font-family: 'Baloo 2';
+  src: url('./assets/fonts/Baloo2-VariableFont_wght.ttf') format('truetype-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Inter - Variable Body Font */
+@font-face {
+  font-family: 'Inter';
+  src: url('./assets/fonts/Inter-VariableFont_opsz,wght.ttf') format('truetype-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Ensure full background coverage */
-html, body, #root {
+html,
+body,
+#root {
   min-height: 100vh;
-  background-color: #0f172a; /* slate-900 */
+  background-color: #FAF3EA;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
 }
 
 /* Smooth scrolling */
@@ -17,14 +40,90 @@ html {
 }
 
 ::-webkit-scrollbar-track {
-  background: #1e293b;
+  background: #FAF3EA;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #475569;
+  background: #C42348;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
+  background: #E84C6B;
+}
+
+/* Selection color */
+::selection {
+  background: #C42348;
+  color: white;
+}
+
+/* Utility classes for Hinarok colors */
+.bg-hinarok-crimson {
+  background-color: #C42348;
+}
+
+.bg-hinarok-crimson-light {
+  background-color: #E84C6B;
+}
+
+.bg-hinarok-aubergine {
+  background-color: #33101F;
+}
+
+.bg-hinarok-aubergine-2 {
+  background-color: #48182C;
+}
+
+.bg-hinarok-cream {
+  background-color: #FAF3EA;
+}
+
+.bg-hinarok-cream-2 {
+  background-color: #FFF1E4;
+}
+
+.bg-hinarok-gold {
+  background-color: #E8A13B;
+}
+
+.text-hinarok-crimson {
+  color: #C42348;
+}
+
+.text-hinarok-crimson-light {
+  color: #E84C6B;
+}
+
+.text-hinarok-aubergine {
+  color: #33101F;
+}
+
+.text-hinarok-gold {
+  color: #E8A13B;
+}
+
+.text-hinarok-muted {
+  color: #8C6B76;
+}
+
+.border-hinarok-crimson {
+  border-color: #C42348;
+}
+
+.border-hinarok-aubergine {
+  border-color: #33101F;
+}
+
+.border-hinarok-cream {
+  border-color: #FAF3EA;
+}
+
+/* Font utility classes */
+.font-baloo {
+  font-family: 'Baloo 2', 'Trebuchet MS', 'Segoe UI', sans-serif;
+}
+
+.font-inter {
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
 }
