@@ -564,7 +564,7 @@ function LandingPortal() {
   );
 }
 
-// Protected Route wrapper
+// cted Route wrapper
 const ProtectedRoute = ({
   children,
   allowedRoles,
