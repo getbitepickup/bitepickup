@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { HashRouter, Routes, Route, Navigate, Link } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
   Store,
@@ -564,7 +564,7 @@ function LandingPortal() {
   );
 }
 
-// cted Route wrapper
+// Protected Route wrapper
 const ProtectedRoute = ({
   children,
   allowedRoles,
@@ -595,7 +595,7 @@ const ProtectedRoute = ({
 
 export default function App() {
   return (
-    <HashRouter>
+    <BrowserRouter>
       <div className="min-h-screen bg-[#FAF3EA] antialiased selection:bg-[#C42348] selection:text-white">
         <Header />
         <Routes>
@@ -623,6 +623,6 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
-    </HashRouter>
+    </BrowserRouter>
   );
 }
