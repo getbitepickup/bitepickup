@@ -297,6 +297,8 @@ exports.updateRestaurant = async (req, res) => {
       businessHours,
       pickupSettings,
       taxesAndFees,
+      slug,
+      subdomain,
     } = req.body;
 
     const restaurant = await Restaurant.findById(req.params.id);
@@ -314,6 +316,10 @@ exports.updateRestaurant = async (req, res) => {
       restaurant.slug = generateSlug(name);
       restaurant.subdomain = generateSubdomain(name);
     }
+    // Allow manual slug/subdomain override if provided
+    if (slug) restaurant.slug = slug;
+    if (subdomain) restaurant.subdomain = subdomain;
+    
     if (description) restaurant.description = description;
     if (phone) restaurant.phone = phone;
     if (address) restaurant.address = address;
