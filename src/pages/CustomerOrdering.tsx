@@ -536,8 +536,10 @@ export default function CustomerOrdering() {
         </>
       )}
 
-      {/* Main Grid: Menu Layout */}
-      <div className="max-w-5xl mx-auto px-4 py-8">
+      {/* Main Grid: Menu Layout - FIX: Added conditional padding for mobile cart */}
+      <div
+        className={`max-w-5xl mx-auto px-4 py-8 ${cart.length > 0 && checkoutStep === "menu" ? "pb-36 md:pb-8" : "pb-8"}`}
+      >
         {checkoutStep === "menu" && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Left Col: Menu categories & Items */}
