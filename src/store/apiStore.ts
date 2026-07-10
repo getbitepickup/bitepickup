@@ -131,7 +131,21 @@ export const addRestaurant = async (data: any): Promise<any> => {
     return response.data || response;
   } catch (error: any) {
     console.error("Failed to create restaurant:", error);
-    throw new Error(error.message || "Failed to create restaurant");
+    // Extract the actual error message from the response
+    let errorMessage = "Failed to create restaurant";
+
+    if (error?.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error?.message) {
+      errorMessage = error.message;
+    } else if (typeof error === "string") {
+      errorMessage = error;
+    }
+
+    // Preserve the original error message
+    const customError = new Error(errorMessage);
+    (customError as any).originalError = error;
+    throw customError;
   }
 };
 
@@ -406,7 +420,7 @@ export const toggleOrderingPause = async (restaurantId: string) => {
   }
 };
 
-// ============ LEGACY FUNCTIONS (for backward compatibility) ============
+// ============ LEGACY FUNCTIONS ============
 export const getCurrentRestaurantId = () => {
   return localStorage.getItem("currentRestaurantId") || "";
 };
