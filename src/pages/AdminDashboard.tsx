@@ -266,7 +266,7 @@ export default function AdminDashboard() {
   const handleSaveRestaurant = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
-    
+
     if (!resForm.name.trim()) {
       setErrorMessage("Restaurant name is required");
       return;
@@ -289,7 +289,10 @@ export default function AdminDashboard() {
     };
 
     // Include password change if provided
-    if (ownerForm.newPassword && ownerForm.newPassword === ownerForm.confirmNewPassword) {
+    if (
+      ownerForm.newPassword &&
+      ownerForm.newPassword === ownerForm.confirmNewPassword
+    ) {
       dataPayload.ownerPassword = ownerForm.newPassword;
     }
 
@@ -350,7 +353,7 @@ export default function AdminDashboard() {
           // Refresh restaurants and UPDATE the subdomain display
           const resData = await getRestaurants();
           const updatedResData = resData.map((r: any) => {
-            if (r.subdomain && r.subdomain.includes('.platform.com')) {
+            if (r.subdomain && r.subdomain.includes(".platform.com")) {
               const slug = r.slug || slugify(r.name);
               return { ...r, subdomain: `${slug}.hinarok.com` };
             }
@@ -380,7 +383,7 @@ export default function AdminDashboard() {
         } else {
           const resData = await getRestaurants();
           const updatedResData = resData.map((r: any) => {
-            if (r.subdomain && r.subdomain.includes('.platform.com')) {
+            if (r.subdomain && r.subdomain.includes(".platform.com")) {
               const slug = r.slug || slugify(r.name);
               return { ...r, subdomain: `${slug}.hinarok.com` };
             }
@@ -393,12 +396,25 @@ export default function AdminDashboard() {
       } catch (error: any) {
         console.error("Failed to create restaurant:", error);
         // Show the error message in the UI
-        const errorMsg = error?.message || error?.toString() || "Failed to create restaurant. Please try again.";
-        
-        if (errorMsg.includes('email already registered') || errorMsg.includes('Owner email already registered')) {
-          setErrorMessage("This email is already registered. Please use a different email address.");
-        } else if (errorMsg.includes('subdomain already exists') || errorMsg.includes('slug already exists')) {
-          setErrorMessage("A restaurant with this name already exists. Please use a different name.");
+        const errorMsg =
+          error?.message ||
+          error?.toString() ||
+          "Failed to create restaurant. Please try again.";
+
+        if (
+          errorMsg.toLowerCase().includes("email") &&
+          errorMsg.toLowerCase().includes("already")
+        ) {
+          setErrorMessage(
+            "This email is already registered. Please use a different email address.",
+          );
+        } else if (
+          errorMsg.includes("subdomain already exists") ||
+          errorMsg.includes("slug already exists")
+        ) {
+          setErrorMessage(
+            "A restaurant with this name already exists. Please use a different name.",
+          );
         } else {
           setErrorMessage(errorMsg);
         }
@@ -738,7 +754,11 @@ export default function AdminDashboard() {
                             <div className="flex items-center justify-end gap-2.5">
                               {/* Open storefront Link - Use subdomain or slug */}
                               <a
-                                href={res.subdomain ? `https://${res.subdomain}` : `/restaurant/${res.slug}`}
+                                href={
+                                  res.subdomain
+                                    ? `https://${res.subdomain}`
+                                    : `/restaurant/${res.slug}`
+                                }
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-[#8C6B76] hover:text-[#C42348] transition-colors p-1"
@@ -1461,11 +1481,14 @@ export default function AdminDashboard() {
                           />
                         </div>
                       </div>
-                      {ownerForm.newPassword && ownerForm.confirmNewPassword && ownerForm.newPassword !== ownerForm.confirmNewPassword && (
-                        <p className="text-[#C42348] text-[10px] mt-1 font-medium font-['Inter','Segoe UI',system-ui,sans-serif]">
-                          Passwords do not match!
-                        </p>
-                      )}
+                      {ownerForm.newPassword &&
+                        ownerForm.confirmNewPassword &&
+                        ownerForm.newPassword !==
+                          ownerForm.confirmNewPassword && (
+                          <p className="text-[#C42348] text-[10px] mt-1 font-medium font-['Inter','Segoe UI',system-ui,sans-serif]">
+                            Passwords do not match!
+                          </p>
+                        )}
                       <p className="text-[10px] text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                         Leave blank to keep current password.
                       </p>
