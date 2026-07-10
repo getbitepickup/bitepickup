@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ShoppingBag,
@@ -16,6 +16,8 @@ import {
   Check,
   Utensils,
   Store,
+  X,
+  ChevronUp,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -48,11 +50,17 @@ export default function CustomerOrdering() {
   const getSubdomainFromHost = () => {
     const hostname = window.location.hostname;
     // If it's hinarok.com or www.hinarok.com, no subdomain
-    if (hostname === 'hinarok.com' || hostname === 'www.hinarok.com' || hostname === 'localhost' || hostname === 'bitepickup.vercel.app' || hostname.includes('vercel.app')) {
+    if (
+      hostname === "hinarok.com" ||
+      hostname === "www.hinarok.com" ||
+      hostname === "localhost" ||
+      hostname === "bitepickup.vercel.app" ||
+      hostname.includes("vercel.app")
+    ) {
       return null;
     }
     // Extract subdomain (first part before .hinarok.com)
-    const parts = hostname.split('.');
+    const parts = hostname.split(".");
     if (parts.length > 2) {
       return parts[0];
     }
@@ -65,7 +73,7 @@ export default function CustomerOrdering() {
         setLoading(true);
         const resData = await getRestaurants();
         // Filter out inactive restaurants
-        const activeRestaurants = resData.filter(r => r.isActive !== false);
+        const activeRestaurants = resData.filter((r) => r.isActive !== false);
         setRestaurants(activeRestaurants);
 
         let found = null;
@@ -133,6 +141,13 @@ export default function CustomerOrdering() {
     "menu" | "checkout" | "success"
   >("menu");
 
+  // Mobile Bottom Sheet States
+  const [isCartSheetOpen, setIsCartSheetOpen] = useState(false);
+  const [isItemSheetOpen, setIsItemSheetOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+  const [itemQuantity, setItemQuantity] = useState(1);
+  const [itemSpecialInstructions, setItemSpecialInstructions] = useState("");
+
   // Checkout Form states
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -190,6 +205,15 @@ export default function CustomerOrdering() {
     }
   }, [filteredCategories]);
 
+  // Reset item sheet when opened
+  useEffect(() => {
+    if (selectedItem) {
+      const existingInCart = cart.find((i) => i.menuItemId === selectedItem.id);
+      setItemQuantity(existingInCart?.quantity || 1);
+      setItemSpecialInstructions("");
+    }
+  }, [selectedItem, cart]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#FAF3EA] flex flex-col items-center justify-center p-6 text-center">
@@ -224,12 +248,22 @@ export default function CustomerOrdering() {
   }
 
   // Cart Operations
-  const addToCart = (item: MenuItem) => {
+  const addToCart = (
+    item: MenuItem,
+    quantity: number = 1,
+    instructions: string = "",
+  ) => {
     setCart((prev) => {
       const existing = prev.find((i) => i.menuItemId === item.id);
       if (existing) {
         return prev.map((i) =>
-          i.menuItemId === item.id ? { ...i, quantity: i.quantity + 1 } : i,
+          i.menuItemId === item.id
+            ? {
+                ...i,
+                quantity: i.quantity + quantity,
+                specialInstructions: instructions || i.specialInstructions,
+              }
+            : i,
         );
       }
       return [
@@ -238,8 +272,9 @@ export default function CustomerOrdering() {
           menuItemId: item.id,
           name: item.name,
           price: item.price,
-          quantity: 1,
+          quantity: quantity,
           image: item.image,
+          specialInstructions: instructions || undefined,
         },
       ];
     });
@@ -314,6 +349,7 @@ export default function CustomerOrdering() {
         name: item.name,
         price: item.price,
         quantity: item.quantity,
+        specialInstructions: item.specialInstructions,
       })),
       pickupTimeOption: pickupOption,
       scheduledTime: pickupOption === "scheduled" ? scheduledTime : undefined,
@@ -375,6 +411,31 @@ export default function CustomerOrdering() {
   };
 
   const timeSlots = generateTimeSlots();
+
+  // Handle item card click for mobile
+  const handleItemClick = (item: MenuItem) => {
+    if (window.innerWidth < 768) {
+      setSelectedItem(item);
+      const existingInCart = cart.find((i) => i.menuItemId === item.id);
+      setItemQuantity(existingInCart?.quantity || 1);
+      setItemSpecialInstructions(existingInCart?.specialInstructions || "");
+      setIsItemSheetOpen(true);
+    }
+  };
+
+  // Handle add from item sheet
+  const handleAddFromSheet = () => {
+    if (selectedItem) {
+      // Remove existing item from cart if present
+      const existing = cart.find((i) => i.menuItemId === selectedItem.id);
+      if (existing) {
+        removeFromCart(selectedItem.id);
+      }
+      addToCart(selectedItem, itemQuantity, itemSpecialInstructions);
+      setIsItemSheetOpen(false);
+      setSelectedItem(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#FAF3EA] text-[#33101F] font-['Inter','Segoe UI',system-ui,sans-serif]">
@@ -527,7 +588,8 @@ export default function CustomerOrdering() {
                             <div
                               id={`menu-card-${item.id}`}
                               key={item.id}
-                              className="flex gap-4 p-4 rounded-xl border border-[#E7C7CF] hover:border-[#C42348] hover:shadow-sm transition-all bg-white"
+                              className="flex gap-4 p-4 rounded-xl border border-[#E7C7CF] hover:border-[#C42348] hover:shadow-sm transition-all bg-white cursor-pointer md:cursor-default"
+                              onClick={() => handleItemClick(item)}
                             >
                               <div className="flex-1 space-y-1">
                                 <h4 className="font-['Baloo_2','Trebuchet_MS',sans-serif] font-semibold text-[#33101F] text-sm md:text-base">
@@ -550,7 +612,10 @@ export default function CustomerOrdering() {
                                 />
                                 <button
                                   id={`add-btn-${item.id}`}
-                                  onClick={() => addToCart(item)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    addToCart(item);
+                                  }}
                                   className="absolute bottom-1 right-1 bg-white hover:bg-[#C42348] hover:text-white text-[#33101F] w-7 h-7 rounded-full shadow-lg flex items-center justify-center font-bold transition-all border border-[#E7C7CF] cursor-pointer"
                                   title="Add to order"
                                 >
@@ -1135,27 +1200,297 @@ export default function CustomerOrdering() {
         )}
       </div>
 
-      {/* Floating Sticky Mobile Basket Footer */}
+      {/* Mobile Cart Bottom Sheet - Trigger */}
       {checkoutStep === "menu" && cart.length > 0 && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#E7C7CF] p-4 shadow-lg z-30 flex items-center justify-between">
-          <div className="flex flex-col">
-            <span className="text-[10px] text-[#8C6B76] font-semibold uppercase font-['Inter','Segoe UI',system-ui,sans-serif]">
-              Total Basket Size
-            </span>
-            <span className="font-['Baloo_2','Trebuchet_MS',sans-serif] font-extrabold text-base text-[#33101F]">
-              ${finalTotalValue.toFixed(2)}
-            </span>
-          </div>
-
-          <button
-            onClick={() => setCheckoutStep("checkout")}
-            className="bg-[#C42348] hover:bg-[#E84C6B] text-white font-['Inter','Segoe UI',system-ui,sans-serif] font-bold text-xs tracking-wide uppercase px-5 py-3 rounded-xl flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-40">
+          {/* Cart bar - tap to open sheet */}
+          <div
+            onClick={() => setIsCartSheetOpen(true)}
+            className="bg-[#C42348] mx-4 mb-4 rounded-2xl p-4 shadow-lg flex items-center justify-between cursor-pointer active:scale-95 transition-transform"
           >
-            <span>Proceed to Checkout</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
+            <div className="flex items-center gap-3">
+              <div className="bg-white/20 p-2 rounded-full">
+                <ShoppingBag className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <span className="text-white font-bold text-sm">
+                  {itemsInCartCount} items
+                </span>
+                <span className="text-white/80 text-xs block">
+                  Tap to view cart
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-white font-bold text-lg">
+                ${finalTotalValue.toFixed(2)}
+              </span>
+              <ChevronUp className="w-5 h-5 text-white" />
+            </div>
+          </div>
         </div>
       )}
+
+      {/* MOBILE CART BOTTOM SHEET */}
+      <AnimatePresence>
+        {isCartSheetOpen && checkoutStep === "menu" && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+            onClick={() => setIsCartSheetOpen(false)}
+          >
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[85vh] flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Handle Bar */}
+              <div className="flex justify-center pt-3 pb-2">
+                <div className="w-12 h-1.5 bg-gray-300 rounded-full"></div>
+              </div>
+
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 pb-4 border-b border-[#E7C7CF]">
+                <h3 className="font-['Baloo_2','Trebuchet_MS',sans-serif] text-xl font-bold text-[#33101F]">
+                  Your Order
+                </h3>
+                <button
+                  onClick={() => setIsCartSheetOpen(false)}
+                  className="text-[#8C6B76] hover:text-[#33101F] p-1"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Cart Items */}
+              <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+                {cart.map((item) => (
+                  <div
+                    key={item.menuItemId}
+                    className="flex items-start gap-3 py-3 border-b border-[#E7C7CF] last:border-0"
+                  >
+                    <div className="w-14 h-14 rounded-lg bg-[#FAF3EA] overflow-hidden flex-shrink-0">
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-['Baloo_2','Trebuchet_MS',sans-serif] font-semibold text-[#33101F] text-sm">
+                        {item.name}
+                      </h4>
+                      <p className="text-[#C42348] font-bold text-sm">
+                        ${(item.price * item.quantity).toFixed(2)}
+                      </p>
+                      {item.specialInstructions && (
+                        <p className="text-[10px] text-[#8C6B76] italic truncate">
+                          Note: {item.specialInstructions}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center border border-[#E7C7CF] rounded-lg bg-white overflow-hidden">
+                        <button
+                          onClick={() => updateQuantity(item.menuItemId, -1)}
+                          className="px-2 py-1.5 text-[#8C6B76] hover:bg-[#FAF3EA]"
+                        >
+                          <Minus className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="px-2 font-mono text-[#33101F] text-sm min-w-[24px] text-center">
+                          {item.quantity}
+                        </span>
+                        <button
+                          onClick={() => updateQuantity(item.menuItemId, 1)}
+                          className="px-2 py-1.5 text-[#8C6B76] hover:bg-[#FAF3EA]"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => removeFromCart(item.menuItemId)}
+                        className="text-[#8C6B76] hover:text-[#C42348] p-1"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Footer */}
+              <div className="border-t border-[#E7C7CF] p-5 space-y-3 bg-white rounded-b-3xl">
+                <div className="space-y-1.5 text-xs text-[#8C6B76]">
+                  <div className="flex justify-between">
+                    <span>Subtotal:</span>
+                    <span className="font-medium text-[#33101F]">
+                      ${cartTotal.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Taxes ({taxRate}%):</span>
+                    <span className="font-medium text-[#33101F]">
+                      ${taxAmountValue.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Service Fee:</span>
+                    <span className="font-medium text-[#33101F]">
+                      ${serviceFee.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] text-base pt-1 border-t border-[#E7C7CF]">
+                    <span>Total:</span>
+                    <span>${finalTotalValue.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                {currentRestaurant.isOrderingPaused ? (
+                  <div className="p-3 bg-[#E8A13B]/10 text-[#E8A13B] font-bold text-[10px] text-center uppercase rounded-lg border border-[#E8A13B]/20">
+                    Ordering paused by {currentRestaurant.name}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setIsCartSheetOpen(false);
+                      setCheckoutStep("checkout");
+                    }}
+                    className="w-full bg-[#C42348] hover:bg-[#E84C6B] text-white font-bold py-3.5 rounded-xl transition-all text-sm"
+                  >
+                    Proceed to Checkout
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* MOBILE ITEM DETAIL BOTTOM SHEET */}
+      <AnimatePresence>
+        {isItemSheetOpen && selectedItem && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+            onClick={() => setIsItemSheetOpen(false)}
+          >
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[90vh] flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Handle Bar */}
+              <div className="flex justify-center pt-3 pb-2">
+                <div className="w-12 h-1.5 bg-gray-300 rounded-full"></div>
+              </div>
+
+              {/* Close Button */}
+              <div className="flex justify-end px-4">
+                <button
+                  onClick={() => setIsItemSheetOpen(false)}
+                  className="text-[#8C6B76] hover:text-[#33101F] p-1"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto px-5 pb-4">
+                {/* Image */}
+                <div className="w-full h-56 rounded-xl bg-[#FAF3EA] overflow-hidden mb-4">
+                  <img
+                    src={selectedItem.image}
+                    alt={selectedItem.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
+                {/* Name & Price */}
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="text-xl font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F]">
+                    {selectedItem.name}
+                  </h3>
+                  <span className="text-xl font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#C42348]">
+                    ${(selectedItem.price * itemQuantity).toFixed(2)}
+                  </span>
+                </div>
+
+                {/* Description */}
+                <p className="text-sm text-[#8C6B76] leading-relaxed mb-4">
+                  {selectedItem.description}
+                </p>
+
+                {/* Special Instructions */}
+                <div className="mb-3">
+                  <label className="block text-xs font-semibold text-[#33101F] mb-1.5 font-['Inter','Segoe UI',system-ui,sans-serif]">
+                    Special Instructions
+                  </label>
+                  <textarea
+                    value={itemSpecialInstructions}
+                    onChange={(e) => setItemSpecialInstructions(e.target.value)}
+                    placeholder="Add a note (e.g. no nuts, no onions)"
+                    rows={2}
+                    className="w-full px-3.5 py-2 border border-[#E7C7CF] rounded-xl text-xs text-[#33101F] focus:outline-none focus:ring-2 focus:ring-[#C42348] font-['Inter','Segoe UI',system-ui,sans-serif]"
+                  />
+                  <p className="text-[10px] text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
+                    No substitutes. Additions may be charged extra.
+                  </p>
+                </div>
+
+                {/* Quantity Stepper */}
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-sm font-medium text-[#33101F] font-['Inter','Segoe UI',system-ui,sans-serif]">
+                    Quantity
+                  </span>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() =>
+                        setItemQuantity((prev) => Math.max(1, prev - 1))
+                      }
+                      disabled={itemQuantity <= 1}
+                      className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all ${
+                        itemQuantity <= 1
+                          ? "border-gray-200 text-gray-300 cursor-not-allowed"
+                          : "border-[#E7C7CF] text-[#33101F] hover:bg-[#FAF3EA]"
+                      }`}
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <span className="font-mono text-lg font-bold text-[#33101F] min-w-[32px] text-center">
+                      {itemQuantity}
+                    </span>
+                    <button
+                      onClick={() => setItemQuantity((prev) => prev + 1)}
+                      className="w-8 h-8 rounded-full border border-[#E7C7CF] text-[#33101F] hover:bg-[#FAF3EA] flex items-center justify-center transition-all"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Add to Cart Button */}
+                <button
+                  onClick={handleAddFromSheet}
+                  className="w-full bg-[#C42348] hover:bg-[#E84C6B] text-white font-bold py-3.5 rounded-xl transition-all text-sm flex items-center justify-between px-5"
+                >
+                  <span>Add to Cart</span>
+                  <span>${(selectedItem.price * itemQuantity).toFixed(2)}</span>
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
