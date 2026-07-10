@@ -349,9 +349,7 @@ export default function AdminDashboard() {
 
           // Refresh restaurants and UPDATE the subdomain display
           const resData = await getRestaurants();
-          // Fix the subdomain display for the newly created restaurant
           const updatedResData = resData.map((r: any) => {
-            // If the restaurant has the old .platform.com subdomain, update it for display
             if (r.subdomain && r.subdomain.includes('.platform.com')) {
               const slug = r.slug || slugify(r.name);
               return { ...r, subdomain: `${slug}.hinarok.com` };
@@ -395,12 +393,14 @@ export default function AdminDashboard() {
       } catch (error: any) {
         console.error("Failed to create restaurant:", error);
         // Show the error message in the UI
-        if (error.message && error.message.includes('email already registered')) {
+        const errorMsg = error?.message || error?.toString() || "Failed to create restaurant. Please try again.";
+        
+        if (errorMsg.includes('email already registered') || errorMsg.includes('Owner email already registered')) {
           setErrorMessage("This email is already registered. Please use a different email address.");
-        } else if (error.message && error.message.includes('subdomain already exists')) {
+        } else if (errorMsg.includes('subdomain already exists') || errorMsg.includes('slug already exists')) {
           setErrorMessage("A restaurant with this name already exists. Please use a different name.");
         } else {
-          setErrorMessage(error.message || "Failed to create restaurant. Please try again.");
+          setErrorMessage(errorMsg);
         }
       } finally {
         setIsSubmitting(false);
