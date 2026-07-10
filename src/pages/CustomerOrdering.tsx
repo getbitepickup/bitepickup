@@ -458,7 +458,7 @@ export default function CustomerOrdering() {
               <div className="flex flex-wrap gap-2 text-xs text-[#8C6B76] py-1 font-medium bg-white rounded-lg p-2.5 max-w-sm border border-[#E7C7CF]">
                 <span className="flex items-center gap-1">
                   <MapPin className="w-3.5 h-3.5 text-[#8C6B76]" />
-                  {currentRestaurant.subdomain}
+                  {currentRestaurant.address}
                 </span>
                 <span className="text-[#E7C7CF]">|</span>
                 <span className="flex items-center gap-1">

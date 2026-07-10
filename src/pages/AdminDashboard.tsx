@@ -117,15 +117,28 @@ export default function AdminDashboard() {
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
-      .replace(/\s+/g, "")
+      .replace(/\s+/g, "-")
       .replace(/[^\w-]+/g, "")
       .replace(/--+/g, "-")
       .replace(/^-+/, "")
       .replace(/-+$/, "");
   };
 
+  // Generate subdomain without dashes (just lowercase, remove spaces)
+  const generateSubdomainSlug = (text: string) => {
+    return text
+      .toString()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, "")
+      .replace(/[^\w]+/g, "")
+      .replace(/^-+/, "")
+      .replace(/-+$/, "");
+  };
+
   const simulatedSubdomain = resForm.name
-    ? `${slugify(resForm.name)}.hinarok.com`
+    ? `${generateSubdomainSlug(resForm.name)}.hinarok.com`
     : "restaurantname.hinarok.com";
 
   // Generate random password
@@ -274,7 +287,8 @@ export default function AdminDashboard() {
     setIsSubmitting(true);
 
     const resSlug = slugify(resForm.name);
-    const subdomain = `${resSlug}.hinarok.com`;
+    const subdomainSlug = generateSubdomainSlug(resForm.name);
+    const subdomain = `${subdomainSlug}.hinarok.com`;
 
     const dataPayload: any = {
       name: resForm.name.trim(),
@@ -350,16 +364,9 @@ export default function AdminDashboard() {
             credentials: credentials,
           });
 
-          // Refresh restaurants and UPDATE the subdomain display
+          // Refresh restaurants
           const resData = await getRestaurants();
-          const updatedResData = resData.map((r: any) => {
-            if (r.subdomain && r.subdomain.includes(".platform.com")) {
-              const slug = r.slug || slugify(r.name);
-              return { ...r, subdomain: `${slug}.hinarok.com` };
-            }
-            return r;
-          });
-          setRestaurants(updatedResData);
+          setRestaurants(resData);
 
           setResForm({
             name: "",
@@ -382,14 +389,7 @@ export default function AdminDashboard() {
           });
         } else {
           const resData = await getRestaurants();
-          const updatedResData = resData.map((r: any) => {
-            if (r.subdomain && r.subdomain.includes(".platform.com")) {
-              const slug = r.slug || slugify(r.name);
-              return { ...r, subdomain: `${slug}.hinarok.com` };
-            }
-            return r;
-          });
-          setRestaurants(updatedResData);
+          setRestaurants(resData);
           setShowResModal(false);
           alert("✅ Restaurant created successfully!");
         }
