@@ -1025,7 +1025,6 @@ export default function CustomerOrdering() {
                       className="w-full px-3.5 py-2 border border-[#E7C7CF] rounded-xl text-xs text-[#33101F] focus:outline-none focus:ring-2 focus:ring-[#C42348] font-['Inter','Segoe UI',system-ui,sans-serif]"
                     />
                   </div>
-                  {/* Advisory Line */}
                   <p className="text-[10px] text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">
                     No substitutes. Additions may be charged extra.
                   </p>
@@ -1451,7 +1450,6 @@ export default function CustomerOrdering() {
                     rows={2}
                     className="w-full px-3.5 py-2 border border-[#E7C7CF] rounded-xl text-xs text-[#33101F] focus:outline-none focus:ring-2 focus:ring-[#C42348] font-['Inter','Segoe UI',system-ui,sans-serif]"
                   />
-                  {/* Advisory Line - Mobile */}
                   <p className="text-[10px] text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                     No substitutes. Additions may be charged extra.
                   </p>
