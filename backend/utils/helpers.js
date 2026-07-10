@@ -31,7 +31,7 @@ const generateSlug = (text) => {
  */
 const generateSubdomain = (restaurantName) => {
   const slug = generateSlug(restaurantName);
-  return `${slug}.platform.com`;
+  return `${slug}.hinarok.com`;
 };
 
 /**

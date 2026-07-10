@@ -98,8 +98,8 @@ export default function AdminDashboard() {
     email: "",
     phone: "",
     password: "",
-    newPassword: "", // Added for password change
-    confirmNewPassword: "", // Added for password change
+    newPassword: "",
+    confirmNewPassword: "",
   });
 
   const [createSuccess, setCreateSuccess] = useState<{
@@ -265,12 +265,13 @@ export default function AdminDashboard() {
 
   const handleSaveRestaurant = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
+    
     if (!resForm.name.trim()) {
       setErrorMessage("Restaurant name is required");
       return;
     }
     setIsSubmitting(true);
-    setErrorMessage(null);
 
     const resSlug = slugify(resForm.name);
     const subdomain = `${resSlug}.hinarok.com`;
@@ -346,8 +347,18 @@ export default function AdminDashboard() {
             credentials: credentials,
           });
 
+          // Refresh restaurants and UPDATE the subdomain display
           const resData = await getRestaurants();
-          setRestaurants(resData);
+          // Fix the subdomain display for the newly created restaurant
+          const updatedResData = resData.map((r: any) => {
+            // If the restaurant has the old .platform.com subdomain, update it for display
+            if (r.subdomain && r.subdomain.includes('.platform.com')) {
+              const slug = r.slug || slugify(r.name);
+              return { ...r, subdomain: `${slug}.hinarok.com` };
+            }
+            return r;
+          });
+          setRestaurants(updatedResData);
 
           setResForm({
             name: "",
@@ -370,15 +381,27 @@ export default function AdminDashboard() {
           });
         } else {
           const resData = await getRestaurants();
-          setRestaurants(resData);
+          const updatedResData = resData.map((r: any) => {
+            if (r.subdomain && r.subdomain.includes('.platform.com')) {
+              const slug = r.slug || slugify(r.name);
+              return { ...r, subdomain: `${slug}.hinarok.com` };
+            }
+            return r;
+          });
+          setRestaurants(updatedResData);
           setShowResModal(false);
           alert("✅ Restaurant created successfully!");
         }
       } catch (error: any) {
         console.error("Failed to create restaurant:", error);
-        setErrorMessage(
-          error.message || "Failed to create restaurant. Please try again.",
-        );
+        // Show the error message in the UI
+        if (error.message && error.message.includes('email already registered')) {
+          setErrorMessage("This email is already registered. Please use a different email address.");
+        } else if (error.message && error.message.includes('subdomain already exists')) {
+          setErrorMessage("A restaurant with this name already exists. Please use a different name.");
+        } else {
+          setErrorMessage(error.message || "Failed to create restaurant. Please try again.");
+        }
       } finally {
         setIsSubmitting(false);
       }
