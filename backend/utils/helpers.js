@@ -1,57 +1,69 @@
-const crypto = require('crypto');
+const crypto = require("crypto");
 
 /**
  * Generate a unique reference number for orders
  */
 const generateOrderReference = () => {
-  const prefix = 'ORD';
+  const prefix = "ORD";
   const timestamp = Date.now().toString(36).toUpperCase();
   const random = Math.random().toString(36).substring(2, 6).toUpperCase();
   return `${prefix}-${timestamp}-${random}`;
 };
 
 /**
- * Generate a slug from a string
+ * Generate a slug from a string (keeps dashes for URL slugs)
  */
 const generateSlug = (text) => {
   return text
     .toString()
     .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/[^\w-]+/g, '')
-    .replace(/--+/g, '-')
-    .replace(/^-+/, '')
-    .replace(/-+$/, '');
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/[^\w-]+/g, "")
+    .replace(/--+/g, "-")
+    .replace(/^-+/, "")
+    .replace(/-+$/, "");
 };
 
 /**
- * Generate a subdomain from a restaurant name
+ * Generate a subdomain from a restaurant name (NO DASHES)
  */
 const generateSubdomain = (restaurantName) => {
-  const slug = generateSlug(restaurantName);
-  return `${slug}.hinarok.com`;
+  // Generate subdomain without dashes (just lowercase, remove spaces)
+  const subdomainSlug = restaurantName
+    .toString()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, "")
+    .replace(/[^\w]+/g, "")
+    .replace(/^-+/, "")
+    .replace(/-+$/, "");
+  return `${subdomainSlug}.hinarok.com`;
 };
 
 /**
  * Format currency
  */
 const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
   }).format(amount);
 };
 
 /**
  * Calculate order totals
  */
-const calculateOrderTotals = (items, taxRate = 8.5, serviceFee = 2.50) => {
-  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+const calculateOrderTotals = (items, taxRate = 8.5, serviceFee = 2.5) => {
+  const subtotal = items.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0,
+  );
   const taxAmount = (subtotal * taxRate) / 100;
   const total = subtotal + taxAmount + serviceFee;
-  
+
   return {
     subtotal,
     taxAmount,
@@ -80,9 +92,9 @@ const getCurrentTimestamp = () => {
 const paginateResults = (data, page = 1, limit = 10) => {
   const startIndex = (page - 1) * limit;
   const endIndex = page * limit;
-  
+
   const results = data.slice(startIndex, endIndex);
-  
+
   return {
     results,
     page,
