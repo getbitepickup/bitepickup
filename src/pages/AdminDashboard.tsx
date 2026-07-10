@@ -35,6 +35,7 @@ import {
   User,
   Mail,
   Lock,
+  Key,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useNavigate } from "react-router-dom";
@@ -97,6 +98,8 @@ export default function AdminDashboard() {
     email: "",
     phone: "",
     password: "",
+    newPassword: "", // Added for password change
+    confirmNewPassword: "", // Added for password change
   });
 
   const [createSuccess, setCreateSuccess] = useState<{
@@ -202,6 +205,8 @@ export default function AdminDashboard() {
       email: "",
       phone: "",
       password: "",
+      newPassword: "",
+      confirmNewPassword: "",
     });
     setCreateSuccess(null);
     setErrorMessage(null);
@@ -237,6 +242,8 @@ export default function AdminDashboard() {
         email: owner?.email || `owner@${res.slug}.com`,
         phone: owner?.phone || res.phone,
         password: "••••••••",
+        newPassword: "",
+        confirmNewPassword: "",
       });
     } catch (ownerErr) {
       console.warn("Could not load owner info for edit modal:", ownerErr);
@@ -246,6 +253,8 @@ export default function AdminDashboard() {
         email: `owner@${res.slug}.com`,
         phone: res.phone,
         password: "••••••••",
+        newPassword: "",
+        confirmNewPassword: "",
       });
     }
 
@@ -277,6 +286,11 @@ export default function AdminDashboard() {
       slug: resSlug,
       subdomain: subdomain,
     };
+
+    // Include password change if provided
+    if (ownerForm.newPassword && ownerForm.newPassword === ownerForm.confirmNewPassword) {
+      dataPayload.ownerPassword = ownerForm.newPassword;
+    }
 
     if (editingResId) {
       try {
@@ -351,6 +365,8 @@ export default function AdminDashboard() {
             email: "",
             phone: "",
             password: "",
+            newPassword: "",
+            confirmNewPassword: "",
           });
         } else {
           const resData = await getRestaurants();
@@ -1377,34 +1393,85 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="mt-2">
-                    <label className="block text-[#33101F] mb-1 font-bold text-[10px] uppercase tracking-wider font-['Inter','Segoe UI',system-ui,sans-serif]">
-                      Owner Password
-                    </label>
-                    <div className="flex gap-2">
-                      <div className="relative flex-1">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#8C6B76]" />
-                        <input
-                          id="owner-password-modal-input"
-                          type="text"
-                          required={!isEditingMode}
-                          value={ownerForm.password}
-                          onChange={(e) =>
-                            setOwnerForm((prev) => ({
-                              ...prev,
-                              password: e.target.value,
-                            }))
-                          }
-                          placeholder={
-                            isEditingMode
-                              ? "•••••••• (Masked)"
-                              : "Auto-generated or custom password"
-                          }
-                          disabled={isEditingMode}
-                          className={`w-full px-8 py-2 border border-[#E7C7CF] focus:border-[#C42348] rounded-xl focus:outline-none text-sm font-mono ${isEditingMode ? "bg-[#FAF3EA] text-[#8C6B76] cursor-not-allowed" : ""}`}
-                        />
+                  {/* Password Change Section - Admin Only */}
+                  {isEditingMode && (
+                    <div className="mt-3 border-t border-[#E7C7CF] pt-3">
+                      <h5 className="text-xs font-bold text-[#C42348] uppercase tracking-wider mb-2 font-['Inter','Segoe UI',system-ui,sans-serif] flex items-center gap-2">
+                        <Key className="w-3.5 h-3.5" />
+                        Change Owner Password (Optional)
+                      </h5>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[#33101F] mb-1 font-bold text-[10px] uppercase tracking-wider font-['Inter','Segoe UI',system-ui,sans-serif]">
+                            New Password
+                          </label>
+                          <input
+                            id="owner-new-password-input"
+                            type="text"
+                            value={ownerForm.newPassword}
+                            onChange={(e) =>
+                              setOwnerForm((prev) => ({
+                                ...prev,
+                                newPassword: e.target.value,
+                              }))
+                            }
+                            placeholder="Enter new password"
+                            className="w-full px-3 py-2 border border-[#E7C7CF] focus:border-[#C42348] rounded-xl focus:outline-none text-sm font-mono font-['Inter','Segoe UI',system-ui,sans-serif]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[#33101F] mb-1 font-bold text-[10px] uppercase tracking-wider font-['Inter','Segoe UI',system-ui,sans-serif]">
+                            Confirm New Password
+                          </label>
+                          <input
+                            id="owner-confirm-password-input"
+                            type="text"
+                            value={ownerForm.confirmNewPassword}
+                            onChange={(e) =>
+                              setOwnerForm((prev) => ({
+                                ...prev,
+                                confirmNewPassword: e.target.value,
+                              }))
+                            }
+                            placeholder="Confirm new password"
+                            className="w-full px-3 py-2 border border-[#E7C7CF] focus:border-[#C42348] rounded-xl focus:outline-none text-sm font-mono font-['Inter','Segoe UI',system-ui,sans-serif]"
+                          />
+                        </div>
                       </div>
-                      {!isEditingMode && (
+                      {ownerForm.newPassword && ownerForm.confirmNewPassword && ownerForm.newPassword !== ownerForm.confirmNewPassword && (
+                        <p className="text-[#C42348] text-[10px] mt-1 font-medium font-['Inter','Segoe UI',system-ui,sans-serif]">
+                          Passwords do not match!
+                        </p>
+                      )}
+                      <p className="text-[10px] text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
+                        Leave blank to keep current password.
+                      </p>
+                    </div>
+                  )}
+
+                  {!isEditingMode && (
+                    <div className="mt-2">
+                      <label className="block text-[#33101F] mb-1 font-bold text-[10px] uppercase tracking-wider font-['Inter','Segoe UI',system-ui,sans-serif]">
+                        Owner Password
+                      </label>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#8C6B76]" />
+                          <input
+                            id="owner-password-modal-input"
+                            type="text"
+                            required={!isEditingMode}
+                            value={ownerForm.password}
+                            onChange={(e) =>
+                              setOwnerForm((prev) => ({
+                                ...prev,
+                                password: e.target.value,
+                              }))
+                            }
+                            placeholder="Auto-generated or custom password"
+                            className="w-full px-8 py-2 border border-[#E7C7CF] focus:border-[#C42348] rounded-xl focus:outline-none text-sm font-mono font-['Inter','Segoe UI',system-ui,sans-serif]"
+                          />
+                        </div>
                         <button
                           type="button"
                           onClick={generatePassword}
@@ -1412,14 +1479,12 @@ export default function AdminDashboard() {
                         >
                           Generate
                         </button>
-                      )}
+                      </div>
+                      <p className="text-[10px] text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
+                        Give this password to the restaurant owner for login
+                      </p>
                     </div>
-                    <p className="text-[10px] text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
-                      {isEditingMode
-                        ? "Password is masked for security. To change, contact the restaurant owner directly."
-                        : "Give this password to the restaurant owner for login"}
-                    </p>
-                  </div>
+                  )}
                 </div>
 
                 <div className="flex gap-2 justify-end pt-3 border-t border-[#E7C7CF]">

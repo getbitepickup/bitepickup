@@ -64,13 +64,15 @@ export default function CustomerOrdering() {
       try {
         setLoading(true);
         const resData = await getRestaurants();
-        setRestaurants(resData);
+        // Filter out inactive restaurants
+        const activeRestaurants = resData.filter(r => r.isActive !== false);
+        setRestaurants(activeRestaurants);
 
         let found = null;
 
         // First try: Find by slug (from URL param)
         if (slug) {
-          found = resData.find((r) => r.slug === slug);
+          found = activeRestaurants.find((r) => r.slug === slug);
         }
 
         // Second try: Find by subdomain (from hostname)
@@ -78,7 +80,7 @@ export default function CustomerOrdering() {
           const subdomain = getSubdomainFromHost();
           if (subdomain) {
             // Try to find by subdomain
-            found = resData.find((r) => {
+            found = activeRestaurants.find((r) => {
               // Check if subdomain matches
               if (r.subdomain && r.subdomain.includes(subdomain)) {
                 return true;
@@ -102,9 +104,9 @@ export default function CustomerOrdering() {
 
           const menuData = await getMenuItems(found.id);
           setMenuItems(menuData);
-        } else if (resData.length > 0) {
-          // Fallback: use first restaurant
-          found = resData[0];
+        } else if (activeRestaurants.length > 0) {
+          // Fallback: use first active restaurant
+          found = activeRestaurants[0];
           setCurrentRestaurant(found);
           setCurrentRestaurantId(found.id);
 

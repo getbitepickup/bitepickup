@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import logoDark from '../assets/logo-dark.png';
 
 export default function Header() {
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated } = useAuth();
   const location = useLocation();
   const [isLandingPage, setIsLandingPage] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -46,6 +46,9 @@ export default function Header() {
     return 'https://hinarok.com';
   };
 
+  // Check if we should render navigation links (only on landing page)
+  const shouldRenderNav = isLandingPage;
+
   // Simplified header for non-landing pages (no navigation links)
   if (!isLandingPage) {
     return (
@@ -60,8 +63,16 @@ export default function Header() {
             >
               <img src={logoDark} alt="Hinarok" className="h-8 w-auto" />
             </a>
-            {/* Only show logout when authenticated */}
-            {isAuthenticated && (
+            {/* Only show logout when authenticated and NOT on public restaurant pages */}
+            {isAuthenticated && location.pathname.startsWith('/restaurant-dashboard') && (
+              <button
+                onClick={handleLogout}
+                className="text-[#E7C7CF] hover:text-white text-sm font-medium transition-colors font-['Inter','Segoe UI',system-ui,sans-serif]"
+              >
+                Logout
+              </button>
+            )}
+            {isAuthenticated && location.pathname.startsWith('/admin') && (
               <button
                 onClick={handleLogout}
                 className="text-[#E7C7CF] hover:text-white text-sm font-medium transition-colors font-['Inter','Segoe UI',system-ui,sans-serif]"
@@ -90,64 +101,68 @@ export default function Header() {
           </a>
 
           {/* Desktop Navigation - Only on landing page */}
-          <ul className="hidden md:flex items-center gap-8 list-none">
-            <li>
-              <a 
-                href="#how-it-works" 
-                onClick={(e) => scrollToSection(e, "how-it-works")}
-                className="text-[#E7C7CF] hover:text-white transition-colors text-sm font-medium no-underline font-['Inter','Segoe UI',system-ui,sans-serif]"
-              >
-                How it works
-              </a>
-            </li>
-            <li>
-              <a 
-                href="#features" 
-                onClick={(e) => scrollToSection(e, "features")}
-                className="text-[#E7C7CF] hover:text-white transition-colors text-sm font-medium no-underline font-['Inter','Segoe UI',system-ui,sans-serif]"
-              >
-                Features
-              </a>
-            </li>
-            <li>
-              <a 
-                href="#pricing" 
-                onClick={(e) => scrollToSection(e, "pricing")}
-                className="text-[#E7C7CF] hover:text-white transition-colors text-sm font-medium no-underline font-['Inter','Segoe UI',system-ui,sans-serif]"
-              >
-                Pricing
-              </a>
-            </li>
-            <li>
-              <a 
-                href="#join" 
-                onClick={(e) => scrollToSection(e, "join")}
-                className="inline-block font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold no-underline rounded-full px-5 py-2 text-sm bg-[#E8A13B] text-[#33101F] hover:bg-[#F0B84D] transition-all"
-              >
-                Join Hinarok
-              </a>
-            </li>
-          </ul>
+          {shouldRenderNav && (
+            <ul className="hidden md:flex items-center gap-8 list-none">
+              <li>
+                <a 
+                  href="#how-it-works" 
+                  onClick={(e) => scrollToSection(e, "how-it-works")}
+                  className="text-[#E7C7CF] hover:text-white transition-colors text-sm font-medium no-underline font-['Inter','Segoe UI',system-ui,sans-serif]"
+                >
+                  How it works
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="#features" 
+                  onClick={(e) => scrollToSection(e, "features")}
+                  className="text-[#E7C7CF] hover:text-white transition-colors text-sm font-medium no-underline font-['Inter','Segoe UI',system-ui,sans-serif]"
+                >
+                  Features
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="#pricing" 
+                  onClick={(e) => scrollToSection(e, "pricing")}
+                  className="text-[#E7C7CF] hover:text-white transition-colors text-sm font-medium no-underline font-['Inter','Segoe UI',system-ui,sans-serif]"
+                >
+                  Pricing
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="#join" 
+                  onClick={(e) => scrollToSection(e, "join")}
+                  className="inline-block font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold no-underline rounded-full px-5 py-2 text-sm bg-[#E8A13B] text-[#33101F] hover:bg-[#F0B84D] transition-all"
+                >
+                  Join Hinarok
+                </a>
+              </li>
+            </ul>
+          )}
 
           {/* Mobile Menu Toggle - Only on landing page */}
-          <button 
-            className="md:hidden text-[#E7C7CF] hover:text-white p-2"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label="Toggle menu"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {isMobileMenuOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
-          </button>
+          {shouldRenderNav && (
+            <button 
+              className="md:hidden text-[#E7C7CF] hover:text-white p-2"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {isMobileMenuOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
+          )}
 
         </div>
 
         {/* Mobile Menu - Only on landing page */}
-        {isMobileMenuOpen && (
+        {shouldRenderNav && isMobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-[#48182C]">
             <ul className="flex flex-col gap-4 list-none">
               <li>
