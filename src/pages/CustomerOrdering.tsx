@@ -107,6 +107,7 @@ export default function CustomerOrdering() {
           setCurrentRestaurantId(found.id);
 
           // Save restaurant data to localStorage for Header to use
+          // Use a specific key to avoid conflicts
           const restaurantData = {
             name: found.name,
             logo: found.logo || "",

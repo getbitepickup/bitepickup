@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import logoDark from "../assets/logo-dark.png";
+import { getRestaurants } from "../store/apiStore";
 
 export default function Header() {
   const { isAuthenticated } = useAuth();
@@ -12,44 +13,138 @@ export default function Header() {
   const [restaurantData, setRestaurantData] = useState<any>(null);
   const [isRestaurantPage, setIsRestaurantPage] = useState(false);
   const [isDashboardPage, setIsDashboardPage] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Only show full navigation on the landing page
-    setIsLandingPage(location.pathname === "/");
+    const fetchRestaurantData = async () => {
+      setLoading(true);
 
-    // Check if we're on a restaurant page or dashboard
-    const isRestaurant = location.pathname.startsWith("/restaurant/");
-    const isDashboard = location.pathname.startsWith("/restaurant-dashboard");
-    setIsRestaurantPage(isRestaurant);
-    setIsDashboardPage(isDashboard);
+      // Only show full navigation on the landing page
+      setIsLandingPage(location.pathname === "/");
 
-    // Check if we're on a subdomain
-    const hostname = window.location.hostname;
-    const isMainDomain =
-      hostname === "hinarok.com" ||
-      hostname === "www.hinarok.com" ||
-      hostname === "localhost" ||
-      hostname.includes("vercel.app");
-    setIsSubdomain(!isMainDomain);
+      // Check if we're on a restaurant page or dashboard
+      const isRestaurant = location.pathname.startsWith("/restaurant/");
+      const isDashboard = location.pathname.startsWith("/restaurant-dashboard");
+      setIsRestaurantPage(isRestaurant);
+      setIsDashboardPage(isDashboard);
 
-    // Get restaurant data from localStorage
-    try {
-      const storedRestaurant = localStorage.getItem("currentRestaurant");
-      if (storedRestaurant) {
-        const parsed = JSON.parse(storedRestaurant);
-        // Only update if the data is valid and has a name
-        if (parsed && parsed.name) {
-          setRestaurantData(parsed);
-        } else {
-          setRestaurantData(null);
+      // Check if we're on a subdomain
+      const hostname = window.location.hostname;
+      const isMainDomain =
+        hostname === "hinarok.com" ||
+        hostname === "www.hinarok.com" ||
+        hostname === "localhost" ||
+        hostname.includes("vercel.app");
+      setIsSubdomain(!isMainDomain);
+
+      // If on restaurant page or dashboard, fetch the correct restaurant data
+      if (isRestaurant || isDashboard || !isMainDomain) {
+        try {
+          // Get all restaurants
+          const restaurants = await getRestaurants();
+
+          let foundRestaurant = null;
+
+          // If on restaurant page with slug
+          if (isRestaurant) {
+            const slug = location.pathname
+              .split("/restaurant/")[1]
+              ?.split("/")[0];
+            if (slug) {
+              foundRestaurant = restaurants.find((r: any) => r.slug === slug);
+            }
+          }
+
+          // If on dashboard with ID
+          if (!foundRestaurant && isDashboard) {
+            const id = location.pathname
+              .split("/restaurant-dashboard/")[1]
+              ?.split("/")[0];
+            if (id) {
+              foundRestaurant = restaurants.find((r: any) => r.id === id);
+            }
+          }
+
+          // If on subdomain
+          if (!foundRestaurant && !isMainDomain) {
+            const subdomain = hostname.split(".")[0];
+            if (subdomain && subdomain !== "www") {
+              foundRestaurant = restaurants.find((r: any) => {
+                if (r.subdomain && r.subdomain.includes(subdomain)) return true;
+                if (r.slug === subdomain) return true;
+                return false;
+              });
+            }
+          }
+
+          // Also check localStorage as fallback
+          if (!foundRestaurant) {
+            try {
+              const stored = localStorage.getItem("currentRestaurant");
+              if (stored) {
+                const parsed = JSON.parse(stored);
+                // Verify the stored restaurant still exists in the list
+                const verified = restaurants.find(
+                  (r: any) => r.id === parsed.id,
+                );
+                if (verified) {
+                  foundRestaurant = verified;
+                }
+              }
+            } catch (e) {
+              console.log("No valid restaurant in storage");
+            }
+          }
+
+          if (foundRestaurant) {
+            setRestaurantData({
+              name: foundRestaurant.name,
+              logo: foundRestaurant.logo || "",
+              id: foundRestaurant.id,
+              slug: foundRestaurant.slug,
+              subdomain: foundRestaurant.subdomain,
+            });
+            // Also update localStorage for consistency
+            localStorage.setItem(
+              "currentRestaurant",
+              JSON.stringify({
+                name: foundRestaurant.name,
+                logo: foundRestaurant.logo || "",
+                id: foundRestaurant.id,
+                slug: foundRestaurant.slug,
+                subdomain: foundRestaurant.subdomain,
+              }),
+            );
+          } else {
+            // If no restaurant found, clear the data
+            setRestaurantData(null);
+            localStorage.removeItem("currentRestaurant");
+          }
+        } catch (error) {
+          console.error("Failed to fetch restaurant data for header:", error);
+          // Try localStorage as fallback
+          try {
+            const stored = localStorage.getItem("currentRestaurant");
+            if (stored) {
+              const parsed = JSON.parse(stored);
+              if (parsed && parsed.name) {
+                setRestaurantData(parsed);
+              }
+            }
+          } catch (e) {
+            setRestaurantData(null);
+          }
+        } finally {
+          setLoading(false);
         }
       } else {
+        // Not on a restaurant page
         setRestaurantData(null);
+        setLoading(false);
       }
-    } catch (e) {
-      console.log("No restaurant data in storage");
-      setRestaurantData(null);
-    }
+    };
+
+    fetchRestaurantData();
   }, [location]);
 
   const handleLogout = () => {
@@ -100,7 +195,6 @@ export default function Header() {
                     alt={restaurantData.name || "Restaurant"}
                     className="h-8 w-auto max-w-[120px] object-contain rounded-full"
                     onError={(e) => {
-                      // If logo fails to load, hide it and show text only
                       e.currentTarget.style.display = "none";
                     }}
                   />
