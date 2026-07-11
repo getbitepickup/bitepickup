@@ -9,10 +9,16 @@ export default function Header() {
   const [isLandingPage, setIsLandingPage] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSubdomain, setIsSubdomain] = useState(false);
+  const [restaurantData, setRestaurantData] = useState<any>(null);
+  const [isRestaurantPage, setIsRestaurantPage] = useState(false);
 
   useEffect(() => {
     // Only show full navigation on the landing page
     setIsLandingPage(location.pathname === '/');
+    
+    // Check if we're on a restaurant page
+    const isRestaurant = location.pathname.startsWith('/restaurant/');
+    setIsRestaurantPage(isRestaurant);
     
     // Check if we're on a subdomain
     const hostname = window.location.hostname;
@@ -21,6 +27,18 @@ export default function Header() {
                          hostname === 'localhost' || 
                          hostname.includes('vercel.app');
     setIsSubdomain(!isMainDomain);
+
+    // Try to get restaurant data from localStorage or session
+    if (isRestaurant || !isMainDomain) {
+      try {
+        const storedRestaurant = localStorage.getItem('currentRestaurant');
+        if (storedRestaurant) {
+          setRestaurantData(JSON.parse(storedRestaurant));
+        }
+      } catch (e) {
+        console.log('No restaurant data in storage');
+      }
+    }
   }, [location]);
 
   const handleLogout = () => {
@@ -55,14 +73,44 @@ export default function Header() {
       <nav className="bg-[#33101F] sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between h-16">
-            <a 
-              href={getMainDomainUrl()} 
-              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-              target={isSubdomain ? "_blank" : "_self"}
-              rel={isSubdomain ? "noopener noreferrer" : ""}
-            >
-              <img src={logoDark} alt="Hinarok" className="h-8 w-auto" />
-            </a>
+            {/* Show restaurant branding on restaurant pages, otherwise Hinarok logo */}
+            {isRestaurantPage || isSubdomain ? (
+              <a 
+                href={isSubdomain ? window.location.href : getMainDomainUrl()} 
+                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              >
+                {restaurantData?.logo ? (
+                  <img 
+                    src={restaurantData.logo} 
+                    alt={restaurantData.name || 'Restaurant'} 
+                    className="h-8 w-auto rounded-full object-cover"
+                    onError={(e) => {
+                      // If logo fails to load, show text fallback
+                      e.currentTarget.style.display = 'none';
+                      const parent = e.currentTarget.parentElement;
+                      if (parent) {
+                        const span = document.createElement('span');
+                        span.className = 'text-white font-bold text-lg font-[\'Baloo_2\',\'Trebuchet_MS\',sans-serif]';
+                        span.textContent = restaurantData?.name || 'Restaurant';
+                        parent.appendChild(span);
+                      }
+                    }}
+                  />
+                ) : (
+                  <span className="text-white font-bold text-lg font-['Baloo_2','Trebuchet_MS',sans-serif]">
+                    {restaurantData?.name || 'Restaurant'}
+                  </span>
+                )}
+              </a>
+            ) : (
+              <a 
+                href={getMainDomainUrl()} 
+                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              >
+                <img src={logoDark} alt="Hinarok" className="h-8 w-auto" />
+              </a>
+            )}
+
             {/* Only show logout when authenticated and NOT on public restaurant pages */}
             {isAuthenticated && location.pathname.startsWith('/restaurant-dashboard') && (
               <button
