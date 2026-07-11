@@ -169,6 +169,22 @@ export default function RestaurantDashboard() {
 
           console.log("✅ Loading data for restaurant ID:", restaurantId);
 
+          // Save restaurant data to localStorage for Header to use
+          const foundRestaurant = resData.find((r) => r.id === restaurantId);
+          if (foundRestaurant) {
+            const restaurantData = {
+              name: foundRestaurant.name,
+              logo: foundRestaurant.logo || "",
+              id: foundRestaurant.id,
+              slug: foundRestaurant.slug,
+              subdomain: foundRestaurant.subdomain,
+            };
+            localStorage.setItem(
+              "currentRestaurant",
+              JSON.stringify(restaurantData),
+            );
+          }
+
           if (user?.role === "restaurant_owner" && !user.restaurantId) {
             try {
               const ownerProfile = await userAPI.getById(user.id || user._id);
@@ -428,6 +444,24 @@ export default function RestaurantDashboard() {
       // Refresh restaurant data
       const resData = await getRestaurants();
       setRestaurants(resData);
+
+      // Update localStorage with new logo/name
+      const updatedRestaurant = resData.find(
+        (r) => r.id === currentRestaurant.id,
+      );
+      if (updatedRestaurant) {
+        const restaurantData = {
+          name: updatedRestaurant.name,
+          logo: updatedRestaurant.logo || "",
+          id: updatedRestaurant.id,
+          slug: updatedRestaurant.slug,
+          subdomain: updatedRestaurant.subdomain,
+        };
+        localStorage.setItem(
+          "currentRestaurant",
+          JSON.stringify(restaurantData),
+        );
+      }
     } catch (error) {
       console.error("Failed to update profile:", error);
       alert("Failed to update profile. Please try again.");
@@ -1276,10 +1310,7 @@ export default function RestaurantDashboard() {
                         </tr>
                       ) : (
                         filteredCompletedOrders.map((order) => (
-                          <tr
-                            key={order.id}
-                            className="hover:bg-[#FAF3EA]/40"
-                          >
+                          <tr key={order.id} className="hover:bg-[#FAF3EA]/40">
                             <td className="px-6 py-4 font-mono text-[11px] font-semibold text-[#C42348]">
                               #{order.orderReference || order.id?.slice(-6)}
                             </td>

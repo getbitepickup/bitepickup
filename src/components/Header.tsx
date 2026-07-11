@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import logoDark from '../assets/logo-dark.png';
+import React, { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import logoDark from "../assets/logo-dark.png";
 
 export default function Header() {
   const { isAuthenticated } = useAuth();
@@ -11,42 +11,56 @@ export default function Header() {
   const [isSubdomain, setIsSubdomain] = useState(false);
   const [restaurantData, setRestaurantData] = useState<any>(null);
   const [isRestaurantPage, setIsRestaurantPage] = useState(false);
+  const [isDashboardPage, setIsDashboardPage] = useState(false);
 
   useEffect(() => {
     // Only show full navigation on the landing page
-    setIsLandingPage(location.pathname === '/');
-    
-    // Check if we're on a restaurant page
-    const isRestaurant = location.pathname.startsWith('/restaurant/');
+    setIsLandingPage(location.pathname === "/");
+
+    // Check if we're on a restaurant page or dashboard
+    const isRestaurant = location.pathname.startsWith("/restaurant/");
+    const isDashboard = location.pathname.startsWith("/restaurant-dashboard");
     setIsRestaurantPage(isRestaurant);
-    
+    setIsDashboardPage(isDashboard);
+
     // Check if we're on a subdomain
     const hostname = window.location.hostname;
-    const isMainDomain = hostname === 'hinarok.com' || 
-                         hostname === 'www.hinarok.com' || 
-                         hostname === 'localhost' || 
-                         hostname.includes('vercel.app');
+    const isMainDomain =
+      hostname === "hinarok.com" ||
+      hostname === "www.hinarok.com" ||
+      hostname === "localhost" ||
+      hostname.includes("vercel.app");
     setIsSubdomain(!isMainDomain);
 
-    // Try to get restaurant data from localStorage or session
-    if (isRestaurant || !isMainDomain) {
-      try {
-        const storedRestaurant = localStorage.getItem('currentRestaurant');
-        if (storedRestaurant) {
-          setRestaurantData(JSON.parse(storedRestaurant));
+    // Get restaurant data from localStorage
+    try {
+      const storedRestaurant = localStorage.getItem("currentRestaurant");
+      if (storedRestaurant) {
+        const parsed = JSON.parse(storedRestaurant);
+        // Only update if the data is valid and has a name
+        if (parsed && parsed.name) {
+          setRestaurantData(parsed);
+        } else {
+          setRestaurantData(null);
         }
-      } catch (e) {
-        console.log('No restaurant data in storage');
+      } else {
+        setRestaurantData(null);
       }
+    } catch (e) {
+      console.log("No restaurant data in storage");
+      setRestaurantData(null);
     }
   }, [location]);
 
   const handleLogout = () => {
     localStorage.clear();
-    window.location.href = '/';
+    window.location.href = "/";
   };
 
-  const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, sectionId: string) => {
+  const scrollToSection = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    sectionId: string,
+  ) => {
     e.preventDefault();
     const element = document.getElementById(sectionId);
     if (element) {
@@ -58,14 +72,18 @@ export default function Header() {
   // Get the main domain URL
   const getMainDomainUrl = () => {
     const hostname = window.location.hostname;
-    if (hostname.includes('vercel.app') || hostname === 'localhost') {
-      return '/';
+    if (hostname.includes("vercel.app") || hostname === "localhost") {
+      return "/";
     }
-    return 'https://hinarok.com';
+    return "https://hinarok.com";
   };
 
   // Check if we should render navigation links (only on landing page)
   const shouldRenderNav = isLandingPage;
+
+  // Check if we should show restaurant branding
+  const showRestaurantBranding =
+    isRestaurantPage || isDashboardPage || isSubdomain;
 
   // Simplified header for non-landing pages (no navigation links)
   if (!isLandingPage) {
@@ -73,61 +91,44 @@ export default function Header() {
       <nav className="bg-[#33101F] sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between h-16">
-            {/* Show restaurant branding on restaurant pages, otherwise Hinarok logo */}
-            {isRestaurantPage || isSubdomain ? (
-              <a 
-                href={isSubdomain ? window.location.href : getMainDomainUrl()} 
-                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-              >
-                {restaurantData?.logo ? (
-                  <img 
-                    src={restaurantData.logo} 
-                    alt={restaurantData.name || 'Restaurant'} 
-                    className="h-8 w-auto rounded-full object-cover"
+            {/* Show restaurant branding on restaurant pages/dashboards, otherwise Hinarok logo */}
+            {showRestaurantBranding && restaurantData ? (
+              <div className="flex items-center gap-2">
+                {restaurantData.logo && restaurantData.logo.trim() !== "" ? (
+                  <img
+                    src={restaurantData.logo}
+                    alt={restaurantData.name || "Restaurant"}
+                    className="h-8 w-auto max-w-[120px] object-contain rounded-full"
                     onError={(e) => {
-                      // If logo fails to load, show text fallback
-                      e.currentTarget.style.display = 'none';
-                      const parent = e.currentTarget.parentElement;
-                      if (parent) {
-                        const span = document.createElement('span');
-                        span.className = 'text-white font-bold text-lg font-[\'Baloo_2\',\'Trebuchet_MS\',sans-serif]';
-                        span.textContent = restaurantData?.name || 'Restaurant';
-                        parent.appendChild(span);
-                      }
+                      // If logo fails to load, hide it and show text only
+                      e.currentTarget.style.display = "none";
                     }}
                   />
-                ) : (
-                  <span className="text-white font-bold text-lg font-['Baloo_2','Trebuchet_MS',sans-serif]">
-                    {restaurantData?.name || 'Restaurant'}
-                  </span>
-                )}
-              </a>
+                ) : null}
+                <span className="text-white font-bold text-lg font-['Baloo_2','Trebuchet_MS',sans-serif] truncate max-w-[200px]">
+                  {restaurantData.name || "Restaurant"}
+                </span>
+              </div>
             ) : (
-              <a 
-                href={getMainDomainUrl()} 
+              <a
+                href={getMainDomainUrl()}
                 className="flex items-center gap-2 hover:opacity-80 transition-opacity"
               >
                 <img src={logoDark} alt="Hinarok" className="h-8 w-auto" />
               </a>
             )}
 
-            {/* Only show logout when authenticated and NOT on public restaurant pages */}
-            {isAuthenticated && location.pathname.startsWith('/restaurant-dashboard') && (
-              <button
-                onClick={handleLogout}
-                className="text-[#E7C7CF] hover:text-white text-sm font-medium transition-colors font-['Inter','Segoe UI',system-ui,sans-serif]"
-              >
-                Logout
-              </button>
-            )}
-            {isAuthenticated && location.pathname.startsWith('/admin') && (
-              <button
-                onClick={handleLogout}
-                className="text-[#E7C7CF] hover:text-white text-sm font-medium transition-colors font-['Inter','Segoe UI',system-ui,sans-serif]"
-              >
-                Logout
-              </button>
-            )}
+            {/* Only show logout when authenticated and on dashboard/admin pages */}
+            {isAuthenticated &&
+              (location.pathname.startsWith("/restaurant-dashboard") ||
+                location.pathname.startsWith("/admin")) && (
+                <button
+                  onClick={handleLogout}
+                  className="text-[#E7C7CF] hover:text-white text-sm font-medium transition-colors font-['Inter','Segoe UI',system-ui,sans-serif]"
+                >
+                  Logout
+                </button>
+              )}
           </div>
         </div>
       </nav>
@@ -139,10 +140,9 @@ export default function Header() {
     <nav className="bg-[#33101F] sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          
-          {/* Brand - Logo */}
-          <a 
-            href={getMainDomainUrl()} 
+          {/* Brand - Logo (Clickable on landing page) */}
+          <a
+            href={getMainDomainUrl()}
             className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
             <img src={logoDark} alt="Hinarok" className="h-8 w-auto" />
@@ -152,8 +152,8 @@ export default function Header() {
           {shouldRenderNav && (
             <ul className="hidden md:flex items-center gap-8 list-none">
               <li>
-                <a 
-                  href="#how-it-works" 
+                <a
+                  href="#how-it-works"
                   onClick={(e) => scrollToSection(e, "how-it-works")}
                   className="text-[#E7C7CF] hover:text-white transition-colors text-sm font-medium no-underline font-['Inter','Segoe UI',system-ui,sans-serif]"
                 >
@@ -161,8 +161,8 @@ export default function Header() {
                 </a>
               </li>
               <li>
-                <a 
-                  href="#features" 
+                <a
+                  href="#features"
                   onClick={(e) => scrollToSection(e, "features")}
                   className="text-[#E7C7CF] hover:text-white transition-colors text-sm font-medium no-underline font-['Inter','Segoe UI',system-ui,sans-serif]"
                 >
@@ -170,8 +170,8 @@ export default function Header() {
                 </a>
               </li>
               <li>
-                <a 
-                  href="#pricing" 
+                <a
+                  href="#pricing"
                   onClick={(e) => scrollToSection(e, "pricing")}
                   className="text-[#E7C7CF] hover:text-white transition-colors text-sm font-medium no-underline font-['Inter','Segoe UI',system-ui,sans-serif]"
                 >
@@ -179,8 +179,8 @@ export default function Header() {
                 </a>
               </li>
               <li>
-                <a 
-                  href="#join" 
+                <a
+                  href="#join"
                   onClick={(e) => scrollToSection(e, "join")}
                   className="inline-block font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold no-underline rounded-full px-5 py-2 text-sm bg-[#E8A13B] text-[#33101F] hover:bg-[#F0B84D] transition-all"
                 >
@@ -192,21 +192,35 @@ export default function Header() {
 
           {/* Mobile Menu Toggle - Only on landing page */}
           {shouldRenderNav && (
-            <button 
+            <button
               className="md:hidden text-[#E7C7CF] hover:text-white p-2"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-label="Toggle menu"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 {isMobileMenuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
                 )}
               </svg>
             </button>
           )}
-
         </div>
 
         {/* Mobile Menu - Only on landing page */}
@@ -214,8 +228,8 @@ export default function Header() {
           <div className="md:hidden py-4 border-t border-[#48182C]">
             <ul className="flex flex-col gap-4 list-none">
               <li>
-                <a 
-                  href="#how-it-works" 
+                <a
+                  href="#how-it-works"
                   onClick={(e) => scrollToSection(e, "how-it-works")}
                   className="text-[#E7C7CF] hover:text-white transition-colors text-sm font-medium no-underline block py-2 font-['Inter','Segoe UI',system-ui,sans-serif]"
                 >
@@ -223,8 +237,8 @@ export default function Header() {
                 </a>
               </li>
               <li>
-                <a 
-                  href="#features" 
+                <a
+                  href="#features"
                   onClick={(e) => scrollToSection(e, "features")}
                   className="text-[#E7C7CF] hover:text-white transition-colors text-sm font-medium no-underline block py-2 font-['Inter','Segoe UI',system-ui,sans-serif]"
                 >
@@ -232,8 +246,8 @@ export default function Header() {
                 </a>
               </li>
               <li>
-                <a 
-                  href="#pricing" 
+                <a
+                  href="#pricing"
                   onClick={(e) => scrollToSection(e, "pricing")}
                   className="text-[#E7C7CF] hover:text-white transition-colors text-sm font-medium no-underline block py-2 font-['Inter','Segoe UI',system-ui,sans-serif]"
                 >
@@ -241,8 +255,8 @@ export default function Header() {
                 </a>
               </li>
               <li>
-                <a 
-                  href="#join" 
+                <a
+                  href="#join"
                   onClick={(e) => scrollToSection(e, "join")}
                   className="inline-block font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold no-underline rounded-full px-5 py-2.5 text-sm bg-[#E8A13B] text-[#33101F] hover:bg-[#F0B84D] transition-all w-full text-center"
                 >

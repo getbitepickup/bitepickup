@@ -105,15 +105,19 @@ export default function CustomerOrdering() {
         if (found) {
           setCurrentRestaurant(found);
           setCurrentRestaurantId(found.id);
-          
+
           // Save restaurant data to localStorage for Header to use
-          localStorage.setItem('currentRestaurant', JSON.stringify({
+          const restaurantData = {
             name: found.name,
-            logo: found.logo,
+            logo: found.logo || "",
             id: found.id,
             slug: found.slug,
             subdomain: found.subdomain,
-          }));
+          };
+          localStorage.setItem(
+            "currentRestaurant",
+            JSON.stringify(restaurantData),
+          );
 
           // Load categories and menu items for this restaurant
           const catData = await getCategories(found.id);
@@ -126,14 +130,18 @@ export default function CustomerOrdering() {
           found = activeRestaurants[0];
           setCurrentRestaurant(found);
           setCurrentRestaurantId(found.id);
-          
-          localStorage.setItem('currentRestaurant', JSON.stringify({
+
+          const restaurantData = {
             name: found.name,
-            logo: found.logo,
+            logo: found.logo || "",
             id: found.id,
             slug: found.slug,
             subdomain: found.subdomain,
-          }));
+          };
+          localStorage.setItem(
+            "currentRestaurant",
+            JSON.stringify(restaurantData),
+          );
 
           const catData = await getCategories(found.id);
           setCategories(catData);
