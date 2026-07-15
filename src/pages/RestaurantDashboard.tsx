@@ -276,7 +276,9 @@ export default function RestaurantDashboard() {
     // Get the API URL - use the backend URL
     const API_URL =
       import.meta.env.VITE_API_URL || "https://bitepickup-backend.onrender.com";
-    const sseUrl = `${API_URL}/api/orders/stream/${activeRestaurantId}`;
+    // If VITE_API_URL already ends with /api, don't add it again
+    const baseUrl = API_URL.endsWith("/api") ? API_URL : `${API_URL}/api`;
+    const sseUrl = `${baseUrl}/orders/stream/${activeRestaurantId}`;
 
     console.log(`📡 SSE: Connecting to: ${sseUrl}`);
     setIsConnecting(true);
