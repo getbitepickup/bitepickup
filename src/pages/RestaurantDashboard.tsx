@@ -169,7 +169,7 @@ export default function RestaurantDashboard() {
 
           console.log("✅ Loading data for restaurant ID:", restaurantId);
 
-          // Save restaurant data to localStorage for Header to use
+          // Save restaurant data to localStorage for Header to use - IMMEDIATELY
           const foundRestaurant = resData.find((r) => r.id === restaurantId);
           if (foundRestaurant) {
             const restaurantData = {
@@ -182,6 +182,10 @@ export default function RestaurantDashboard() {
             localStorage.setItem(
               "currentRestaurant",
               JSON.stringify(restaurantData),
+            );
+            console.log(
+              "✅ Restaurant data saved to localStorage:",
+              restaurantData,
             );
           }
 

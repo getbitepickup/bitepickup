@@ -14,6 +14,7 @@ export default function Header() {
   const [isRestaurantPage, setIsRestaurantPage] = useState(false);
   const [isDashboardPage, setIsDashboardPage] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [dashboardId, setDashboardId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchRestaurantData = async () => {
@@ -27,6 +28,16 @@ export default function Header() {
       const isDashboard = location.pathname.startsWith("/restaurant-dashboard");
       setIsRestaurantPage(isRestaurant);
       setIsDashboardPage(isDashboard);
+
+      // Extract ID from dashboard URL
+      if (isDashboard) {
+        const id = location.pathname
+          .split("/restaurant-dashboard/")[1]
+          ?.split("/")[0];
+        setDashboardId(id || null);
+      } else {
+        setDashboardId(null);
+      }
 
       // Check if we're on a subdomain
       const hostname = window.location.hostname;
@@ -55,13 +66,27 @@ export default function Header() {
             }
           }
 
-          // If on dashboard with ID
+          // If on dashboard with ID - PRIORITY 1
           if (!foundRestaurant && isDashboard) {
             const id = location.pathname
               .split("/restaurant-dashboard/")[1]
               ?.split("/")[0];
             if (id) {
               foundRestaurant = restaurants.find((r: any) => r.id === id);
+              // If found by ID, immediately update localStorage
+              if (foundRestaurant) {
+                const restaurantData = {
+                  name: foundRestaurant.name,
+                  logo: foundRestaurant.logo || "",
+                  id: foundRestaurant.id,
+                  slug: foundRestaurant.slug,
+                  subdomain: foundRestaurant.subdomain,
+                };
+                localStorage.setItem(
+                  "currentRestaurant",
+                  JSON.stringify(restaurantData)
+                );
+              }
             }
           }
 
@@ -77,18 +102,30 @@ export default function Header() {
             }
           }
 
-          // Also check localStorage as fallback
+          // Also check localStorage as fallback - BUT verify it matches the dashboard ID if on dashboard
           if (!foundRestaurant) {
             try {
               const stored = localStorage.getItem("currentRestaurant");
               if (stored) {
                 const parsed = JSON.parse(stored);
-                // Verify the stored restaurant still exists in the list
-                const verified = restaurants.find(
-                  (r: any) => r.id === parsed.id,
-                );
-                if (verified) {
-                  foundRestaurant = verified;
+                // If on dashboard, verify the stored restaurant matches the dashboard ID
+                if (isDashboard && dashboardId) {
+                  if (parsed.id === dashboardId) {
+                    const verified = restaurants.find(
+                      (r: any) => r.id === parsed.id
+                    );
+                    if (verified) {
+                      foundRestaurant = verified;
+                    }
+                  }
+                } else {
+                  // Not on dashboard, just use stored
+                  const verified = restaurants.find(
+                    (r: any) => r.id === parsed.id
+                  );
+                  if (verified) {
+                    foundRestaurant = verified;
+                  }
                 }
               }
             } catch (e) {
@@ -113,7 +150,7 @@ export default function Header() {
                 id: foundRestaurant.id,
                 slug: foundRestaurant.slug,
                 subdomain: foundRestaurant.subdomain,
-              }),
+              })
             );
           } else {
             // If no restaurant found, clear the data
@@ -145,7 +182,7 @@ export default function Header() {
     };
 
     fetchRestaurantData();
-  }, [location]);
+  }, [location, dashboardId]);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -154,7 +191,7 @@ export default function Header() {
 
   const scrollToSection = (
     e: React.MouseEvent<HTMLAnchorElement>,
-    sectionId: string,
+    sectionId: string
   ) => {
     e.preventDefault();
     const element = document.getElementById(sectionId);
