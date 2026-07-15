@@ -17,6 +17,12 @@ const {
   sendOrderReadyEmail,
 } = require("../services/emailService");
 
+// ✅ IMPORT SSE CONTROLLER
+const {
+  broadcastNewOrder,
+  broadcastOrderStatusUpdate,
+} = require("./sseController");
+
 /**
  * @desc    Get all orders
  * @route   GET /api/orders
@@ -346,6 +352,19 @@ exports.createOrder = async (req, res) => {
       });
     }
 
+    // ✅✅✅ BROADCAST NEW ORDER VIA SSE - THIS WAS MISSING!
+    try {
+      const restaurantIdStr = restaurantDoc._id.toString();
+      const orderForSSE = order.toObject ? order.toObject() : order;
+      broadcastNewOrder(restaurantIdStr, orderForSSE);
+      logger.info(
+        `📡 SSE: New order broadcasted for restaurant ${restaurantIdStr}`,
+      );
+    } catch (sseError) {
+      logger.error(`❌ SSE broadcast error: ${sseError.message}`);
+      // Don't fail the order if SSE fails
+    }
+
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
       message: SUCCESS_MESSAGES.ORDER_CREATED,
@@ -399,6 +418,15 @@ exports.updateOrderStatus = async (req, res) => {
           logger.error(`❌ Failed to send ready email: ${err.message}`);
         });
       }
+    }
+
+    // ✅✅✅ BROADCAST ORDER STATUS UPDATE VIA SSE - THIS WAS MISSING!
+    try {
+      const restaurantIdStr = order.restaurantId.toString();
+      broadcastOrderStatusUpdate(restaurantIdStr, order._id.toString(), status);
+      logger.info(`📡 SSE: Status update broadcasted for order ${order._id}`);
+    } catch (sseError) {
+      logger.error(`❌ SSE status broadcast error: ${sseError.message}`);
     }
 
     res.status(HTTP_STATUS.OK).json({

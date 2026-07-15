@@ -2,7 +2,6 @@ const logger = require("../utils/logger");
 
 /**
  * Store active SSE connections by restaurantId
- * Each restaurant can have multiple clients connected
  */
 const clients = new Map();
 
@@ -22,13 +21,11 @@ const addClient = (restaurantId, res) => {
   }
   clients.get(restaurantId).push(res);
 
-  // Log connection count
   const count = clients.get(restaurantId).length;
   logger.info(
     `📡 SSE: Client connected for restaurant ${restaurantId}. Total: ${count}`,
   );
 
-  // Return a function to remove the client
   return () => {
     const restaurantClients = clients.get(restaurantId);
     if (restaurantClients) {
@@ -50,7 +47,6 @@ const addClient = (restaurantId, res) => {
  * Broadcast a new order event to all clients of a restaurant
  */
 const broadcastNewOrder = (restaurantId, orderData) => {
-  // Convert restaurantId to string if it's an ObjectId
   const restaurantIdStr = restaurantId.toString();
   const restaurantClients = getClientsForRestaurant(restaurantIdStr);
 
@@ -128,7 +124,6 @@ const handleSSEConnection = (req, res) => {
     });
   }
 
-  // Set headers for SSE
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache",
@@ -137,7 +132,6 @@ const handleSSEConnection = (req, res) => {
     "Access-Control-Allow-Headers": "Cache-Control",
   });
 
-  // Send initial connection message
   res.write(
     `data: ${JSON.stringify({
       type: "CONNECTED",
@@ -147,15 +141,12 @@ const handleSSEConnection = (req, res) => {
     })}\n\n`,
   );
 
-  // Add client to the map
   const removeClient = addClient(restaurantId, res);
 
-  // Handle client disconnect
   req.on("close", () => {
     removeClient();
   });
 
-  // Keep connection alive with ping every 30 seconds
   const pingInterval = setInterval(() => {
     try {
       res.write(`: ping ${Date.now()}\n\n`);
@@ -165,7 +156,6 @@ const handleSSEConnection = (req, res) => {
     }
   }, 30000);
 
-  // Clean up interval on disconnect
   req.on("close", () => {
     clearInterval(pingInterval);
   });
