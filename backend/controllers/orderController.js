@@ -1,10 +1,21 @@
-const Order = require('../models/Order');
-const Restaurant = require('../models/Restaurant');
-const { generateOrderReference, calculateOrderTotals } = require('../utils/helpers');
-const { HTTP_STATUS, SUCCESS_MESSAGES, ERROR_MESSAGES, ORDER_STATUS } = require('../utils/constants');
-const logger = require('../utils/logger');
-const mongoose = require('mongoose');
-const { sendOrderConfirmationEmail, sendOrderReadyEmail } = require('../services/emailService');
+const Order = require("../models/Order");
+const Restaurant = require("../models/Restaurant");
+const {
+  generateOrderReference,
+  calculateOrderTotals,
+} = require("../utils/helpers");
+const {
+  HTTP_STATUS,
+  SUCCESS_MESSAGES,
+  ERROR_MESSAGES,
+  ORDER_STATUS,
+} = require("../utils/constants");
+const logger = require("../utils/logger");
+const mongoose = require("mongoose");
+const {
+  sendOrderConfirmationEmail,
+  sendOrderReadyEmail,
+} = require("../services/emailService");
 
 /**
  * @desc    Get all orders
@@ -17,32 +28,32 @@ exports.getOrders = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const filter = {};
-    
+
     if (restaurantId) {
       // Try to find the restaurant by various identifiers
       let restaurantDoc = null;
-      
+
       if (mongoose.Types.ObjectId.isValid(restaurantId)) {
         restaurantDoc = await Restaurant.findById(restaurantId);
       }
-      
+
       if (!restaurantDoc) {
         restaurantDoc = await Restaurant.findOne({
           $or: [
             { slug: restaurantId },
             { subdomain: restaurantId },
-            { id: restaurantId }
-          ]
+            { id: restaurantId },
+          ],
         });
       }
-      
+
       if (restaurantDoc) {
         filter.restaurantId = restaurantDoc._id;
       } else {
         filter.restaurantId = restaurantId;
       }
     }
-    
+
     if (status) filter.status = status;
 
     const orders = await Order.find(filter)
@@ -66,7 +77,7 @@ exports.getOrders = async (req, res) => {
     logger.error(`Get orders error: ${error.message}`);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Failed to fetch orders',
+      message: "Failed to fetch orders",
     });
   }
 };
@@ -82,27 +93,27 @@ exports.getOrdersByRestaurant = async (req, res) => {
     const { status, limit = 50, page = 1 } = req.query;
     const skip = (page - 1) * limit;
 
-    console.log('📊 Fetching orders for restaurantId:', restaurantId);
+    console.log("📊 Fetching orders for restaurantId:", restaurantId);
 
     // Find the actual restaurant by various identifiers
     let restaurantDoc = null;
-    
+
     if (mongoose.Types.ObjectId.isValid(restaurantId)) {
       restaurantDoc = await Restaurant.findById(restaurantId);
     }
-    
+
     if (!restaurantDoc) {
       restaurantDoc = await Restaurant.findOne({
         $or: [
           { slug: restaurantId },
           { subdomain: restaurantId },
-          { id: restaurantId }
-        ]
+          { id: restaurantId },
+        ],
       });
     }
-    
+
     if (!restaurantDoc) {
-      console.log('❌ Restaurant not found for ID:', restaurantId);
+      console.log("❌ Restaurant not found for ID:", restaurantId);
       return res.status(HTTP_STATUS.OK).json({
         success: true,
         data: [],
@@ -118,7 +129,7 @@ exports.getOrdersByRestaurant = async (req, res) => {
     const filter = { restaurantId: restaurantDoc._id };
     if (status) filter.status = status;
 
-    console.log('📊 Looking for orders with restaurantId:', restaurantDoc._id);
+    console.log("📊 Looking for orders with restaurantId:", restaurantDoc._id);
 
     const orders = await Order.find(filter)
       .sort({ createdAt: -1 })
@@ -127,7 +138,9 @@ exports.getOrdersByRestaurant = async (req, res) => {
 
     const total = await Order.countDocuments(filter);
 
-    console.log(`📊 Found ${orders.length} orders for restaurant ${restaurantDoc.name}`);
+    console.log(
+      `📊 Found ${orders.length} orders for restaurant ${restaurantDoc.name}`,
+    );
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
@@ -143,7 +156,7 @@ exports.getOrdersByRestaurant = async (req, res) => {
     logger.error(`Get orders by restaurant error: ${error.message}`);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Failed to fetch orders',
+      message: "Failed to fetch orders",
     });
   }
 };
@@ -172,7 +185,7 @@ exports.getOrderById = async (req, res) => {
     logger.error(`Get order by ID error: ${error.message}`);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Failed to fetch order',
+      message: "Failed to fetch order",
     });
   }
 };
@@ -185,7 +198,7 @@ exports.getOrderById = async (req, res) => {
 exports.getOrderByReference = async (req, res) => {
   try {
     const { reference } = req.params;
-    
+
     const order = await Order.findOne({ orderReference: reference });
 
     if (!order) {
@@ -203,7 +216,7 @@ exports.getOrderByReference = async (req, res) => {
     logger.error(`Get order by reference error: ${error.message}`);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Failed to fetch order',
+      message: "Failed to fetch order",
     });
   }
 };
@@ -228,38 +241,44 @@ exports.createOrder = async (req, res) => {
       specialInstructions,
     } = req.body;
 
-    console.log('📝 Creating order with restaurantId:', restaurantId);
+    console.log("📝 Creating order with restaurantId:", restaurantId);
 
     // Validate required fields
-    if (!restaurantId || !customerName || !customerPhone || !items || items.length === 0) {
+    if (
+      !restaurantId ||
+      !customerName ||
+      !customerPhone ||
+      !items ||
+      items.length === 0
+    ) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
-        message: 'Missing required order information',
+        message: "Missing required order information",
       });
     }
 
     // Find the actual restaurant by various identifiers
     let restaurantDoc = null;
-    
+
     if (mongoose.Types.ObjectId.isValid(restaurantId)) {
       restaurantDoc = await Restaurant.findById(restaurantId);
     }
-    
+
     if (!restaurantDoc) {
       restaurantDoc = await Restaurant.findOne({
         $or: [
           { slug: restaurantId },
           { subdomain: restaurantId },
-          { id: restaurantId }
-        ]
+          { id: restaurantId },
+        ],
       });
     }
 
     if (!restaurantDoc) {
-      console.log('❌ Restaurant not found for ID:', restaurantId);
+      console.log("❌ Restaurant not found for ID:", restaurantId);
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
-        message: 'Restaurant not found',
+        message: "Restaurant not found",
       });
     }
 
@@ -279,9 +298,12 @@ exports.createOrder = async (req, res) => {
 
     // Calculate totals
     const taxRate = restaurantDoc.taxesAndFees?.taxRatePercent || 8.5;
-    const serviceFee = restaurantDoc.taxesAndFees?.serviceFeeAmount || 2.50;
-    
-    const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const serviceFee = restaurantDoc.taxesAndFees?.serviceFeeAmount || 2.5;
+
+    const subtotal = items.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0,
+    );
     const taxAmount = (subtotal * taxRate) / 100;
     const totalPrice = subtotal + taxAmount + serviceFee;
 
@@ -294,33 +316,33 @@ exports.createOrder = async (req, res) => {
       restaurantName: restaurantName || restaurantDoc.name,
       customerName,
       customerPhone,
-      customerEmail: customerEmail || '',
+      customerEmail: customerEmail || "",
       items,
       subtotal,
       taxAmount,
       serviceFee,
       totalPrice: Math.round(totalPrice * 100) / 100,
-      pickupTimeOption: pickupTimeOption || 'ASAP',
+      pickupTimeOption: pickupTimeOption || "ASAP",
       scheduledTime: scheduledTime || null,
-      paymentMethod: paymentMethod || 'online',
-      status: 'NEW',
-      specialInstructions: specialInstructions || '',
+      paymentMethod: paymentMethod || "online",
+      status: "NEW",
+      specialInstructions: specialInstructions || "",
       orderReference,
     };
 
-    console.log('📝 Order data to save:', JSON.stringify(orderData, null, 2));
+    console.log("📝 Order data to save:", JSON.stringify(orderData, null, 2));
 
     const order = await Order.create(orderData);
 
-    console.log('✅ Order created successfully:', order._id);
+    console.log("✅ Order created successfully:", order._id);
 
     // Populate the order with restaurant details
-    await order.populate('restaurantId', 'name');
+    await order.populate("restaurantId", "name");
 
-    // Send order confirmation email (async - don't await to not block response)
+    // ✅ Send order confirmation email to customer (async - don't await to not block response)
     if (order.customerEmail) {
-      sendOrderConfirmationEmail(order).catch(err => {
-        logger.error(`Failed to send confirmation email: ${err.message}`);
+      sendOrderConfirmationEmail(order).catch((err) => {
+        logger.error(`❌ Failed to send confirmation email: ${err.message}`);
       });
     }
 
@@ -331,10 +353,10 @@ exports.createOrder = async (req, res) => {
     });
   } catch (error) {
     logger.error(`Create order error: ${error.message}`);
-    console.error('❌ Create order error details:', error);
+    console.error("❌ Create order error details:", error);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: error.message || 'Failed to create order',
+      message: error.message || "Failed to create order",
     });
   }
 };
@@ -361,7 +383,7 @@ exports.updateOrderStatus = async (req, res) => {
     if (!validStatuses.includes(status)) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
-        message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`,
+        message: `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
       });
     }
 
@@ -370,11 +392,11 @@ exports.updateOrderStatus = async (req, res) => {
     order.updatedAt = new Date();
     await order.save();
 
-    // Send email notification when order is marked as READY
-    if (status === 'READY' && previousStatus !== 'READY') {
+    // ✅ Send email notification when order is marked as READY
+    if (status === "READY" && previousStatus !== "READY") {
       if (order.customerEmail) {
-        sendOrderReadyEmail(order).catch(err => {
-          logger.error(`Failed to send ready email: ${err.message}`);
+        sendOrderReadyEmail(order).catch((err) => {
+          logger.error(`❌ Failed to send ready email: ${err.message}`);
         });
       }
     }
@@ -388,7 +410,7 @@ exports.updateOrderStatus = async (req, res) => {
     logger.error(`Update order status error: ${error.message}`);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Failed to update order status',
+      message: "Failed to update order status",
     });
   }
 };
@@ -401,28 +423,32 @@ exports.updateOrderStatus = async (req, res) => {
 exports.getOrderStatistics = async (req, res) => {
   try {
     const { restaurantId } = req.params;
-    
+
     // Find the actual restaurant
     let restaurantDoc = null;
-    
+
     if (mongoose.Types.ObjectId.isValid(restaurantId)) {
       restaurantDoc = await Restaurant.findById(restaurantId);
     }
-    
+
     if (!restaurantDoc) {
       restaurantDoc = await Restaurant.findOne({
-        $or: [
-          { slug: restaurantId },
-          { subdomain: restaurantId }
-        ]
+        $or: [{ slug: restaurantId }, { subdomain: restaurantId }],
       });
     }
-    
+
     if (!restaurantDoc) {
       return res.status(HTTP_STATUS.OK).json({
         success: true,
         data: {
-          counts: { total: 0, new: 0, preparing: 0, ready: 0, completed: 0, byStatus: [] },
+          counts: {
+            total: 0,
+            new: 0,
+            preparing: 0,
+            ready: 0,
+            completed: 0,
+            byStatus: [],
+          },
           sales: { today: 0, week: 0, month: 0 },
           orders: { today: 0, week: 0, month: 0 },
         },
@@ -432,17 +458,17 @@ exports.getOrderStatistics = async (req, res) => {
     const actualRestaurantId = restaurantDoc._id;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const weekAgo = new Date(today);
     weekAgo.setDate(weekAgo.getDate() - 7);
-    
+
     const monthAgo = new Date(today);
     monthAgo.setDate(monthAgo.getDate() - 30);
 
     // Get counts by status
     const statusCounts = await Order.aggregate([
       { $match: { restaurantId: actualRestaurantId } },
-      { $group: { _id: '$status', count: { $sum: 1 } } },
+      { $group: { _id: "$status", count: { $sum: 1 } } },
     ]);
 
     // Get today's orders
@@ -472,11 +498,25 @@ exports.getOrderStatistics = async (req, res) => {
       success: true,
       data: {
         counts: {
-          total: await Order.countDocuments({ restaurantId: actualRestaurantId }),
-          new: await Order.countDocuments({ restaurantId: actualRestaurantId, status: 'NEW' }),
-          preparing: await Order.countDocuments({ restaurantId: actualRestaurantId, status: 'PREPARING' }),
-          ready: await Order.countDocuments({ restaurantId: actualRestaurantId, status: 'READY' }),
-          completed: await Order.countDocuments({ restaurantId: actualRestaurantId, status: 'COMPLETED' }),
+          total: await Order.countDocuments({
+            restaurantId: actualRestaurantId,
+          }),
+          new: await Order.countDocuments({
+            restaurantId: actualRestaurantId,
+            status: "NEW",
+          }),
+          preparing: await Order.countDocuments({
+            restaurantId: actualRestaurantId,
+            status: "PREPARING",
+          }),
+          ready: await Order.countDocuments({
+            restaurantId: actualRestaurantId,
+            status: "READY",
+          }),
+          completed: await Order.countDocuments({
+            restaurantId: actualRestaurantId,
+            status: "COMPLETED",
+          }),
           byStatus: statusCounts,
         },
         sales: {
@@ -495,7 +535,7 @@ exports.getOrderStatistics = async (req, res) => {
     logger.error(`Get order statistics error: ${error.message}`);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Failed to fetch order statistics',
+      message: "Failed to fetch order statistics",
     });
   }
 };

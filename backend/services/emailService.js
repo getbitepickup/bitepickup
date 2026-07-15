@@ -1,42 +1,14 @@
-const nodemailer = require('nodemailer');
-const logger = require('../utils/logger');
+const sgMail = require("@sendgrid/mail");
+const logger = require("../utils/logger");
+
+// Initialize SendGrid with API key
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
+const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || "orders@hinarok.com";
+const FROM_NAME = process.env.SENDGRID_FROM_NAME || "Hinarok Orders";
 
 /**
- * Email service for sending transactional emails
- * Configured for both development and production
- */
-
-// Create transporter based on environment
-const createTransporter = () => {
-  // For development, use ethereal.email (fake SMTP)
-  if (process.env.NODE_ENV === 'development' && !process.env.SMTP_HOST) {
-    return nodemailer.createTransport({
-      host: 'smtp.ethereal.email',
-      port: 587,
-      secure: false,
-      auth: {
-        user: 'ethereal.user@ethereal.email',
-        pass: 'ethereal.password'
-      }
-    });
-  }
-
-  // For production, use configured SMTP
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT || 587,
-    secure: process.env.SMTP_PORT === 465,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
-};
-
-const transporter = createTransporter();
-
-/**
- * Send an email
+ * Send an email using SendGrid
  * @param {Object} options - Email options
  * @param {string} options.to - Recipient email
  * @param {string} options.subject - Email subject
@@ -46,19 +18,29 @@ const transporter = createTransporter();
  */
 const sendEmail = async ({ to, subject, html, text }) => {
   try {
-    const mailOptions = {
-      from: process.env.EMAIL_FROM || 'noreply@hinarok.com',
+    const msg = {
       to,
+      from: {
+        email: FROM_EMAIL,
+        name: FROM_NAME,
+      },
       subject,
+      text: text || html.replace(/<[^>]*>/g, ""), // Strip HTML for text version
       html,
-      text: text || html.replace(/<[^>]*>/g, ''), // Strip HTML for text version
     };
 
-    const info = await transporter.sendMail(mailOptions);
-    logger.info(`Email sent to ${to}: ${info.messageId}`);
-    return info;
+    const response = await sgMail.send(msg);
+    logger.info(
+      `✅ Email sent to ${to}: ${response[0]?.statusCode || "success"}`,
+    );
+    return response;
   } catch (error) {
-    logger.error(`Email sending failed: ${error.message}`);
+    logger.error(`❌ Email sending failed: ${error.message}`);
+    if (error.response) {
+      logger.error(
+        `❌ SendGrid error details: ${JSON.stringify(error.response.body)}`,
+      );
+    }
     throw error;
   }
 };
@@ -67,7 +49,7 @@ const sendEmail = async ({ to, subject, html, text }) => {
  * Send welcome email to new user
  */
 const sendWelcomeEmail = async (user) => {
-  const subject = 'Welcome to Hinarok!';
+  const subject = "Welcome to Hinarok!";
   const html = `
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f9f9f9;">
       <div style="background:#fff;border-radius:12px;padding:30px;box-shadow:0 2px 10px rgba(0,0,0,0.05);">
@@ -118,7 +100,7 @@ const sendWelcomeEmail = async (user) => {
  */
 const sendPasswordResetEmail = async (user, resetToken) => {
   const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`;
-  const subject = 'Reset Your Hinarok Password';
+  const subject = "Reset Your Hinarok Password";
   const html = `
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f9f9f9;">
       <div style="background:#fff;border-radius:12px;padding:30px;box-shadow:0 2px 10px rgba(0,0,0,0.05);">
@@ -162,19 +144,41 @@ const sendPasswordResetEmail = async (user, resetToken) => {
 const sendOrderConfirmationEmail = async (order) => {
   // Skip if no email provided
   if (!order.customerEmail) {
-    logger.info(`No email provided for order ${order.orderReference}, skipping confirmation email`);
+    logger.info(
+      `No email provided for order ${order.orderReference}, skipping confirmation email`,
+    );
     return null;
   }
 
+  // Get restaurant details
+  const Restaurant = require("../models/Restaurant");
+  let restaurant = null;
+  try {
+    restaurant = await Restaurant.findById(order.restaurantId);
+  } catch (error) {
+    logger.error(
+      `Failed to fetch restaurant for order ${order._id}: ${error.message}`,
+    );
+  }
+
+  const restaurantName =
+    restaurant?.name || order.restaurantName || "Restaurant";
+  const restaurantAddress = restaurant?.address || "";
+  const restaurantPhone = restaurant?.phone || "";
+
   const subject = `Order Confirmation #${order.orderReference}`;
-  
+
   // Build order items list
-  const itemsList = order.items.map(item => `
+  const itemsList = order.items
+    .map(
+      (item) => `
     <tr>
       <td style="padding:8px;border-bottom:1px solid #eee;">${item.quantity}x ${item.name}</td>
       <td style="padding:8px;border-bottom:1px solid #eee;text-align:right;">$${(item.price * item.quantity).toFixed(2)}</td>
     </tr>
-  `).join('');
+  `,
+    )
+    .join("");
 
   const html = `
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f9f9f9;">
@@ -189,18 +193,20 @@ const sendOrderConfirmationEmail = async (order) => {
         </div>
         
         <h2 style="color:#33101F;margin:0 0 8px;">Hi ${order.customerName},</h2>
-        <p style="color:#666;margin:0 0 4px;">Your order from <strong>${order.restaurantName}</strong> has been received and is being prepared.</p>
+        <p style="color:#666;margin:0 0 4px;">Your order from <strong>${restaurantName}</strong> has been received and is being prepared.</p>
         
         <div style="background:#FAF3EA;border-radius:8px;padding:16px;margin:20px 0;">
           <p style="margin:4px 0;font-size:14px;color:#33101F;">
             <strong>Order #:</strong> ${order.orderReference}
           </p>
           <p style="margin:4px 0;font-size:14px;color:#33101F;">
-            <strong>Pickup Time:</strong> ${order.pickupTimeOption === 'ASAP' ? 'ASAP (15-20 min)' : order.scheduledTime}
+            <strong>Pickup Time:</strong> ${order.pickupTimeOption === "ASAP" ? "ASAP (15-20 min)" : order.scheduledTime}
           </p>
           <p style="margin:4px 0;font-size:14px;color:#33101F;">
-            <strong>Restaurant:</strong> ${order.restaurantName}
+            <strong>Restaurant:</strong> ${restaurantName}
           </p>
+          ${restaurantAddress ? `<p style="margin:4px 0;font-size:14px;color:#33101F;"><strong>Address:</strong> ${restaurantAddress}</p>` : ""}
+          ${restaurantPhone ? `<p style="margin:4px 0;font-size:14px;color:#33101F;"><strong>Phone:</strong> ${restaurantPhone}</p>` : ""}
         </div>
         
         <h3 style="color:#33101F;margin:20px 0 12px;">Order Items</h3>
@@ -217,16 +223,28 @@ const sendOrderConfirmationEmail = async (order) => {
           <tfoot>
             <tr>
               <td style="padding:10px;font-weight:bold;">Subtotal</td>
-              <td style="padding:10px;text-align:right;font-weight:bold;">$${order.subtotal.toFixed(2)}</td>
+              <td style="padding:10px;text-align:right;font-weight:bold;">$${order.subtotal?.toFixed(2) || "0.00"}</td>
             </tr>
+            ${
+              order.taxAmount
+                ? `
             <tr>
               <td style="padding:4px 10px;">Tax</td>
               <td style="padding:4px 10px;text-align:right;">$${order.taxAmount.toFixed(2)}</td>
             </tr>
+            `
+                : ""
+            }
+            ${
+              order.serviceFee
+                ? `
             <tr>
               <td style="padding:4px 10px;">Service Fee</td>
               <td style="padding:4px 10px;text-align:right;">$${order.serviceFee.toFixed(2)}</td>
             </tr>
+            `
+                : ""
+            }
             <tr style="font-size:18px;">
               <td style="padding:10px;font-weight:bold;">Total</td>
               <td style="padding:10px;text-align:right;font-weight:bold;color:#C42348;">$${order.totalPrice.toFixed(2)}</td>
@@ -234,17 +252,21 @@ const sendOrderConfirmationEmail = async (order) => {
           </tfoot>
         </table>
         
-        ${order.specialInstructions ? `
+        ${
+          order.specialInstructions
+            ? `
           <div style="background:#FFF1E4;border-radius:8px;padding:12px;margin:16px 0;">
             <p style="margin:0;font-size:13px;color:#33101F;">
               <strong>Special Instructions:</strong> "${order.specialInstructions}"
             </p>
           </div>
-        ` : ''}
+        `
+            : ""
+        }
         
         <div style="background:#FAF3EA;border-radius:8px;padding:12px;text-align:center;margin:16px 0;">
           <p style="margin:0;font-size:14px;color:#33101F;">
-            📍 Pickup at: <strong>${order.restaurantName}</strong>
+            📍 Pickup at: <strong>${restaurantName}</strong>
           </p>
         </div>
         
@@ -255,7 +277,7 @@ const sendOrderConfirmationEmail = async (order) => {
         <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
         
         <p style="color:#999;font-size:12px;text-align:center;margin:0;">
-          Thank you for ordering with ${order.restaurantName}!<br />
+          Thank you for ordering with ${restaurantName}!<br />
           Powered by <strong style="color:#C42348;">hinarok</strong>
         </p>
       </div>
@@ -268,7 +290,7 @@ const sendOrderConfirmationEmail = async (order) => {
       subject,
       html,
     });
-    logger.info(`Order confirmation email sent to ${order.customerEmail}: ${info.messageId}`);
+    logger.info(`Order confirmation email sent to ${order.customerEmail}`);
     return info;
   } catch (error) {
     logger.error(`Failed to send order confirmation email: ${error.message}`);
@@ -283,9 +305,27 @@ const sendOrderConfirmationEmail = async (order) => {
 const sendOrderReadyEmail = async (order) => {
   // Skip if no email provided
   if (!order.customerEmail) {
-    logger.info(`No email provided for order ${order.orderReference}, skipping ready email`);
+    logger.info(
+      `No email provided for order ${order.orderReference}, skipping ready email`,
+    );
     return null;
   }
+
+  // Get restaurant details
+  const Restaurant = require("../models/Restaurant");
+  let restaurant = null;
+  try {
+    restaurant = await Restaurant.findById(order.restaurantId);
+  } catch (error) {
+    logger.error(
+      `Failed to fetch restaurant for order ${order._id}: ${error.message}`,
+    );
+  }
+
+  const restaurantName =
+    restaurant?.name || order.restaurantName || "Restaurant";
+  const restaurantAddress = restaurant?.address || "";
+  const restaurantPhone = restaurant?.phone || "";
 
   const subject = `Your order is ready for pickup! #${order.orderReference}`;
 
@@ -302,17 +342,19 @@ const sendOrderReadyEmail = async (order) => {
         </div>
         
         <h2 style="color:#33101F;margin:0 0 8px;">Hi ${order.customerName},</h2>
-        <p style="color:#666;margin:0 0 4px;">Your order from <strong>${order.restaurantName}</strong> is now <strong style="color:#2E6B34;">ready for pickup</strong>!</p>
+        <p style="color:#666;margin:0 0 4px;">Your order from <strong>${restaurantName}</strong> is now <strong style="color:#2E6B34;">ready for pickup</strong>!</p>
         
         <div style="background:#FAF3EA;border-radius:8px;padding:16px;margin:20px 0;">
           <p style="margin:4px 0;font-size:14px;color:#33101F;">
             <strong>Order #:</strong> ${order.orderReference}
           </p>
           <p style="margin:4px 0;font-size:14px;color:#33101F;">
-            <strong>Restaurant:</strong> ${order.restaurantName}
+            <strong>Restaurant:</strong> ${restaurantName}
           </p>
+          ${restaurantAddress ? `<p style="margin:4px 0;font-size:14px;color:#33101F;"><strong>Address:</strong> ${restaurantAddress}</p>` : ""}
+          ${restaurantPhone ? `<p style="margin:4px 0;font-size:14px;color:#33101F;"><strong>Phone:</strong> ${restaurantPhone}</p>` : ""}
           <p style="margin:4px 0;font-size:14px;color:#33101F;">
-            <strong>Pickup Time:</strong> ${order.pickupTimeOption === 'ASAP' ? 'ASAP' : order.scheduledTime}
+            <strong>Pickup Time:</strong> ${order.pickupTimeOption === "ASAP" ? "ASAP" : order.scheduledTime}
           </p>
         </div>
         
@@ -325,7 +367,7 @@ const sendOrderReadyEmail = async (order) => {
         <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
         
         <p style="color:#999;font-size:12px;text-align:center;margin:0;">
-          Thank you for ordering with ${order.restaurantName}!<br />
+          Thank you for ordering with ${restaurantName}!<br />
           Powered by <strong style="color:#C42348;">hinarok</strong>
         </p>
       </div>
@@ -338,7 +380,7 @@ const sendOrderReadyEmail = async (order) => {
       subject,
       html,
     });
-    logger.info(`Order ready email sent to ${order.customerEmail}: ${info.messageId}`);
+    logger.info(`Order ready email sent to ${order.customerEmail}`);
     return info;
   } catch (error) {
     logger.error(`Failed to send order ready email: ${error.message}`);
@@ -353,16 +395,32 @@ const sendOrderReadyEmail = async (order) => {
 const sendOrderStatusUpdateEmail = async (order) => {
   // Skip if no email provided
   if (!order.customerEmail) {
-    logger.info(`No email provided for order ${order.orderReference}, skipping status update email`);
+    logger.info(
+      `No email provided for order ${order.orderReference}, skipping status update email`,
+    );
     return null;
   }
 
+  // Get restaurant details
+  const Restaurant = require("../models/Restaurant");
+  let restaurant = null;
+  try {
+    restaurant = await Restaurant.findById(order.restaurantId);
+  } catch (error) {
+    logger.error(
+      `Failed to fetch restaurant for order ${order._id}: ${error.message}`,
+    );
+  }
+
+  const restaurantName =
+    restaurant?.name || order.restaurantName || "Restaurant";
+
   const subject = `Order #${order.orderReference} Status Update`;
   const statusMessages = {
-    'NEW': 'has been received and is being prepared.',
-    'PREPARING': 'is now being prepared in the kitchen.',
-    'READY': 'is ready for pickup!',
-    'COMPLETED': 'has been completed. Thank you for your order!'
+    NEW: "has been received and is being prepared.",
+    PREPARING: "is now being prepared in the kitchen.",
+    READY: "is ready for pickup!",
+    COMPLETED: "has been completed. Thank you for your order!",
   };
 
   const html = `
@@ -375,14 +433,14 @@ const sendOrderStatusUpdateEmail = async (order) => {
         
         <h2 style="color:#33101F;margin:0 0 8px;">Order Status Update</h2>
         <p style="color:#666;">Hi ${order.customerName},</p>
-        <p style="color:#666;">Your order #${order.orderReference} ${statusMessages[order.status] || 'has been updated.'}</p>
+        <p style="color:#666;">Your order #${order.orderReference} ${statusMessages[order.status] || "has been updated."}</p>
         
         <div style="background:#FAF3EA;border-radius:8px;padding:16px;margin:20px 0;">
           <p style="margin:4px 0;font-size:14px;color:#33101F;">
             <strong>Current Status:</strong> ${order.status}
           </p>
           <p style="margin:4px 0;font-size:14px;color:#33101F;">
-            <strong>Restaurant:</strong> ${order.restaurantName}
+            <strong>Restaurant:</strong> ${restaurantName}
           </p>
         </div>
         
@@ -401,7 +459,7 @@ const sendOrderStatusUpdateEmail = async (order) => {
       subject,
       html,
     });
-    logger.info(`Order status update email sent to ${order.customerEmail}: ${info.messageId}`);
+    logger.info(`Order status update email sent to ${order.customerEmail}`);
     return info;
   } catch (error) {
     logger.error(`Failed to send order status update email: ${error.message}`);

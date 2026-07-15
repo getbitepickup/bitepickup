@@ -1,67 +1,67 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const dailyHoursSchema = new mongoose.Schema({
   isOpen: {
     type: Boolean,
-    default: true
+    default: true,
   },
   openTime: {
     type: String,
-    default: '09:00 AM'
+    default: "09:00 AM",
   },
   closeTime: {
     type: String,
-    default: '10:00 PM'
-  }
+    default: "10:00 PM",
+  },
 });
 
 const restaurantSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
   },
   slug: {
     type: String,
     required: true,
     unique: true,
     lowercase: true,
-    trim: true
+    trim: true,
   },
   subdomain: {
     type: String,
     required: true,
     unique: true,
     lowercase: true,
-    trim: true
+    trim: true,
   },
   description: {
     type: String,
-    required: true
+    required: true,
   },
   coverImage: {
     type: String,
-    required: true
+    required: true,
   },
   logo: {
     type: String,
-    required: true
+    required: true,
   },
   phone: {
     type: String,
-    required: true
+    required: true,
   },
   address: {
     type: String,
-    required: true
+    required: true,
   },
   isActive: {
     type: Boolean,
-    default: true
+    default: true,
   },
   isOrderingPaused: {
     type: Boolean,
-    default: false
+    default: false,
   },
   businessHours: {
     Monday: dailyHoursSchema,
@@ -70,57 +70,57 @@ const restaurantSchema = new mongoose.Schema({
     Thursday: dailyHoursSchema,
     Friday: dailyHoursSchema,
     Saturday: dailyHoursSchema,
-    Sunday: dailyHoursSchema
+    Sunday: dailyHoursSchema,
   },
   pickupSettings: {
     allowAsap: {
       type: Boolean,
-      default: true
+      default: true,
     },
     allowScheduled: {
       type: Boolean,
-      default: true
+      default: true,
     },
     prepTimeMinutes: {
       type: Number,
-      default: 15
-    }
+      default: 15,
+    },
   },
   taxesAndFees: {
     taxRatePercent: {
       type: Number,
-      default: 8.5
+      default: 8.5,
     },
     serviceFeeAmount: {
       type: Number,
-      default: 2.50
-    }
+      default: 2.5,
+    },
   },
   subscription: {
     tier: {
       type: String,
-      enum: ['starter', 'pro', 'enterprise'],
-      default: 'starter'
+      enum: ["starter", "pro", "enterprise"],
+      default: "starter",
     },
     status: {
       type: String,
-      enum: ['active', 'pending', 'suspended', 'cancelled'],
-      default: 'pending'
+      enum: ["active", "pending", "suspended", "cancelled"],
+      default: "pending",
     },
-    validUntil: Date
+    validUntil: Date,
   },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    ref: "User",
   },
   createdAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
   },
   updatedAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
-module.exports = mongoose.model('Restaurant', restaurantSchema);
+module.exports = mongoose.model("Restaurant", restaurantSchema);
