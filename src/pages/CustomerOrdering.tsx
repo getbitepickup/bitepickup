@@ -69,17 +69,6 @@ export default function CustomerOrdering() {
     return null;
   };
 
-  // Clear stale restaurant data on unmount or before new fetch
-  const clearStaleData = () => {
-    // Only clear if we're not on a restaurant page (to avoid flicker)
-    const isRestaurantPage =
-      window.location.pathname.startsWith("/restaurant/");
-    if (!isRestaurantPage) {
-      localStorage.removeItem("currentRestaurant");
-      localStorage.removeItem("currentRestaurantId");
-    }
-  };
-
   useEffect(() => {
     // Cancel any pending fetch
     if (fetchAbortControllerRef.current) {
@@ -102,7 +91,7 @@ export default function CustomerOrdering() {
         // Get all restaurants from API - fresh fetch
         const resData = await getRestaurants();
 
-        // Filter out inactive restaurants
+        // Filter out inactive restaurants - ONLY ACTIVE ONES
         const activeRestaurants = resData.filter((r) => r.isActive !== false);
         setRestaurants(activeRestaurants);
 
@@ -111,13 +100,31 @@ export default function CustomerOrdering() {
 
         // FIRST: Try to find by slug (from URL param) - this is the source of truth
         if (slug) {
+          // ONLY find if the restaurant is ACTIVE
           found = activeRestaurants.find((r) => r.slug === slug);
           if (found) {
-            console.log("🔍 Found restaurant by slug:", found.name);
+            console.log("🔍 Found ACTIVE restaurant by slug:", found.name);
+          } else {
+            // Check if the restaurant exists but is inactive
+            const existsButInactive = resData.find(
+              (r) => r.slug === slug && r.isActive === false,
+            );
+            if (existsButInactive) {
+              console.log(
+                "⚠️ Restaurant exists but is INACTIVE:",
+                existsButInactive.name,
+              );
+              // Don't set found - this will trigger "Restaurant Not Found"
+              // But we want to show a specific message for inactive
+              setCurrentRestaurant(null);
+              setDataLoaded(true);
+              setLoading(false);
+              return;
+            }
           }
         }
 
-        // SECOND: Try to find by subdomain (from hostname)
+        // SECOND: Try to find by subdomain (from hostname) - ONLY if ACTIVE
         if (!found && subdomain) {
           found = activeRestaurants.find((r) => {
             if (r.subdomain && r.subdomain.includes(subdomain)) {
@@ -129,29 +136,65 @@ export default function CustomerOrdering() {
             return false;
           });
           if (found) {
-            console.log("🔍 Found restaurant by subdomain:", found.name);
+            console.log("🔍 Found ACTIVE restaurant by subdomain:", found.name);
+          } else {
+            // Check if the restaurant exists but is inactive
+            const existsButInactive = resData.find((r) => {
+              if (r.subdomain && r.subdomain.includes(subdomain)) return true;
+              if (r.slug === subdomain) return true;
+              return false;
+            });
+            if (existsButInactive && existsButInactive.isActive === false) {
+              console.log(
+                "⚠️ Restaurant exists but is INACTIVE (subdomain):",
+                existsButInactive.name,
+              );
+              setCurrentRestaurant(null);
+              setDataLoaded(true);
+              setLoading(false);
+              return;
+            }
           }
         }
 
-        // THIRD: Try to find from localStorage but verify it's active
+        // THIRD: Try to find from localStorage but ONLY if it's ACTIVE and matches the slug/subdomain
         if (!found) {
           try {
             const stored = localStorage.getItem("currentRestaurant");
             if (stored) {
               const parsed = JSON.parse(stored);
-              const verified = activeRestaurants.find(
-                (r) => r.id === parsed.id,
-              );
-              if (verified && verified.isActive !== false) {
-                found = verified;
-                console.log(
-                  "🔍 Found restaurant from localStorage (verified):",
-                  found.name,
+              // Verify the stored restaurant matches the slug we're looking for
+              let matchesSlug = false;
+              if (slug) {
+                matchesSlug = parsed.slug === slug;
+              } else if (subdomain) {
+                matchesSlug =
+                  parsed.slug === subdomain || parsed.subdomain === subdomain;
+              }
+
+              // Only use localStorage if it matches the current URL
+              if (matchesSlug) {
+                const verified = activeRestaurants.find(
+                  (r) => r.id === parsed.id,
                 );
-              } else {
-                // Stored restaurant is not active or doesn't exist, clear it
-                localStorage.removeItem("currentRestaurant");
-                localStorage.removeItem("currentRestaurantId");
+                if (verified) {
+                  found = verified;
+                  console.log(
+                    "🔍 Found ACTIVE restaurant from localStorage (verified):",
+                    found.name,
+                  );
+                } else {
+                  // Stored restaurant is not active, clear it
+                  localStorage.removeItem("currentRestaurant");
+                  localStorage.removeItem("currentRestaurantId");
+                  // If we're on a specific slug and it's not active, show not found
+                  if (slug || subdomain) {
+                    setCurrentRestaurant(null);
+                    setDataLoaded(true);
+                    setLoading(false);
+                    return;
+                  }
+                }
               }
             }
           } catch (e) {
@@ -159,13 +202,19 @@ export default function CustomerOrdering() {
           }
         }
 
-        // FOURTH: If still no found, use first active restaurant as fallback
-        if (!found && activeRestaurants.length > 0) {
-          found = activeRestaurants[0];
-          console.log(
-            "🔍 Using first active restaurant as fallback:",
-            found.name,
-          );
+        // IMPORTANT: NO FALLBACK TO FIRST ACTIVE RESTAURANT
+        // If we're on a specific restaurant URL (slug or subdomain) and we didn't find an ACTIVE match,
+        // we should show "Restaurant Not Found"
+        if (!found) {
+          // Check if we're on a restaurant URL (has slug or subdomain)
+          const isRestaurantUrl = slug || subdomain;
+          if (isRestaurantUrl) {
+            // Don't fallback - show not found
+            setCurrentRestaurant(null);
+            setDataLoaded(true);
+            setLoading(false);
+            return;
+          }
         }
 
         if (found) {
@@ -173,7 +222,7 @@ export default function CustomerOrdering() {
           setCurrentRestaurant(found);
           setCurrentRestaurantId(found.id);
 
-          // Save restaurant data to localStorage for Header to use - but only if we're on a restaurant page
+          // Save restaurant data to localStorage for Header to use
           const restaurantData = {
             name: found.name,
             logo: found.logo || "",
@@ -195,7 +244,7 @@ export default function CustomerOrdering() {
 
           setDataLoaded(true);
         } else {
-          // No active restaurants found
+          // No active restaurants found and no specific URL
           setCurrentRestaurant(null);
           setDataLoaded(true);
         }
@@ -218,7 +267,6 @@ export default function CustomerOrdering() {
       if (fetchAbortControllerRef.current) {
         fetchAbortControllerRef.current.abort();
       }
-      // Don't clear localStorage on unmount to avoid flicker on navigation
     };
   }, [slug]); // Re-run when slug changes
 
@@ -420,8 +468,8 @@ export default function CustomerOrdering() {
           Restaurant Not Found
         </h2>
         <p className="text-[#8C6B76] text-sm mt-1 max-w-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
-          We couldn't locate this store. Please check the URL or go back to the
-          homepage.
+          This restaurant is currently not available or has been deactivated.
+          Please check the URL or go back to the homepage.
         </p>
         <Link
           to="/"
