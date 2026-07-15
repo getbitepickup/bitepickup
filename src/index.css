@@ -4,8 +4,9 @@
 
 /* Baloo 2 - Variable Display Font */
 @font-face {
-  font-family: 'Baloo 2';
-  src: url('./assets/fonts/Baloo2-VariableFont_wght.ttf') format('truetype-variations');
+  font-family: "Baloo 2";
+  src: url("./assets/fonts/Baloo2-VariableFont_wght.ttf")
+    format("truetype-variations");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -13,8 +14,9 @@
 
 /* Inter - Variable Body Font */
 @font-face {
-  font-family: 'Inter';
-  src: url('./assets/fonts/Inter-VariableFont_opsz,wght.ttf') format('truetype-variations');
+  font-family: "Inter";
+  src: url("./assets/fonts/Inter-VariableFont_opsz,wght.ttf")
+    format("truetype-variations");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -25,8 +27,8 @@ html,
 body,
 #root {
   min-height: 100vh;
-  background-color: #FAF3EA;
-  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  background-color: #faf3ea;
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
 }
 
 /* Smooth scrolling */
@@ -40,90 +42,118 @@ html {
 }
 
 ::-webkit-scrollbar-track {
-  background: #FAF3EA;
+  background: #faf3ea;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #C42348;
+  background: #c42348;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #E84C6B;
+  background: #e84c6b;
 }
 
 /* Selection color */
 ::selection {
-  background: #C42348;
+  background: #c42348;
   color: white;
+}
+
+/* ====== FIX: Prevent iOS zoom on input/textarea focus ====== */
+input,
+textarea,
+select,
+button {
+  font-size: 16px !important;
+}
+
+/* Ensure inputs don't zoom on mobile */
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="number"],
+input[type="password"],
+textarea,
+select {
+  font-size: 16px !important;
+}
+
+/* Prevent zoom on focus for iOS */
+@media screen and (max-width: 768px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
 }
 
 /* Utility classes for Hinarok colors */
 .bg-hinarok-crimson {
-  background-color: #C42348;
+  background-color: #c42348;
 }
 
 .bg-hinarok-crimson-light {
-  background-color: #E84C6B;
+  background-color: #e84c6b;
 }
 
 .bg-hinarok-aubergine {
-  background-color: #33101F;
+  background-color: #33101f;
 }
 
 .bg-hinarok-aubergine-2 {
-  background-color: #48182C;
+  background-color: #48182c;
 }
 
 .bg-hinarok-cream {
-  background-color: #FAF3EA;
+  background-color: #faf3ea;
 }
 
 .bg-hinarok-cream-2 {
-  background-color: #FFF1E4;
+  background-color: #fff1e4;
 }
 
 .bg-hinarok-gold {
-  background-color: #E8A13B;
+  background-color: #e8a13b;
 }
 
 .text-hinarok-crimson {
-  color: #C42348;
+  color: #c42348;
 }
 
 .text-hinarok-crimson-light {
-  color: #E84C6B;
+  color: #e84c6b;
 }
 
 .text-hinarok-aubergine {
-  color: #33101F;
+  color: #33101f;
 }
 
 .text-hinarok-gold {
-  color: #E8A13B;
+  color: #e8a13b;
 }
 
 .text-hinarok-muted {
-  color: #8C6B76;
+  color: #8c6b76;
 }
 
 .border-hinarok-crimson {
-  border-color: #C42348;
+  border-color: #c42348;
 }
 
 .border-hinarok-aubergine {
-  border-color: #33101F;
+  border-color: #33101f;
 }
 
 .border-hinarok-cream {
-  border-color: #FAF3EA;
+  border-color: #faf3ea;
 }
 
 /* Font utility classes */
 .font-baloo {
-  font-family: 'Baloo 2', 'Trebuchet MS', 'Segoe UI', sans-serif;
+  font-family: "Baloo 2", "Trebuchet MS", "Segoe UI", sans-serif;
 }
 
 .font-inter {
-  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
 }

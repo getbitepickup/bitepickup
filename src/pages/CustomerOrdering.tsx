@@ -240,6 +240,95 @@ export default function CustomerOrdering() {
     }
   }, [selectedItem, cart]);
 
+  // ====== SCROLL SPY: Auto-scrolling category tabs ======
+  const categoryRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const categoryObserverRef = useRef<IntersectionObserver | null>(null);
+  const [isScrolling, setIsScrolling] = useState(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Set up IntersectionObserver for Scroll Spy
+  useEffect(() => {
+    if (filteredCategories.length === 0) return;
+
+    // Clean up previous observer
+    if (categoryObserverRef.current) {
+      categoryObserverRef.current.disconnect();
+    }
+
+    // Create new observer
+    categoryObserverRef.current = new IntersectionObserver(
+      (entries) => {
+        // Find the category that is most visible
+        let bestEntry = null;
+        let bestRatio = 0;
+
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio > bestRatio) {
+            bestRatio = entry.intersectionRatio;
+            bestEntry = entry;
+          }
+        });
+
+        // If we found a visible category and we're not currently scrolling programmatically
+        if (bestEntry && !isScrolling) {
+          const categoryId = bestEntry.target.id.replace("category-", "");
+          if (categoryId && categoryId !== activeCategory) {
+            setActiveCategory(categoryId);
+          }
+        }
+      },
+      {
+        root: null,
+        rootMargin: "-80px 0px -60% 0px", // Adjust thresholds
+        threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5],
+      },
+    );
+
+    // Observe each category section
+    Object.values(categoryRefs.current).forEach((ref) => {
+      if (ref) {
+        categoryObserverRef.current?.observe(ref);
+      }
+    });
+
+    return () => {
+      if (categoryObserverRef.current) {
+        categoryObserverRef.current.disconnect();
+      }
+    };
+  }, [filteredCategories, activeCategory, isScrolling]);
+
+  // Handle category click (manual scroll)
+  const handleCategoryClick = (categoryId: string) => {
+    setActiveCategory(categoryId);
+    setIsScrolling(true);
+
+    const element = document.getElementById(`category-${categoryId}`);
+    if (element) {
+      const yOffset = -80;
+      const y =
+        element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: y, behavior: "smooth" });
+    }
+
+    // Reset scrolling flag after animation completes
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+    scrollTimeoutRef.current = setTimeout(() => {
+      setIsScrolling(false);
+    }, 800);
+  };
+
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#FAF3EA] flex flex-col items-center justify-center p-6 text-center">
@@ -570,12 +659,12 @@ export default function CustomerOrdering() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Left Col: Menu categories & Items */}
             <div className="md:col-span-2 space-y-8">
-              {/* Category buttons sticky slider */}
+              {/* Category buttons sticky slider - with scroll spy */}
               <div className="sticky top-0 bg-[#FAF3EA]/95 backdrop-blur-sm py-3 border-b border-[#E7C7CF] z-10 flex gap-2 overflow-x-auto scrollbar-none">
                 {filteredCategories.map((cat) => (
                   <button
                     key={cat.id}
-                    onClick={() => setActiveCategory(cat.id)}
+                    onClick={() => handleCategoryClick(cat.id)}
                     className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer font-['Inter','Segoe UI',system-ui,sans-serif] ${
                       activeCategory === cat.id
                         ? "bg-[#33101F] text-white shadow-sm"
@@ -596,72 +685,74 @@ export default function CustomerOrdering() {
                   </p>
                 </div>
               ) : (
-                filteredCategories
-                  .filter(
-                    (cat) =>
-                      activeCategory === null || cat.id === activeCategory,
-                  )
-                  .map((cat) => {
-                    const categoryItems = filteredMenuItems.filter(
-                      (i) => i.categoryId === cat.id,
-                    );
-                    return (
-                      <div key={cat.id} className="space-y-4">
-                        <h3 className="text-lg font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] border-l-4 border-[#33101F] pl-3">
-                          {cat.name}
-                        </h3>
+                filteredCategories.map((cat) => {
+                  const categoryItems = filteredMenuItems.filter(
+                    (i) => i.categoryId === cat.id,
+                  );
+                  return (
+                    <div
+                      key={cat.id}
+                      id={`category-${cat.id}`}
+                      ref={(el) => {
+                        categoryRefs.current[cat.id] = el;
+                      }}
+                      className="space-y-4 scroll-mt-20"
+                    >
+                      <h3 className="text-lg font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] border-l-4 border-[#33101F] pl-3">
+                        {cat.name}
+                      </h3>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-1 gap-4">
-                          {categoryItems.map((item) => (
-                            <div
-                              id={`menu-card-${item.id}`}
-                              key={item.id}
-                              className="flex gap-4 p-4 rounded-xl border border-[#E7C7CF] hover:border-[#C42348] hover:shadow-sm transition-all bg-white cursor-pointer md:cursor-default"
-                              onClick={() => handleItemClick(item)}
-                            >
-                              <div className="flex-1 space-y-1">
-                                <h4 className="font-['Baloo_2','Trebuchet_MS',sans-serif] font-semibold text-[#33101F] text-sm md:text-base">
-                                  {item.name}
-                                </h4>
-                                <p className="text-xs text-[#8C6B76] line-clamp-2 leading-relaxed font-['Inter','Segoe UI',system-ui,sans-serif]">
-                                  {item.description}
-                                </p>
-                                <div className="pt-2 text-sm md:text-base font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#C42348]">
-                                  ${item.price.toFixed(2)}
-                                </div>
-                              </div>
-
-                              <div className="w-20 h-20 md:w-24 md:h-24 rounded-lg bg-[#FAF3EA] overflow-hidden relative flex-shrink-0">
-                                <img
-                                  referrerPolicy="no-referrer"
-                                  src={item.image}
-                                  alt={item.name}
-                                  className="w-full h-full object-cover"
-                                />
-                                <button
-                                  id={`add-btn-${item.id}`}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    addToCart(item);
-                                  }}
-                                  className="absolute bottom-1 right-1 bg-white hover:bg-[#C42348] hover:text-white text-[#33101F] w-7 h-7 rounded-full shadow-lg flex items-center justify-center font-bold transition-all border border-[#E7C7CF] cursor-pointer"
-                                  title="Add to order"
-                                >
-                                  <Plus className="w-4 h-4" />
-                                </button>
+                      <div className="grid grid-cols-1 sm:grid-cols-1 gap-4">
+                        {categoryItems.map((item) => (
+                          <div
+                            id={`menu-card-${item.id}`}
+                            key={item.id}
+                            className="flex gap-4 p-4 rounded-xl border border-[#E7C7CF] hover:border-[#C42348] hover:shadow-sm transition-all bg-white cursor-pointer md:cursor-default"
+                            onClick={() => handleItemClick(item)}
+                          >
+                            <div className="flex-1 space-y-1">
+                              <h4 className="font-['Baloo_2','Trebuchet_MS',sans-serif] font-semibold text-[#33101F] text-sm md:text-base">
+                                {item.name}
+                              </h4>
+                              <p className="text-xs text-[#8C6B76] line-clamp-2 leading-relaxed font-['Inter','Segoe UI',system-ui,sans-serif]">
+                                {item.description}
+                              </p>
+                              <div className="pt-2 text-sm md:text-base font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#C42348]">
+                                ${item.price.toFixed(2)}
                               </div>
                             </div>
-                          ))}
 
-                          {categoryItems.length === 0 && (
-                            <p className="text-[#8C6B76] text-xs italic py-2 pl-4 font-['Inter','Segoe UI',system-ui,sans-serif]">
-                              No active dishes in this category.
-                            </p>
-                          )}
-                        </div>
+                            <div className="w-20 h-20 md:w-24 md:h-24 rounded-lg bg-[#FAF3EA] overflow-hidden relative flex-shrink-0">
+                              <img
+                                referrerPolicy="no-referrer"
+                                src={item.image}
+                                alt={item.name}
+                                className="w-full h-full object-cover"
+                              />
+                              <button
+                                id={`add-btn-${item.id}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  addToCart(item);
+                                }}
+                                className="absolute bottom-1 right-1 bg-white hover:bg-[#C42348] hover:text-white text-[#33101F] w-7 h-7 rounded-full shadow-lg flex items-center justify-center font-bold transition-all border border-[#E7C7CF] cursor-pointer"
+                                title="Add to order"
+                              >
+                                <Plus className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+
+                        {categoryItems.length === 0 && (
+                          <p className="text-[#8C6B76] text-xs italic py-2 pl-4 font-['Inter','Segoe UI',system-ui,sans-serif]">
+                            No active dishes in this category.
+                          </p>
+                        )}
                       </div>
-                    );
-                  })
+                    </div>
+                  );
+                })
               )}
             </div>
 
