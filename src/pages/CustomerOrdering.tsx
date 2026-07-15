@@ -40,16 +40,19 @@ export default function CustomerOrdering() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   // Find current restaurant
   const [currentRestaurant, setCurrentRestaurant] = useState<Restaurant | null>(
     null,
   );
 
+  // Refs for cleanup
+  const fetchAbortControllerRef = useRef<AbortController | null>(null);
+
   // Detect if we're on a subdomain
   const getSubdomainFromHost = () => {
     const hostname = window.location.hostname;
-    // If it's hinarok.com or www.hinarok.com, no subdomain
     if (
       hostname === "hinarok.com" ||
       hostname === "www.hinarok.com" ||
@@ -59,7 +62,6 @@ export default function CustomerOrdering() {
     ) {
       return null;
     }
-    // Extract subdomain (first part before .hinarok.com)
     const parts = hostname.split(".");
     if (parts.length > 2) {
       return parts[0];
@@ -67,47 +69,111 @@ export default function CustomerOrdering() {
     return null;
   };
 
+  // Clear stale restaurant data on unmount or before new fetch
+  const clearStaleData = () => {
+    // Only clear if we're not on a restaurant page (to avoid flicker)
+    const isRestaurantPage =
+      window.location.pathname.startsWith("/restaurant/");
+    if (!isRestaurantPage) {
+      localStorage.removeItem("currentRestaurant");
+      localStorage.removeItem("currentRestaurantId");
+    }
+  };
+
   useEffect(() => {
+    // Cancel any pending fetch
+    if (fetchAbortControllerRef.current) {
+      fetchAbortControllerRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    fetchAbortControllerRef.current = controller;
+
     const loadData = async () => {
       try {
         setLoading(true);
+        setDataLoaded(false);
+
+        // Clear previous data to prevent showing stale data
+        setCurrentRestaurant(null);
+        setCategories([]);
+        setMenuItems([]);
+
+        // Get all restaurants from API - fresh fetch
         const resData = await getRestaurants();
+
         // Filter out inactive restaurants
         const activeRestaurants = resData.filter((r) => r.isActive !== false);
         setRestaurants(activeRestaurants);
 
         let found = null;
+        const subdomain = getSubdomainFromHost();
 
-        // First try: Find by slug (from URL param)
+        // FIRST: Try to find by slug (from URL param) - this is the source of truth
         if (slug) {
           found = activeRestaurants.find((r) => r.slug === slug);
-        }
-
-        // Second try: Find by subdomain (from hostname)
-        if (!found) {
-          const subdomain = getSubdomainFromHost();
-          if (subdomain) {
-            // Try to find by subdomain
-            found = activeRestaurants.find((r) => {
-              // Check if subdomain matches
-              if (r.subdomain && r.subdomain.includes(subdomain)) {
-                return true;
-              }
-              // Check if slug matches subdomain
-              if (r.slug === subdomain) {
-                return true;
-              }
-              return false;
-            });
+          if (found) {
+            console.log("🔍 Found restaurant by slug:", found.name);
           }
         }
 
+        // SECOND: Try to find by subdomain (from hostname)
+        if (!found && subdomain) {
+          found = activeRestaurants.find((r) => {
+            if (r.subdomain && r.subdomain.includes(subdomain)) {
+              return true;
+            }
+            if (r.slug === subdomain) {
+              return true;
+            }
+            return false;
+          });
+          if (found) {
+            console.log("🔍 Found restaurant by subdomain:", found.name);
+          }
+        }
+
+        // THIRD: Try to find from localStorage but verify it's active
+        if (!found) {
+          try {
+            const stored = localStorage.getItem("currentRestaurant");
+            if (stored) {
+              const parsed = JSON.parse(stored);
+              const verified = activeRestaurants.find(
+                (r) => r.id === parsed.id,
+              );
+              if (verified && verified.isActive !== false) {
+                found = verified;
+                console.log(
+                  "🔍 Found restaurant from localStorage (verified):",
+                  found.name,
+                );
+              } else {
+                // Stored restaurant is not active or doesn't exist, clear it
+                localStorage.removeItem("currentRestaurant");
+                localStorage.removeItem("currentRestaurantId");
+              }
+            }
+          } catch (e) {
+            console.log("No valid restaurant in storage");
+          }
+        }
+
+        // FOURTH: If still no found, use first active restaurant as fallback
+        if (!found && activeRestaurants.length > 0) {
+          found = activeRestaurants[0];
+          console.log(
+            "🔍 Using first active restaurant as fallback:",
+            found.name,
+          );
+        }
+
         if (found) {
+          // Set the current restaurant
           setCurrentRestaurant(found);
           setCurrentRestaurantId(found.id);
 
-          // Save restaurant data to localStorage for Header to use
-          // Use a specific key to avoid conflicts
+          // Save restaurant data to localStorage for Header to use - but only if we're on a restaurant page
           const restaurantData = {
             name: found.name,
             logo: found.logo || "",
@@ -126,38 +192,35 @@ export default function CustomerOrdering() {
 
           const menuData = await getMenuItems(found.id);
           setMenuItems(menuData);
-        } else if (activeRestaurants.length > 0) {
-          // Fallback: use first active restaurant
-          found = activeRestaurants[0];
-          setCurrentRestaurant(found);
-          setCurrentRestaurantId(found.id);
 
-          const restaurantData = {
-            name: found.name,
-            logo: found.logo || "",
-            id: found.id,
-            slug: found.slug,
-            subdomain: found.subdomain,
-          };
-          localStorage.setItem(
-            "currentRestaurant",
-            JSON.stringify(restaurantData),
-          );
-
-          const catData = await getCategories(found.id);
-          setCategories(catData);
-
-          const menuData = await getMenuItems(found.id);
-          setMenuItems(menuData);
+          setDataLoaded(true);
+        } else {
+          // No active restaurants found
+          setCurrentRestaurant(null);
+          setDataLoaded(true);
         }
       } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          console.log("Fetch aborted");
+          return;
+        }
         console.error("Failed to load data:", error);
+        setDataLoaded(true);
       } finally {
         setLoading(false);
       }
     };
+
     loadData();
-  }, [slug]);
+
+    // Cleanup function
+    return () => {
+      if (fetchAbortControllerRef.current) {
+        fetchAbortControllerRef.current.abort();
+      }
+      // Don't clear localStorage on unmount to avoid flicker on navigation
+    };
+  }, [slug]); // Re-run when slug changes
 
   // Cart state
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -200,15 +263,18 @@ export default function CustomerOrdering() {
     phone?: string;
   }>({});
 
-  // Filter items & categories for this restaurant
-  const filteredCategories = categories.filter(
-    (c) => c.restaurantId === currentRestaurant?.id,
-  );
-  const filteredMenuItems = menuItems.filter((i) => {
-    if (i.restaurantId !== currentRestaurant?.id) return false;
-    const isHidden = i.availability === "hidden";
-    return !isHidden;
-  });
+  // Filter items & categories for this restaurant - only if currentRestaurant exists
+  const filteredCategories = currentRestaurant
+    ? categories.filter((c) => c.restaurantId === currentRestaurant.id)
+    : [];
+
+  const filteredMenuItems = currentRestaurant
+    ? menuItems.filter((i) => {
+        if (i.restaurantId !== currentRestaurant.id) return false;
+        const isHidden = i.availability === "hidden";
+        return !isHidden;
+      })
+    : [];
 
   // Set default pickup option based on allowed parameters
   useEffect(() => {
@@ -224,12 +290,18 @@ export default function CustomerOrdering() {
     }
   }, [currentRestaurant?.id]);
 
-  // Default active category
+  // Default active category - reset when categories change
   useEffect(() => {
-    if (filteredCategories.length > 0 && !activeCategory) {
-      setActiveCategory(filteredCategories[0].id);
+    if (filteredCategories.length > 0) {
+      // Check if active category is still valid
+      const isValid = filteredCategories.some((c) => c.id === activeCategory);
+      if (!isValid || !activeCategory) {
+        setActiveCategory(filteredCategories[0].id);
+      }
+    } else {
+      setActiveCategory(null);
     }
-  }, [filteredCategories]);
+  }, [filteredCategories, activeCategory]);
 
   // Reset item sheet when opened
   useEffect(() => {
@@ -279,7 +351,7 @@ export default function CustomerOrdering() {
       },
       {
         root: null,
-        rootMargin: "-80px 0px -60% 0px", // Adjust thresholds
+        rootMargin: "-80px 0px -60% 0px",
         threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5],
       },
     );
@@ -329,7 +401,7 @@ export default function CustomerOrdering() {
     };
   }, []);
 
-  if (loading) {
+  if (loading || !dataLoaded) {
     return (
       <div className="min-h-screen bg-[#FAF3EA] flex flex-col items-center justify-center p-6 text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C42348] mb-4"></div>
@@ -1141,7 +1213,7 @@ export default function CustomerOrdering() {
                       onChange={(e) => setSpecialInstructions(e.target.value)}
                       placeholder="e.g. Please specify allergies, request utensils, or add kitchen notes..."
                       rows={2}
-                      className="w-full px-3.5 py-2 border border-[#E7C7CF] rounded-xl text-xs text-[#33101F] focus:outline-none focus:ring-2 focus:ring-[#C42348] font-['Inter','Segoe UI',system-ui,sans-serif]"
+                      className="w-full px-3.5 py-2 border border-[#E7C7CF] rounded-xl text-xs text-[#33101F] focus:outline-none focus:ring-2 focus:ring-[#C42348] font-['Inter','Segoe UI',system-ui,sans-serif] text-base md:text-xs"
                     />
                   </div>
                   <p className="text-[10px] text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">
@@ -1567,7 +1639,7 @@ export default function CustomerOrdering() {
                     onChange={(e) => setItemSpecialInstructions(e.target.value)}
                     placeholder="Add a note (e.g. no nuts, no onions)"
                     rows={2}
-                    className="w-full px-3.5 py-2 border border-[#E7C7CF] rounded-xl text-xs text-[#33101F] focus:outline-none focus:ring-2 focus:ring-[#C42348] font-['Inter','Segoe UI',system-ui,sans-serif]"
+                    className="w-full px-3.5 py-2 border border-[#E7C7CF] rounded-xl text-xs text-[#33101F] focus:outline-none focus:ring-2 focus:ring-[#C42348] font-['Inter','Segoe UI',system-ui,sans-serif] text-base md:text-xs"
                   />
                   <p className="text-[10px] text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                     No substitutes. Additions may be charged extra.

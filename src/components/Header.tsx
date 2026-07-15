@@ -15,10 +15,12 @@ export default function Header() {
   const [isDashboardPage, setIsDashboardPage] = useState(false);
   const [loading, setLoading] = useState(true);
   const [dashboardId, setDashboardId] = useState<string | null>(null);
+  const [fetchAttempted, setFetchAttempted] = useState(false);
 
   useEffect(() => {
     const fetchRestaurantData = async () => {
       setLoading(true);
+      setFetchAttempted(false);
 
       // Only show full navigation on the landing page
       setIsLandingPage(location.pathname === "/");
@@ -48,61 +50,67 @@ export default function Header() {
         hostname.includes("vercel.app");
       setIsSubdomain(!isMainDomain);
 
-      // If on restaurant page or dashboard, fetch the correct restaurant data
+      // If on restaurant page or dashboard or subdomain, fetch the correct restaurant data
       if (isRestaurant || isDashboard || !isMainDomain) {
         try {
-          // Get all restaurants
+          // Get all restaurants - fresh fetch
           const restaurants = await getRestaurants();
+          const activeRestaurants = restaurants.filter(
+            (r: any) => r.isActive !== false,
+          );
 
           let foundRestaurant = null;
 
-          // If on restaurant page with slug
-          if (isRestaurant) {
+          // PRIORITY 1: If on dashboard with ID
+          if (isDashboard && dashboardId) {
+            foundRestaurant = activeRestaurants.find(
+              (r: any) => r.id === dashboardId,
+            );
+            if (foundRestaurant) {
+              console.log(
+                "📌 Header: Found restaurant by dashboard ID:",
+                foundRestaurant.name,
+              );
+            }
+          }
+
+          // PRIORITY 2: If on restaurant page with slug
+          if (!foundRestaurant && isRestaurant) {
             const slug = location.pathname
               .split("/restaurant/")[1]
               ?.split("/")[0];
             if (slug) {
-              foundRestaurant = restaurants.find((r: any) => r.slug === slug);
-            }
-          }
-
-          // If on dashboard with ID - PRIORITY 1
-          if (!foundRestaurant && isDashboard) {
-            const id = location.pathname
-              .split("/restaurant-dashboard/")[1]
-              ?.split("/")[0];
-            if (id) {
-              foundRestaurant = restaurants.find((r: any) => r.id === id);
-              // If found by ID, immediately update localStorage
+              foundRestaurant = activeRestaurants.find(
+                (r: any) => r.slug === slug,
+              );
               if (foundRestaurant) {
-                const restaurantData = {
-                  name: foundRestaurant.name,
-                  logo: foundRestaurant.logo || "",
-                  id: foundRestaurant.id,
-                  slug: foundRestaurant.slug,
-                  subdomain: foundRestaurant.subdomain,
-                };
-                localStorage.setItem(
-                  "currentRestaurant",
-                  JSON.stringify(restaurantData)
+                console.log(
+                  "📌 Header: Found restaurant by slug:",
+                  foundRestaurant.name,
                 );
               }
             }
           }
 
-          // If on subdomain
+          // PRIORITY 3: If on subdomain
           if (!foundRestaurant && !isMainDomain) {
             const subdomain = hostname.split(".")[0];
             if (subdomain && subdomain !== "www") {
-              foundRestaurant = restaurants.find((r: any) => {
+              foundRestaurant = activeRestaurants.find((r: any) => {
                 if (r.subdomain && r.subdomain.includes(subdomain)) return true;
                 if (r.slug === subdomain) return true;
                 return false;
               });
+              if (foundRestaurant) {
+                console.log(
+                  "📌 Header: Found restaurant by subdomain:",
+                  foundRestaurant.name,
+                );
+              }
             }
           }
 
-          // Also check localStorage as fallback - BUT verify it matches the dashboard ID if on dashboard
+          // PRIORITY 4: Check localStorage but VERIFY it matches the current context
           if (!foundRestaurant) {
             try {
               const stored = localStorage.getItem("currentRestaurant");
@@ -111,20 +119,53 @@ export default function Header() {
                 // If on dashboard, verify the stored restaurant matches the dashboard ID
                 if (isDashboard && dashboardId) {
                   if (parsed.id === dashboardId) {
-                    const verified = restaurants.find(
-                      (r: any) => r.id === parsed.id
+                    const verified = activeRestaurants.find(
+                      (r: any) => r.id === parsed.id,
                     );
                     if (verified) {
                       foundRestaurant = verified;
+                      console.log(
+                        "📌 Header: Found restaurant from localStorage (verified for dashboard):",
+                        foundRestaurant.name,
+                      );
                     }
+                  } else {
+                    // Stored doesn't match dashboard ID, clear it
+                    localStorage.removeItem("currentRestaurant");
+                  }
+                } else if (isRestaurant) {
+                  // For restaurant page, verify the stored restaurant matches the slug
+                  const slug = location.pathname
+                    .split("/restaurant/")[1]
+                    ?.split("/")[0];
+                  if (parsed.slug === slug) {
+                    const verified = activeRestaurants.find(
+                      (r: any) => r.id === parsed.id,
+                    );
+                    if (verified) {
+                      foundRestaurant = verified;
+                      console.log(
+                        "📌 Header: Found restaurant from localStorage (verified for restaurant page):",
+                        foundRestaurant.name,
+                      );
+                    }
+                  } else {
+                    // Stored doesn't match slug, clear it
+                    localStorage.removeItem("currentRestaurant");
                   }
                 } else {
-                  // Not on dashboard, just use stored
-                  const verified = restaurants.find(
-                    (r: any) => r.id === parsed.id
+                  // Not on a specific page, just use stored but verify it's active
+                  const verified = activeRestaurants.find(
+                    (r: any) => r.id === parsed.id,
                   );
                   if (verified) {
                     foundRestaurant = verified;
+                    console.log(
+                      "📌 Header: Found restaurant from localStorage (verified):",
+                      foundRestaurant.name,
+                    );
+                  } else {
+                    localStorage.removeItem("currentRestaurant");
                   }
                 }
               }
@@ -134,38 +175,51 @@ export default function Header() {
           }
 
           if (foundRestaurant) {
-            setRestaurantData({
+            const restaurantDataObj = {
               name: foundRestaurant.name,
               logo: foundRestaurant.logo || "",
               id: foundRestaurant.id,
               slug: foundRestaurant.slug,
               subdomain: foundRestaurant.subdomain,
-            });
-            // Also update localStorage for consistency
+            };
+            setRestaurantData(restaurantDataObj);
+            // Update localStorage for consistency, but only if it's the correct one
             localStorage.setItem(
               "currentRestaurant",
-              JSON.stringify({
-                name: foundRestaurant.name,
-                logo: foundRestaurant.logo || "",
-                id: foundRestaurant.id,
-                slug: foundRestaurant.slug,
-                subdomain: foundRestaurant.subdomain,
-              })
+              JSON.stringify(restaurantDataObj),
             );
           } else {
-            // If no restaurant found, clear the data
+            // No restaurant found, clear data
             setRestaurantData(null);
-            localStorage.removeItem("currentRestaurant");
+            // Only clear localStorage if we're on a restaurant page/dashboard/subdomain
+            if (isRestaurant || isDashboard || !isMainDomain) {
+              localStorage.removeItem("currentRestaurant");
+            }
           }
         } catch (error) {
           console.error("Failed to fetch restaurant data for header:", error);
-          // Try localStorage as fallback
+          // Try localStorage as fallback but only if it matches the current context
           try {
             const stored = localStorage.getItem("currentRestaurant");
             if (stored) {
               const parsed = JSON.parse(stored);
-              if (parsed && parsed.name) {
+              // Verify the stored data matches the current context
+              let isValid = false;
+              if (isDashboard && dashboardId) {
+                isValid = parsed.id === dashboardId;
+              } else if (isRestaurant) {
+                const slug = location.pathname
+                  .split("/restaurant/")[1]
+                  ?.split("/")[0];
+                isValid = parsed.slug === slug;
+              } else {
+                isValid = true;
+              }
+              if (isValid && parsed && parsed.name) {
                 setRestaurantData(parsed);
+              } else {
+                setRestaurantData(null);
+                localStorage.removeItem("currentRestaurant");
               }
             }
           } catch (e) {
@@ -173,16 +227,19 @@ export default function Header() {
           }
         } finally {
           setLoading(false);
+          setFetchAttempted(true);
         }
       } else {
-        // Not on a restaurant page
+        // Not on a restaurant page, clear restaurant data
         setRestaurantData(null);
         setLoading(false);
+        setFetchAttempted(true);
+        // Don't clear localStorage here to avoid flicker when navigating away
       }
     };
 
     fetchRestaurantData();
-  }, [location, dashboardId]);
+  }, [location.pathname, dashboardId]);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -191,7 +248,7 @@ export default function Header() {
 
   const scrollToSection = (
     e: React.MouseEvent<HTMLAnchorElement>,
-    sectionId: string
+    sectionId: string,
   ) => {
     e.preventDefault();
     const element = document.getElementById(sectionId);

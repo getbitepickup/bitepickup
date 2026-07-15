@@ -36,7 +36,7 @@ export interface Restaurant {
   phone: string;
   address: string;
   isActive: boolean;
-  
+
   // Custom Settings
   isOrderingPaused?: boolean;
   businessHours?: BusinessHours;
@@ -59,9 +59,9 @@ export interface MenuItem {
   price: number;
   image: string;
   isAvailable: boolean;
-  
+
   // Custom Settings
-  availability?: 'available' | 'out_of_stock' | 'hidden';
+  availability?: "available" | "out_of_stock" | "hidden";
 }
 
 export interface OrderItem {
@@ -78,21 +78,21 @@ export interface Order {
   restaurantName: string;
   customerName: string;
   customerPhone: string;
-  customerEmail?: string; // NEW: Added for email notifications
+  customerEmail?: string;
   items: OrderItem[];
   totalPrice: number;
-  pickupTimeOption: 'ASAP' | 'scheduled';
+  pickupTimeOption: "ASAP" | "scheduled";
   scheduledTime?: string;
-  paymentMethod: 'online' | 'pickup';
-  status: 'NEW' | 'PREPARING' | 'READY' | 'COMPLETED';
+  paymentMethod: "online" | "pickup";
+  status: "NEW" | "PREPARING" | "READY" | "COMPLETED";
   timestamp: string;
-  
+
   // Custom Settings
   specialInstructions?: string;
   taxAmount?: number;
   serviceFee?: number;
   finalTotal?: number;
-  orderReference?: string; // NEW: Added for tracking
+  orderReference?: string;
 }
 
 export interface CartItem {
@@ -101,6 +101,7 @@ export interface CartItem {
   price: number;
   quantity: number;
   image?: string;
+  specialInstructions?: string;
 }
 
 // User related types
@@ -110,7 +111,7 @@ export interface User {
   firstName: string;
   lastName: string;
   phone: string;
-  role: 'admin' | 'restaurant_owner' | 'customer';
+  role: "admin" | "restaurant_owner" | "customer";
   restaurantId?: string;
   isActive: boolean;
   lastLogin?: string;
