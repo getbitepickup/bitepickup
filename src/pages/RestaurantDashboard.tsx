@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   getRestaurants,
   getCategories,
@@ -50,6 +50,9 @@ import {
   History,
   Search,
   Filter,
+  Wifi,
+  WifiOff,
+  RefreshCw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -75,6 +78,14 @@ export default function RestaurantDashboard() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState<string>("");
 
+  // SSE connection refs
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const [sseConnected, setSseConnected] = useState(false);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [sseError, setSseError] = useState<string | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const reconnectAttempts = useRef(0);
+
   // Get the current restaurant from the activeRestaurantId
   const currentRestaurant =
     restaurants.find((r) => r.id === activeRestaurantId) || null;
@@ -95,10 +106,6 @@ export default function RestaurantDashboard() {
         console.log("📋 All restaurants:", resData);
 
         // Get restaurant ID from multiple sources:
-        // 1. From URL param
-        // 2. From user context (if restaurant owner)
-        // 3. From localStorage
-        // 4. Use first restaurant as fallback
         let restaurantId = null;
 
         // Check URL param first
@@ -125,7 +132,7 @@ export default function RestaurantDashboard() {
           console.log("📍 Restaurant ID from localStorage:", restaurantId);
         }
 
-        // If still no ID, try to match by slug/subdomain from the owner record
+        // If still no ID, try to match by slug/subdomain
         if (
           !restaurantId ||
           !resData.find(
@@ -169,7 +176,6 @@ export default function RestaurantDashboard() {
 
           console.log("✅ Loading data for restaurant ID:", restaurantId);
 
-          // Save restaurant data to localStorage for Header to use - IMMEDIATELY
           const foundRestaurant = resData.find((r) => r.id === restaurantId);
           if (foundRestaurant) {
             const restaurantData = {
@@ -212,7 +218,7 @@ export default function RestaurantDashboard() {
             }
           }
 
-          // Load categories, menu items, and orders for this restaurant
+          // Load categories, menu items, and orders
           const catData = await getCategories(restaurantId);
           setCategories(catData);
           console.log("📂 Categories loaded:", catData.length);
@@ -234,11 +240,207 @@ export default function RestaurantDashboard() {
       }
     };
 
-    // Only load if auth is not loading
     if (!authLoading) {
       loadData();
     }
   }, [id, user, authLoading]);
+
+  // ============================================
+  // ✅ SSE - Server-Sent Events Connection (FIXED)
+  // ============================================
+  const connectSSE = () => {
+    // Only connect if we have an active restaurant ID and user is authenticated
+    if (!activeRestaurantId) {
+      console.log("📡 SSE: Skipping - no active restaurant ID");
+      return;
+    }
+
+    if (!isAuthenticated) {
+      console.log("📡 SSE: Skipping - not authenticated");
+      return;
+    }
+
+    // Clear any existing reconnect timeout
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
+    // Close existing connection if any
+    if (eventSourceRef.current) {
+      console.log("📡 SSE: Closing existing connection");
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+
+    // Get the API URL - use the backend URL
+    const API_URL =
+      import.meta.env.VITE_API_URL || "https://bitepickup-backend.onrender.com";
+    const sseUrl = `${API_URL}/api/orders/stream/${activeRestaurantId}`;
+
+    console.log(`📡 SSE: Connecting to: ${sseUrl}`);
+    setIsConnecting(true);
+    setSseError(null);
+
+    try {
+      // Create EventSource with credentials
+      const eventSource = new EventSource(sseUrl, { withCredentials: false });
+      eventSourceRef.current = eventSource;
+
+      // Connection opened
+      eventSource.onopen = () => {
+        console.log("📡 SSE: Connection opened successfully ✅");
+        setSseConnected(true);
+        setIsConnecting(false);
+        setSseError(null);
+        reconnectAttempts.current = 0;
+      };
+
+      // Handle incoming messages
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log("📡 SSE: Event received:", data);
+
+          if (data.type === "CONNECTED") {
+            console.log("📡 SSE: Connected successfully:", data.message);
+            return;
+          }
+
+          if (data.type === "NEW_ORDER") {
+            console.log("📡 SSE: New order received!");
+            const newOrder = data.data;
+
+            const orderId = newOrder._id || newOrder.id;
+
+            setOrders((prevOrders) => {
+              const exists = prevOrders.some(
+                (o) => o.id === orderId || o._id === orderId,
+              );
+              if (exists) {
+                console.log("📡 Order already exists, skipping duplicate");
+                return prevOrders;
+              }
+
+              const orderToAdd = {
+                ...newOrder,
+                id: orderId,
+                _id: orderId,
+                items: newOrder.items || [],
+                timestamp:
+                  newOrder.timestamp ||
+                  newOrder.createdAt ||
+                  new Date().toISOString(),
+              };
+
+              console.log("📡 Adding new order:", orderToAdd);
+
+              // Play beep sound for new order
+              playWebBeep();
+
+              // Show notification
+              if (
+                "Notification" in window &&
+                Notification.permission === "granted"
+              ) {
+                new Notification("🆕 New Order Received!", {
+                  body: `Order from ${newOrder.customerName} - $${newOrder.totalPrice?.toFixed(2) || "0.00"}`,
+                  icon: "/hinarok-app-icon.png",
+                });
+              }
+
+              return [orderToAdd, ...prevOrders];
+            });
+          }
+
+          if (data.type === "ORDER_STATUS_UPDATE") {
+            const { orderId, status } = data.data;
+            console.log(`📡 SSE: Order ${orderId} status updated to ${status}`);
+
+            setOrders((prevOrders) =>
+              prevOrders.map((order) => {
+                const orderIdMatch =
+                  order.id === orderId || order._id === orderId;
+                if (orderIdMatch) {
+                  return { ...order, status };
+                }
+                return order;
+              }),
+            );
+          }
+        } catch (error) {
+          console.error("❌ SSE: Message parse error:", error);
+        }
+      };
+
+      // Handle errors
+      eventSource.onerror = (error) => {
+        console.error("❌ SSE: Connection error:", error);
+        setSseConnected(false);
+        setIsConnecting(false);
+        setSseError("Connection lost, reconnecting...");
+
+        // Close the connection
+        if (eventSourceRef.current) {
+          eventSourceRef.current.close();
+          eventSourceRef.current = null;
+        }
+
+        // Try to reconnect with exponential backoff
+        reconnectAttempts.current += 1;
+        const delay = Math.min(5000 * reconnectAttempts.current, 30000);
+
+        console.log(
+          `📡 SSE: Reconnecting in ${delay / 1000}s (attempt ${reconnectAttempts.current})`,
+        );
+
+        reconnectTimeoutRef.current = setTimeout(() => {
+          connectSSE();
+        }, delay);
+      };
+    } catch (error) {
+      console.error("❌ SSE: Connection failed:", error);
+      setSseConnected(false);
+      setIsConnecting(false);
+      setSseError("Connection failed");
+    }
+  };
+
+  // Manual reconnect
+  const handleReconnect = () => {
+    reconnectAttempts.current = 0;
+    connectSSE();
+  };
+
+  // Initialize SSE connection
+  useEffect(() => {
+    console.log("📡 SSE useEffect triggered with:", {
+      activeRestaurantId,
+      isAuthenticated,
+      sseConnected,
+    });
+
+    // Request notification permission
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+
+    connectSSE();
+
+    // Cleanup on unmount
+    return () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      if (eventSourceRef.current) {
+        console.log("📡 SSE: Closing connection on unmount");
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+        setSseConnected(false);
+      }
+    };
+  }, [activeRestaurantId, isAuthenticated]);
 
   // Audio synthesizer double beep
   const playWebBeep = () => {
@@ -247,6 +449,11 @@ export default function RestaurantDashboard() {
         window.AudioContext || (window as any).webkitAudioContext
       )();
 
+      // Resume context if suspended
+      if (context.state === "suspended") {
+        context.resume();
+      }
+
       const beep = (freq: number, duration: number, onset: number) => {
         const osc = context.createOscillator();
         const gain = context.createGain();
@@ -254,7 +461,7 @@ export default function RestaurantDashboard() {
         osc.frequency.setValueAtTime(freq, context.currentTime + onset);
         osc.connect(gain);
         gain.connect(context.destination);
-        gain.gain.setValueAtTime(0.12, context.currentTime + onset);
+        gain.gain.setValueAtTime(0.15, context.currentTime + onset);
         gain.gain.exponentialRampToValueAtTime(
           0.01,
           context.currentTime + onset + duration,
@@ -272,7 +479,9 @@ export default function RestaurantDashboard() {
 
   // Active restaurant orders
   const activeRestaurantOrders = orders.filter(
-    (o) => o.restaurantId === currentRestaurant?.id,
+    (o) =>
+      o.restaurantId === currentRestaurant?.id ||
+      o.restaurantId === currentRestaurant?._id,
   );
 
   // Stats calculation
@@ -380,7 +589,7 @@ export default function RestaurantDashboard() {
     }
   }, [currentRestaurant?.id]);
 
-  // Status color mapping - Updated to Hinarok palette
+  // Status color mapping
   const getStatusColor = (status: string) => {
     switch (status) {
       case "NEW":
@@ -445,11 +654,9 @@ export default function RestaurantDashboard() {
       });
       alert("Restaurant branding profile updated successfully!");
 
-      // Refresh restaurant data
       const resData = await getRestaurants();
       setRestaurants(resData);
 
-      // Update localStorage with new logo/name
       const updatedRestaurant = resData.find(
         (r) => r.id === currentRestaurant.id,
       );
@@ -492,13 +699,11 @@ export default function RestaurantDashboard() {
     try {
       let result;
       if (editingCatId) {
-        // Update existing category
         result = await updateCategory(editingCatId, {
           name: catNameInput.trim(),
         });
         console.log("✅ Category updated:", result);
       } else {
-        // Create new category - let MongoDB generate the ID
         result = await addCategory({
           restaurantId: currentRestaurant.id,
           name: catNameInput.trim(),
@@ -506,7 +711,6 @@ export default function RestaurantDashboard() {
         console.log("✅ Category created:", result);
       }
 
-      // Refresh categories
       const catData = await getCategories(currentRestaurant.id);
       setCategories(catData);
       setShowCatModal(false);
@@ -574,7 +778,6 @@ export default function RestaurantDashboard() {
 
     console.log("🔍 handleSaveItem called with form data:", itemForm);
 
-    // Validate required fields
     if (!itemForm.name.trim()) {
       alert("Please enter a dish name");
       return;
@@ -601,7 +804,6 @@ export default function RestaurantDashboard() {
       return;
     }
 
-    // Build the payload with ALL fields explicitly set
     const dataPayload = {
       restaurantId: currentRestaurant.id,
       categoryId: itemForm.categoryId,
@@ -630,12 +832,10 @@ export default function RestaurantDashboard() {
 
       console.log("✅ Success:", result);
 
-      // Refresh menu items
       const menuData = await getMenuItems(currentRestaurant.id);
       setMenuItems(menuData);
       setShowItemModal(false);
 
-      // Reset form
       const firstCategory = storeCategories[0]?.id || "";
       setItemForm({
         name: "",
@@ -651,8 +851,6 @@ export default function RestaurantDashboard() {
       alert("✅ Menu item saved successfully!");
     } catch (error: any) {
       console.error("❌ Failed to save menu item:", error);
-      console.error("❌ Error message:", error.message);
-      console.error("❌ Full error:", error);
       alert(error.message || "Failed to save menu item. Please try again.");
     }
   };
@@ -711,7 +909,6 @@ export default function RestaurantDashboard() {
     );
   }
 
-  // Grouped active items inside active categories helper
   const storeCategories = categories.filter(
     (c) => c.restaurantId === currentRestaurant.id,
   );
@@ -743,9 +940,52 @@ export default function RestaurantDashboard() {
                   currentRestaurant.isActive ? "Active Store" : "Inactive Store"
                 }
               ></span>
+              {/* SSE Connection Status with Reconnect Button */}
+              <div className="flex items-center gap-1">
+                <span
+                  className={`text-[8px] font-bold uppercase px-2 py-0.5 rounded-full border flex items-center gap-1 ${
+                    sseConnected
+                      ? "bg-emerald-500/20 text-emerald-600 border-emerald-500/30"
+                      : isConnecting
+                        ? "bg-[#E8A13B]/20 text-[#E8A13B] border-[#E8A13B]/30 animate-pulse"
+                        : "bg-[#C42348]/20 text-[#C42348] border-[#C42348]/30"
+                  }`}
+                >
+                  {sseConnected ? (
+                    <>
+                      <Wifi className="w-3 h-3" />
+                      LIVE
+                    </>
+                  ) : isConnecting ? (
+                    <>
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                      CONNECTING
+                    </>
+                  ) : (
+                    <>
+                      <WifiOff className="w-3 h-3" />
+                      OFFLINE
+                    </>
+                  )}
+                </span>
+                {!sseConnected && !isConnecting && (
+                  <button
+                    onClick={handleReconnect}
+                    className="text-[8px] bg-[#C42348] hover:bg-[#E84C6B] text-white px-2 py-0.5 rounded-full transition-colors"
+                    title="Reconnect real-time updates"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
             </div>
             <p className="text-xs text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">
               Manage order feeds, categories, menu pricing, and graphics layout.
+              {sseConnected
+                ? " ✅ Real-time updates active"
+                : isConnecting
+                  ? " ⏳ Connecting..."
+                  : " ⚠️ Click to reconnect"}
             </p>
           </div>
         </div>
@@ -881,7 +1121,7 @@ export default function RestaurantDashboard() {
                           <div className="flex justify-between items-start border-b border-[#E7C7CF] pb-2">
                             <div>
                               <span className="font-mono text-xs font-semibold text-[#C42348]">
-                                {order.id}
+                                {order.id || order._id}
                               </span>
                               <h4 className="font-sans text-xs text-[#8C6B76] font-bold mt-0.5">
                                 {order.customerName}
@@ -898,7 +1138,7 @@ export default function RestaurantDashboard() {
                           <div className="space-y-2 text-xs">
                             {order.items.map((item) => (
                               <div
-                                key={item.id}
+                                key={item.id || item._id}
                                 className="flex justify-between text-[#33101F]"
                               >
                                 <span className="font-bold text-[#33101F]">
@@ -1006,7 +1246,7 @@ export default function RestaurantDashboard() {
                           <div className="flex justify-between items-start border-b border-[#E7C7CF] pb-2">
                             <div>
                               <span className="font-mono text-xs font-semibold text-[#E8A13B]">
-                                {order.id}
+                                {order.id || order._id}
                               </span>
                               <h4 className="font-sans text-xs text-[#8C6B76] font-bold mt-0.5">
                                 {order.customerName}
@@ -1023,7 +1263,7 @@ export default function RestaurantDashboard() {
                           <div className="space-y-2 text-xs">
                             {order.items.map((item) => (
                               <div
-                                key={item.id}
+                                key={item.id || item._id}
                                 className="flex justify-between text-[#33101F]"
                               >
                                 <span className="font-bold text-[#33101F]">
@@ -1129,7 +1369,7 @@ export default function RestaurantDashboard() {
                           <div className="flex justify-between items-start border-b border-[#E7C7CF] pb-2">
                             <div>
                               <span className="font-mono text-xs font-semibold text-emerald-500">
-                                {order.id}
+                                {order.id || order._id}
                               </span>
                               <h4 className="font-sans text-xs text-[#8C6B76] font-bold mt-0.5">
                                 {order.customerName}
@@ -1146,7 +1386,7 @@ export default function RestaurantDashboard() {
                           <div className="space-y-2 text-xs">
                             {order.items.map((item) => (
                               <div
-                                key={item.id}
+                                key={item.id || item._id}
                                 className="flex justify-between text-[#33101F]"
                               >
                                 <span className="font-bold text-[#33101F]">
