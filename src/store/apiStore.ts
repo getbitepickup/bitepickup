@@ -65,6 +65,7 @@ const normalizeOrder = (order: any): Order => ({
   restaurantName: order?.restaurantName || "",
   customerName: order?.customerName || "",
   customerPhone: order?.customerPhone || "",
+  customerEmail: order?.customerEmail || "",
   items: Array.isArray(order?.items) ? order.items : [],
   totalPrice: Number(order?.totalPrice) || 0,
   pickupTimeOption: order?.pickupTimeOption || "ASAP",
@@ -76,6 +77,14 @@ const normalizeOrder = (order: any): Order => ({
   taxAmount: order?.taxAmount,
   serviceFee: order?.serviceFee,
   finalTotal: order?.finalTotal,
+  orderReference: order?.orderReference,
+  // ✅ Stripe Payment Fields
+  paymentStatus: order?.paymentStatus || "pending",
+  stripePaymentIntentId: order?.stripePaymentIntentId,
+  stripePaymentStatus: order?.stripePaymentStatus,
+  stripeClientSecret: order?.stripeClientSecret,
+  paymentAmount: order?.paymentAmount,
+  paymentCurrency: order?.paymentCurrency,
 });
 
 // ============ RESTAURANTS ============
@@ -379,6 +388,17 @@ export const trackOrder = async (reference: string) => {
     return response.data || null;
   } catch (error) {
     console.error("Failed to track order:", error);
+    return null;
+  }
+};
+
+// ✅ Get payment status for an order
+export const getPaymentStatus = async (orderId: string) => {
+  try {
+    const response = await orderAPI.getPaymentStatus(orderId);
+    return response.data || null;
+  } catch (error) {
+    console.error("Failed to get payment status:", error);
     return null;
   }
 };

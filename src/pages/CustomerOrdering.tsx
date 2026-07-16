@@ -18,6 +18,7 @@ import {
   Store,
   X,
   ChevronUp,
+  Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -30,7 +31,208 @@ import {
   setCurrentRestaurantId,
 } from "../store/apiStore";
 import { Restaurant, Category, MenuItem, CartItem, Order } from "../types";
+import { Elements, PaymentElement, useStripe, useElements, CardElement, PaymentRequestButtonElement } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
 
+// Load Stripe with publishable key
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_51TtmeRCut5206diIEYVMUx93Qc5b2v1LLSJRUe2rfWEzcqnm1LzPg7l189eAkr3hgKVnYbxcqBRGbOmttygrK0gG00XSNo3T6C');
+
+// ============================================
+// STRIPE PAYMENT FORM COMPONENT
+// ============================================
+const StripePaymentForm = ({ 
+  clientSecret, 
+  orderId, 
+  orderReference,
+  onSuccess, 
+  onError,
+  onCancel,
+  amount 
+}: { 
+  clientSecret: string; 
+  orderId: string;
+  orderReference: string;
+  onSuccess: () => void; 
+  onError: (error: string) => void;
+  onCancel: () => void;
+  amount: number;
+}) => {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isLoading, setIsLoading] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!stripe || !elements) {
+      setPaymentError("Stripe is not initialized. Please try again.");
+      return;
+    }
+
+    setIsLoading(true);
+    setPaymentError(null);
+
+    try {
+      // Confirm the payment
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: window.location.origin + `/restaurant/${window.location.pathname.split('/')[2] || ''}`,
+          receipt_email: document.querySelector<HTMLInputElement>('#customer-email-input')?.value || undefined,
+        },
+        redirect: 'if_required',
+      });
+
+      if (error) {
+        console.error('Payment error:', error);
+        setPaymentError(error.message || 'Payment failed. Please try again.');
+        onError(error.message || 'Payment failed');
+        setIsLoading(false);
+        return;
+      }
+
+      if (paymentIntent && paymentIntent.status === 'succeeded') {
+        setPaymentSuccess(true);
+        onSuccess();
+        setIsLoading(false);
+      } else if (paymentIntent && paymentIntent.status === 'requires_action') {
+        // Payment requires 3D Secure or other action
+        // The confirmPayment will handle this automatically with return_url
+        console.log('Payment requires action:', paymentIntent);
+        setIsLoading(false);
+      } else {
+        setPaymentError('Payment was not completed. Please try again.');
+        onError('Payment was not completed');
+        setIsLoading(false);
+      }
+    } catch (err: any) {
+      console.error('Payment submission error:', err);
+      setPaymentError(err.message || 'An unexpected error occurred.');
+      onError(err.message || 'An unexpected error occurred');
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-[#FAF3EA] p-4 rounded-xl border border-[#E7C7CF]">
+        <div className="flex justify-between items-center mb-4">
+          <span className="text-sm font-semibold text-[#33101F]">Order Total</span>
+          <span className="text-xl font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#C42348]">
+            ${amount.toFixed(2)}
+          </span>
+        </div>
+        <p className="text-xs text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">
+          Order #{orderReference || orderId.slice(-6)}
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="bg-white rounded-xl border border-[#E7C7CF] p-4">
+          <PaymentElement 
+            options={{
+              layout: 'tabs',
+              business: { name: 'Hinarok' },
+            }}
+          />
+        </div>
+
+        {paymentError && (
+          <div className="bg-[#C42348]/10 border border-[#C42348]/20 text-[#C42348] p-3 rounded-xl text-sm font-['Inter','Segoe UI',system-ui,sans-serif]">
+            ⚠️ {paymentError}
+          </div>
+        )}
+
+        {paymentSuccess && (
+          <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 p-3 rounded-xl text-sm font-['Inter','Segoe UI',system-ui,sans-serif]">
+            ✅ Payment successful! Your order has been confirmed.
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row gap-3 pt-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="flex-1 bg-[#FAF3EA] hover:bg-[#E7C7CF] text-[#33101F] font-semibold py-3 rounded-xl transition-all font-['Inter','Segoe UI',system-ui,sans-serif] text-sm"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={!stripe || isLoading || paymentSuccess}
+            className="flex-1 bg-[#C42348] hover:bg-[#E84C6B] disabled:bg-[#8C6B76] text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 font-['Inter','Segoe UI',system-ui,sans-serif] text-sm"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Processing...
+              </>
+            ) : paymentSuccess ? (
+              '✅ Paid'
+            ) : (
+              'Pay Now'
+            )}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+// ============================================
+// STRIPE PAYMENT WRAPPER
+// ============================================
+const StripePaymentWrapper = ({ 
+  clientSecret, 
+  orderId,
+  orderReference,
+  onSuccess, 
+  onError,
+  onCancel,
+  amount 
+}: { 
+  clientSecret: string; 
+  orderId: string;
+  orderReference: string;
+  onSuccess: () => void; 
+  onError: (error: string) => void;
+  onCancel: () => void;
+  amount: number;
+}) => {
+  const options = {
+    clientSecret,
+    appearance: {
+      theme: 'stripe',
+      variables: {
+        colorPrimary: '#C42348',
+        colorBackground: '#ffffff',
+        colorText: '#33101F',
+        fontFamily: 'Inter, Segoe UI, system-ui, sans-serif',
+        borderRadius: '12px',
+      },
+    },
+  };
+
+  return (
+    <Elements stripe={stripePromise} options={options}>
+      <StripePaymentForm 
+        clientSecret={clientSecret}
+        orderId={orderId}
+        orderReference={orderReference}
+        onSuccess={onSuccess}
+        onError={onError}
+        onCancel={onCancel}
+        amount={amount}
+      />
+    </Elements>
+  );
+};
+
+// ============================================
+// MAIN CUSTOMER ORDERING COMPONENT
+// ============================================
 export default function CustomerOrdering() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -46,6 +248,15 @@ export default function CustomerOrdering() {
   const [currentRestaurant, setCurrentRestaurant] = useState<Restaurant | null>(
     null,
   );
+
+  // Stripe payment state
+  const [showStripePayment, setShowStripePayment] = useState(false);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
+  const [pendingOrderRef, setPendingOrderRef] = useState<string | null>(null);
+  const [pendingOrderTotal, setPendingOrderTotal] = useState<number>(0);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [orderPlacementError, setOrderPlacementError] = useState<string | null>(null);
 
   // Refs for cleanup
   const fetchAbortControllerRef = useRef<AbortController | null>(null);
@@ -275,7 +486,7 @@ export default function CustomerOrdering() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<
-    "menu" | "checkout" | "success"
+    "menu" | "checkout" | "processing" | "payment" | "success"
   >("menu");
 
   // Mobile Bottom Sheet States
@@ -370,7 +581,7 @@ export default function CustomerOrdering() {
   // State for sticky category bar
   const [isCategorySticky, setIsCategorySticky] = useState(false);
 
-  // ====== STICKY CATEGORY BAR LOGIC - FIXED ======
+  // ====== STICKY CATEGORY BAR LOGIC ======
   useEffect(() => {
     // Get the category bar element
     const categoryBar = categoryContainerRef.current;
@@ -641,6 +852,9 @@ export default function CustomerOrdering() {
     return Object.keys(errors).length === 0;
   };
 
+  // ============================================
+  // HANDLE PLACE ORDER WITH STRIPE
+  // ============================================
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -676,28 +890,93 @@ export default function CustomerOrdering() {
       JSON.stringify(orderData, null, 2),
     );
 
+    setIsPlacingOrder(true);
+    setOrderPlacementError(null);
+
     try {
       const response = await addOrder(orderData);
       console.log("✅ Order placed successfully:", response);
 
       const newOrder = response.data || response;
 
-      setPlacedOrderReceipt({
-        subtotal: cartTotal,
-        taxes: taxAmountValue,
-        serviceFee: serviceFee,
-        total: finalTotalValue,
-        specialInstructions: specialInstructions.trim() || undefined,
-      });
+      // If payment method is online, show Stripe payment
+      if (paymentChoice === "online" && newOrder.clientSecret) {
+        setClientSecret(newOrder.clientSecret);
+        setPendingOrderId(newOrder._id || newOrder.id);
+        setPendingOrderRef(newOrder.orderReference);
+        setPendingOrderTotal(newOrder.totalPrice || finalTotalValue);
+        setCheckoutStep("payment");
+        setShowStripePayment(true);
+        setIsPlacingOrder(false);
+        return;
+      }
 
-      setRecentOrderId(newOrder.id || newOrder.orderReference || "");
-      setCart([]);
-      setCheckoutStep("success");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } catch (error) {
+      // For pickup payment, go directly to success
+      if (paymentChoice === "pickup") {
+        setPlacedOrderReceipt({
+          subtotal: cartTotal,
+          taxes: taxAmountValue,
+          serviceFee: serviceFee,
+          total: finalTotalValue,
+          specialInstructions: specialInstructions.trim() || undefined,
+        });
+
+        setRecentOrderId(newOrder.id || newOrder.orderReference || "");
+        setCart([]);
+        setCheckoutStep("success");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        setIsPlacingOrder(false);
+      }
+    } catch (error: any) {
       console.error("❌ Failed to place order:", error);
-      alert("Failed to place order. Please try again.");
+      setOrderPlacementError(error.message || "Failed to place order. Please try again.");
+      setIsPlacingOrder(false);
     }
+  };
+
+  // ============================================
+  // HANDLE STRIPE PAYMENT SUCCESS
+  // ============================================
+  const handlePaymentSuccess = async () => {
+    setShowStripePayment(false);
+    setCheckoutStep("success");
+    setClientSecret(null);
+    
+    // Set receipt data
+    setPlacedOrderReceipt({
+      subtotal: cartTotal,
+      taxes: taxAmountValue,
+      serviceFee: serviceFee,
+      total: finalTotalValue,
+      specialInstructions: specialInstructions.trim() || undefined,
+    });
+    
+    setRecentOrderId(pendingOrderRef || pendingOrderId || "");
+    setCart([]);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // ============================================
+  // HANDLE STRIPE PAYMENT ERROR
+  // ============================================
+  const handlePaymentError = (error: string) => {
+    setOrderPlacementError(error);
+    setShowStripePayment(false);
+    setClientSecret(null);
+    setPendingOrderId(null);
+    setPendingOrderRef(null);
+    setCheckoutStep("checkout");
+  };
+
+  // ============================================
+  // HANDLE STRIPE PAYMENT CANCEL
+  // ============================================
+  const handlePaymentCancel = () => {
+    setShowStripePayment(false);
+    setClientSecret(null);
+    setPendingOrderId(null);
+    setPendingOrderRef(null);
+    setCheckoutStep("checkout");
   };
 
   // Helper lists of pickup hours
@@ -850,7 +1129,7 @@ export default function CustomerOrdering() {
         </>
       )}
 
-      {/* Main Grid: Menu Layout - FIX: Added conditional padding for mobile cart */}
+      {/* Main Grid: Menu Layout */}
       <div
         className={`max-w-5xl mx-auto px-4 py-8 ${cart.length > 0 && checkoutStep === "menu" ? "pb-36 md:pb-8" : "pb-8"}`}
       >
@@ -858,7 +1137,7 @@ export default function CustomerOrdering() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Left Col: Menu categories & Items */}
             <div className="md:col-span-2 space-y-8">
-              {/* Category buttons - FIXED: Using CSS sticky with proper positioning */}
+              {/* Category buttons */}
               <div
                 ref={categoryContainerRef}
                 className={`sticky top-[64px] z-20 bg-[#FAF3EA] py-3 border-b border-[#E7C7CF] flex gap-2 overflow-x-auto scrollbar-none md:overflow-x-visible md:flex-wrap`}
@@ -1304,7 +1583,7 @@ export default function CustomerOrdering() {
                           Pay Online
                         </h4>
                         <p className="text-[10px] text-[#8C6B76] mt-0.5 font-['Inter','Segoe UI',system-ui,sans-serif]">
-                          Simulate digital clearing right now
+                          Secure card payment powered by Stripe
                         </p>
                       </div>
                     </button>
@@ -1395,6 +1674,12 @@ export default function CustomerOrdering() {
                   </div>
                 </div>
 
+                {orderPlacementError && (
+                  <div className="bg-[#C42348]/10 border border-[#C42348]/20 text-[#C42348] p-3 rounded-xl text-sm font-['Inter','Segoe UI',system-ui,sans-serif]">
+                    ⚠️ {orderPlacementError}
+                  </div>
+                )}
+
                 <div className="pt-4">
                   {currentRestaurant.isOrderingPaused ? (
                     <div className="p-3 bg-[#E8A13B]/10 text-[#E8A13B] font-bold text-[10px] text-center uppercase rounded-lg border border-[#E8A13B]/20 leading-normal font-['Inter','Segoe UI',system-ui,sans-serif]">
@@ -1405,14 +1690,67 @@ export default function CustomerOrdering() {
                     <button
                       id="place-order-submit-btn"
                       type="submit"
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold py-3.5 rounded-xl transition-all shadow-md cursor-pointer text-sm tracking-wide uppercase flex items-center justify-center gap-2"
+                      disabled={isPlacingOrder}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-[#8C6B76] text-white font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold py-3.5 rounded-xl transition-all shadow-md cursor-pointer text-sm tracking-wide uppercase flex items-center justify-center gap-2"
                     >
-                      <CheckCircle className="w-4 h-4" />
-                      <span>Place Order (${finalTotalValue.toFixed(2)})</span>
+                      {isPlacingOrder ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : paymentChoice === "online" ? (
+                        <>
+                          <CreditCard className="w-4 h-4" />
+                          Pay Online (${finalTotalValue.toFixed(2)})
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="w-4 h-4" />
+                          Place Order (${finalTotalValue.toFixed(2)})
+                        </>
+                      )}
                     </button>
                   )}
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* 2.5 Stripe Payment Processing */}
+        {checkoutStep === "payment" && showStripePayment && clientSecret && (
+          <div className="max-w-2xl mx-auto">
+            {/* Back to checkout button */}
+            <button
+              onClick={() => {
+                setShowStripePayment(false);
+                setCheckoutStep("checkout");
+              }}
+              className="flex items-center gap-2 text-[#8C6B76] hover:text-[#33101F] font-semibold text-xs tracking-wider uppercase mb-6 cursor-pointer font-['Inter','Segoe UI',system-ui,sans-serif]"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Checkout</span>
+            </button>
+
+            <div className="bg-white rounded-2xl border border-[#E7C7CF] p-6 sm:p-8 space-y-6">
+              <div className="border-b border-[#E7C7CF] pb-4">
+                <h2 className="text-xl sm:text-2xl font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F]">
+                  💳 Complete Payment
+                </h2>
+                <p className="text-xs text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
+                  Secure payment for your order from {currentRestaurant.name}
+                </p>
+              </div>
+
+              <StripePaymentWrapper
+                clientSecret={clientSecret}
+                orderId={pendingOrderId || ""}
+                orderReference={pendingOrderRef || ""}
+                amount={pendingOrderTotal || finalTotalValue}
+                onSuccess={handlePaymentSuccess}
+                onError={handlePaymentError}
+                onCancel={handlePaymentCancel}
+              />
             </div>
           </div>
         )}
@@ -1428,7 +1766,7 @@ export default function CustomerOrdering() {
               id="receipt-success-heading"
               className="text-2xl font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F]"
             >
-              Order Placed Successfully!
+              {paymentChoice === "online" ? "Payment Successful! ✅" : "Order Placed Successfully!"}
             </h2>
             <p className="text-[#8C6B76] text-xs mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
               Ticket Reference:{" "}
@@ -1461,8 +1799,8 @@ export default function CustomerOrdering() {
                 <div>Settlement Method:</div>
                 <div className="text-right font-medium text-emerald-600 font-bold capitalize">
                   {paymentChoice === "online"
-                    ? "Paid Online"
-                    : "Pay at Counter"}
+                    ? "✅ Paid Online"
+                    : "💵 Pay at Counter"}
                 </div>
               </div>
 
@@ -1500,7 +1838,9 @@ export default function CustomerOrdering() {
 
               <div className="border-t border-dashed border-[#E7C7CF] pt-2.5">
                 <p className="text-[11px] leading-relaxed text-[#8C6B76] text-center font-['Inter','Segoe UI',system-ui,sans-serif]">
-                  Your order has been received and is being prepared.
+                  {paymentChoice === "online" 
+                    ? "Your payment has been confirmed and your order is being prepared."
+                    : "Your order has been received and is being prepared."}
                   <br />
                   <span className="text-xs font-medium text-[#C42348]">
                     Thank you for ordering with {currentRestaurant.name}!

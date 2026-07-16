@@ -93,6 +93,14 @@ export interface Order {
   serviceFee?: number;
   finalTotal?: number;
   orderReference?: string;
+
+  // ✅ Stripe Payment Fields
+  paymentStatus?: "pending" | "paid" | "failed" | "refunded";
+  stripePaymentIntentId?: string;
+  stripePaymentStatus?: string;
+  stripeClientSecret?: string;
+  paymentAmount?: number;
+  paymentCurrency?: string;
 }
 
 export interface CartItem {

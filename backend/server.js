@@ -22,6 +22,8 @@ const menuItemRoutes = require("./routes/menuItemRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const userRoutes = require("./routes/userRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
+const stripeRoutes = require("./routes/stripeRoutes");
+const webhookRoutes = require("./routes/webhookRoutes");
 
 // Import SSE handler
 const {
@@ -43,10 +45,15 @@ const limiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
-    // Skip rate limiting for health checks
-    return req.path === "/health";
+    // Skip rate limiting for health checks and webhooks
+    return req.path === "/health" || req.path === "/api/webhooks/stripe";
   },
 });
+
+// ============================================
+// ✅ STRIPE WEBHOOK - Must be before express.json()
+// ============================================
+app.use("/api/webhooks", webhookRoutes);
 
 // Security middleware
 app.use(
@@ -106,6 +113,7 @@ app.use("/api/menu-items", menuItemRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/settings", settingsRoutes);
+app.use("/api/stripe", stripeRoutes);
 
 // 404 Not Found handler
 app.use(notFound);

@@ -16,6 +16,9 @@ const {
   sendOrderConfirmationEmail,
   sendOrderReadyEmail,
 } = require("../services/emailService");
+const {
+  createPaymentIntentForRestaurant,
+} = require("../services/stripeConnectService");
 
 // ✅ IMPORT SSE CONTROLLER
 const {
@@ -334,41 +337,137 @@ exports.createOrder = async (req, res) => {
       status: "NEW",
       specialInstructions: specialInstructions || "",
       orderReference,
+      // ✅ Payment fields
+      paymentStatus: paymentMethod === "online" ? "pending" : "pending",
+      paymentAmount: Math.round(totalPrice * 100) / 100,
+      paymentCurrency: "usd",
     };
 
     console.log("📝 Order data to save:", JSON.stringify(orderData, null, 2));
 
+    // Save order first
     const order = await Order.create(orderData);
 
     console.log("✅ Order created successfully:", order._id);
 
+    // ✅ If payment method is online, create a Stripe payment intent for the restaurant
+    let paymentIntentResult = null;
+    if (paymentMethod === "online") {
+      // Get the restaurant's Stripe account ID
+      const restaurantStripeAccountId = restaurantDoc.stripeConnect?.accountId;
+
+      if (!restaurantStripeAccountId) {
+        // Delete the order since payment can't be processed
+        await Order.findByIdAndDelete(order._id);
+
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message:
+            "Restaurant has not connected their Stripe account yet. Please choose 'Pay at Pickup' or contact the restaurant.",
+        });
+      }
+
+      // Check if the Stripe account is fully set up
+      const isAccountReady =
+        restaurantDoc.stripeConnect?.accountStatus === "connected" &&
+        restaurantDoc.stripeConnect?.chargesEnabled;
+
+      if (!isAccountReady) {
+        // Delete the order
+        await Order.findByIdAndDelete(order._id);
+
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message:
+            "Restaurant's Stripe account is not fully set up. Please choose 'Pay at Pickup' or try again later.",
+        });
+      }
+
+      try {
+        // Create payment intent for the restaurant
+        paymentIntentResult = await createPaymentIntentForRestaurant(
+          totalPrice,
+          "usd",
+          restaurantStripeAccountId,
+          {
+            orderId: order._id.toString(),
+            orderReference: orderReference,
+            restaurantId: restaurantDoc._id.toString(),
+            restaurantName: restaurantDoc.name,
+            customerEmail: customerEmail || "",
+            customerName: customerName,
+          },
+          customerEmail || null,
+          orderReference,
+          restaurantDoc.name,
+        );
+
+        // Update order with payment intent details
+        order.stripePaymentIntentId = paymentIntentResult.paymentIntentId;
+        order.stripeClientSecret = paymentIntentResult.clientSecret;
+        order.stripePaymentStatus = paymentIntentResult.status;
+        order.stripeAccountId = restaurantStripeAccountId;
+        await order.save();
+
+        console.log(`✅ Payment intent created for order ${orderReference}`);
+        console.log(
+          `   → Amount: $${totalPrice} → Restaurant: ${restaurantDoc.name}`,
+        );
+      } catch (stripeError) {
+        // Delete the order if Stripe fails
+        await Order.findByIdAndDelete(order._id);
+
+        logger.error(`❌ Stripe payment intent error: ${stripeError.message}`);
+        return res.status(HTTP_STATUS.PAYMENT_REQUIRED).json({
+          success: false,
+          message:
+            "Payment processing failed. Please try again or choose 'Pay at Pickup'.",
+          error: stripeError.message,
+        });
+      }
+    }
+
     // Populate the order with restaurant details
     await order.populate("restaurantId", "name");
 
-    // ✅ Send order confirmation email to customer (async - don't await to not block response)
-    if (order.customerEmail) {
-      sendOrderConfirmationEmail(order).catch((err) => {
-        logger.error(`❌ Failed to send confirmation email: ${err.message}`);
-      });
+    // ✅ For pickup payments, send email and broadcast immediately
+    if (paymentMethod === "pickup") {
+      // Send order confirmation email to customer
+      if (order.customerEmail) {
+        sendOrderConfirmationEmail(order).catch((err) => {
+          logger.error(`❌ Failed to send confirmation email: ${err.message}`);
+        });
+      }
+
+      // Broadcast new order via SSE
+      try {
+        const restaurantIdStr = restaurantDoc._id.toString();
+        const orderForSSE = order.toObject ? order.toObject() : order;
+        broadcastNewOrder(restaurantIdStr, orderForSSE);
+        logger.info(
+          `📡 SSE: New order broadcasted for restaurant ${restaurantIdStr}`,
+        );
+      } catch (sseError) {
+        logger.error(`❌ SSE broadcast error: ${sseError.message}`);
+      }
     }
 
-    // ✅✅✅ BROADCAST NEW ORDER VIA SSE - THIS WAS MISSING!
-    try {
-      const restaurantIdStr = restaurantDoc._id.toString();
-      const orderForSSE = order.toObject ? order.toObject() : order;
-      broadcastNewOrder(restaurantIdStr, orderForSSE);
-      logger.info(
-        `📡 SSE: New order broadcasted for restaurant ${restaurantIdStr}`,
-      );
-    } catch (sseError) {
-      logger.error(`❌ SSE broadcast error: ${sseError.message}`);
-      // Don't fail the order if SSE fails
+    // Prepare response
+    const responseData = order.toObject ? order.toObject() : order;
+
+    // Add payment client secret for online payments
+    if (paymentMethod === "online" && paymentIntentResult) {
+      responseData.clientSecret = paymentIntentResult.clientSecret;
+      responseData.paymentIntentId = paymentIntentResult.paymentIntentId;
     }
 
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
-      message: SUCCESS_MESSAGES.ORDER_CREATED,
-      data: order,
+      message:
+        paymentMethod === "online"
+          ? "Order created. Please complete payment."
+          : SUCCESS_MESSAGES.ORDER_CREATED,
+      data: responseData,
     });
   } catch (error) {
     logger.error(`Create order error: ${error.message}`);
@@ -420,7 +519,7 @@ exports.updateOrderStatus = async (req, res) => {
       }
     }
 
-    // ✅✅✅ BROADCAST ORDER STATUS UPDATE VIA SSE - THIS WAS MISSING!
+    // ✅ Broadcast order status update via SSE
     try {
       const restaurantIdStr = order.restaurantId.toString();
       broadcastOrderStatusUpdate(restaurantIdStr, order._id.toString(), status);
@@ -564,6 +663,42 @@ exports.getOrderStatistics = async (req, res) => {
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
       message: "Failed to fetch order statistics",
+    });
+  }
+};
+
+/**
+ * @desc    Get payment intent status
+ * @route   GET /api/orders/payment/:orderId
+ * @access  Public
+ */
+exports.getPaymentStatus = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data: {
+        paymentStatus: order.paymentStatus,
+        stripePaymentStatus: order.stripePaymentStatus,
+        stripePaymentIntentId: order.stripePaymentIntentId,
+        clientSecret: order.stripeClientSecret,
+        stripeAccountId: order.stripeAccountId,
+      },
+    });
+  } catch (error) {
+    logger.error(`Get payment status error: ${error.message}`);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: "Failed to get payment status",
     });
   }
 };

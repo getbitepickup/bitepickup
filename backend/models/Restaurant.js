@@ -109,6 +109,45 @@ const restaurantSchema = new mongoose.Schema({
     },
     validUntil: Date,
   },
+  // ✅ Stripe Connect Fields
+  stripeConnect: {
+    accountId: {
+      type: String,
+      index: true,
+      sparse: true,
+    },
+    accountStatus: {
+      type: String,
+      enum: ["pending", "connected", "disabled", "onboarding"],
+      default: "pending",
+    },
+    connectedAt: {
+      type: Date,
+    },
+    refreshToken: {
+      type: String,
+      select: false,
+    },
+    accessToken: {
+      type: String,
+      select: false,
+    },
+    accountEmail: {
+      type: String,
+    },
+    chargesEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    payoutsEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    detailsSubmitted: {
+      type: Boolean,
+      default: false,
+    },
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
@@ -122,5 +161,8 @@ const restaurantSchema = new mongoose.Schema({
     default: Date.now,
   },
 });
+
+// Index for efficient queries
+restaurantSchema.index({ "stripeConnect.accountId": 1 });
 
 module.exports = mongoose.model("Restaurant", restaurantSchema);
