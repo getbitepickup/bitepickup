@@ -366,7 +366,33 @@ export default function CustomerOrdering() {
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const categoryContainerRef = useRef<HTMLDivElement | null>(null);
-  const activeCategoryButtonRef = useRef<HTMLButtonElement | null>(null);
+  const categorySentinelRef = useRef<HTMLDivElement | null>(null);
+
+  // State for sticky category bar
+  const [isCategorySticky, setIsCategorySticky] = useState(false);
+
+  // ====== STICKY CATEGORY BAR LOGIC ======
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!categorySentinelRef.current) return;
+
+      const sentinelRect = categorySentinelRef.current.getBoundingClientRect();
+      // When the sentinel goes above the viewport, the category bar becomes sticky
+      const shouldBeSticky = sentinelRect.bottom <= 0;
+
+      if (shouldBeSticky !== isCategorySticky) {
+        setIsCategorySticky(shouldBeSticky);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    // Initial check
+    handleScroll();
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, [isCategorySticky]);
 
   // Set up IntersectionObserver for Scroll Spy
   useEffect(() => {
@@ -403,7 +429,7 @@ export default function CustomerOrdering() {
       },
       {
         root: null,
-        rootMargin: "-100px 0px -60% 0px",
+        rootMargin: "-120px 0px -60% 0px",
         threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5],
       },
     );
@@ -431,8 +457,6 @@ export default function CustomerOrdering() {
     let targetButton: HTMLButtonElement | null = null;
 
     buttons.forEach((btn) => {
-      // Each button has a key or we can find by text/content
-      // We'll use the onClick handler reference
       if (
         btn.textContent?.trim() ===
         filteredCategories.find((c) => c.id === categoryId)?.name
@@ -454,7 +478,7 @@ export default function CustomerOrdering() {
         buttonRect.width / 2;
 
       container.scrollTo({
-        left: scrollLeft,
+        left: Math.max(0, scrollLeft),
         behavior: "smooth",
       });
     }
@@ -467,7 +491,9 @@ export default function CustomerOrdering() {
 
     const element = document.getElementById(`category-${categoryId}`);
     if (element) {
-      const yOffset = -100;
+      // Account for the sticky category bar height
+      const stickyOffset = isCategorySticky ? 60 : 0;
+      const yOffset = -120 + stickyOffset;
       const y =
         element.getBoundingClientRect().top + window.pageYOffset + yOffset;
       window.scrollTo({ top: y, behavior: "smooth" });
@@ -813,6 +839,9 @@ export default function CustomerOrdering() {
               {currentRestaurant.description}
             </p>
           </div>
+
+          {/* ====== SENTINEL FOR STICKY CATEGORY BAR ====== */}
+          <div ref={categorySentinelRef} style={{ height: "1px" }} />
         </>
       )}
 
@@ -824,25 +853,27 @@ export default function CustomerOrdering() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Left Col: Menu categories & Items */}
             <div className="md:col-span-2 space-y-8">
-              {/* Category buttons sticky slider - with scroll spy - FIXED FOR MOBILE */}
+              {/* Category buttons - FIXED STICKY BEHAVIOR */}
               <div
                 ref={categoryContainerRef}
-                className="sticky top-0 bg-[#FAF3EA]/95 backdrop-blur-sm py-3 border-b border-[#E7C7CF] z-20 flex gap-2 overflow-x-auto scrollbar-none md:overflow-x-visible md:flex-wrap md:sticky md:top-0"
+                className={`py-3 border-b border-[#E7C7CF] flex gap-2 overflow-x-auto scrollbar-none md:overflow-x-visible md:flex-wrap ${
+                  isCategorySticky
+                    ? "fixed top-0 left-0 right-0 z-30 bg-[#FAF3EA]/95 backdrop-blur-sm shadow-sm px-4"
+                    : "relative bg-[#FAF3EA]/95 backdrop-blur-sm"
+                }`}
                 style={{
                   WebkitOverflowScrolling: "touch",
                   scrollbarWidth: "none",
+                  transition: "all 0.2s ease-in-out",
+                  paddingTop: isCategorySticky ? "12px" : "12px",
+                  paddingBottom: isCategorySticky ? "12px" : "12px",
                 }}
               >
                 {filteredCategories.map((cat) => (
                   <button
                     key={cat.id}
-                    ref={(el) => {
-                      if (activeCategory === cat.id) {
-                        activeCategoryButtonRef.current = el;
-                      }
-                    }}
                     onClick={() => handleCategoryClick(cat.id)}
-                    className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer font-['Inter','Segoe UI',system-ui,sans-serif] flex-shrink-0 ${
+                    className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer font-['Inter','Segoe UI',system-ui,sans-serif'] flex-shrink-0 ${
                       activeCategory === cat.id
                         ? "bg-[#33101F] text-white shadow-sm"
                         : "bg-white text-[#8C6B76] hover:bg-[#E7C7CF]"
@@ -852,6 +883,9 @@ export default function CustomerOrdering() {
                   </button>
                 ))}
               </div>
+
+              {/* Spacer div when category bar is sticky to prevent content jump */}
+              {isCategorySticky && <div style={{ height: "56px" }} />}
 
               {/* Menu lists grouped */}
               {filteredCategories.length === 0 ? (
@@ -873,7 +907,7 @@ export default function CustomerOrdering() {
                       ref={(el) => {
                         categoryRefs.current[cat.id] = el;
                       }}
-                      className="space-y-4 scroll-mt-24"
+                      className="space-y-4 scroll-mt-28"
                     >
                       <h3 className="text-lg font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] border-l-4 border-[#33101F] pl-3">
                         {cat.name}
