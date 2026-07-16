@@ -365,6 +365,8 @@ export default function CustomerOrdering() {
   const categoryObserverRef = useRef<IntersectionObserver | null>(null);
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const categoryContainerRef = useRef<HTMLDivElement | null>(null);
+  const activeCategoryButtonRef = useRef<HTMLButtonElement | null>(null);
 
   // Set up IntersectionObserver for Scroll Spy
   useEffect(() => {
@@ -394,12 +396,14 @@ export default function CustomerOrdering() {
           const categoryId = bestEntry.target.id.replace("category-", "");
           if (categoryId && categoryId !== activeCategory) {
             setActiveCategory(categoryId);
+            // Auto-scroll the category bar to show the active category
+            scrollCategoryIntoView(categoryId);
           }
         }
       },
       {
         root: null,
-        rootMargin: "-80px 0px -60% 0px",
+        rootMargin: "-100px 0px -60% 0px",
         threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5],
       },
     );
@@ -418,6 +422,44 @@ export default function CustomerOrdering() {
     };
   }, [filteredCategories, activeCategory, isScrolling]);
 
+  // Auto-scroll the category bar horizontally to show the active category
+  const scrollCategoryIntoView = (categoryId: string) => {
+    if (!categoryContainerRef.current) return;
+
+    // Find the button for this category
+    const buttons = categoryContainerRef.current.querySelectorAll("button");
+    let targetButton: HTMLButtonElement | null = null;
+
+    buttons.forEach((btn) => {
+      // Each button has a key or we can find by text/content
+      // We'll use the onClick handler reference
+      if (
+        btn.textContent?.trim() ===
+        filteredCategories.find((c) => c.id === categoryId)?.name
+      ) {
+        targetButton = btn;
+      }
+    });
+
+    if (targetButton) {
+      const container = categoryContainerRef.current;
+      const buttonRect = targetButton.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+
+      // Calculate scroll position to center the button
+      const scrollLeft =
+        container.scrollLeft +
+        (buttonRect.left - containerRect.left) -
+        containerRect.width / 2 +
+        buttonRect.width / 2;
+
+      container.scrollTo({
+        left: scrollLeft,
+        behavior: "smooth",
+      });
+    }
+  };
+
   // Handle category click (manual scroll)
   const handleCategoryClick = (categoryId: string) => {
     setActiveCategory(categoryId);
@@ -425,11 +467,14 @@ export default function CustomerOrdering() {
 
     const element = document.getElementById(`category-${categoryId}`);
     if (element) {
-      const yOffset = -80;
+      const yOffset = -100;
       const y =
         element.getBoundingClientRect().top + window.pageYOffset + yOffset;
       window.scrollTo({ top: y, behavior: "smooth" });
     }
+
+    // Scroll the category bar to show the clicked category
+    scrollCategoryIntoView(categoryId);
 
     // Reset scrolling flag after animation completes
     if (scrollTimeoutRef.current) {
@@ -779,13 +824,25 @@ export default function CustomerOrdering() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Left Col: Menu categories & Items */}
             <div className="md:col-span-2 space-y-8">
-              {/* Category buttons sticky slider - with scroll spy */}
-              <div className="sticky top-0 bg-[#FAF3EA]/95 backdrop-blur-sm py-3 border-b border-[#E7C7CF] z-10 flex gap-2 overflow-x-auto scrollbar-none">
+              {/* Category buttons sticky slider - with scroll spy - FIXED FOR MOBILE */}
+              <div
+                ref={categoryContainerRef}
+                className="sticky top-0 bg-[#FAF3EA]/95 backdrop-blur-sm py-3 border-b border-[#E7C7CF] z-20 flex gap-2 overflow-x-auto scrollbar-none md:overflow-x-visible md:flex-wrap md:sticky md:top-0"
+                style={{
+                  WebkitOverflowScrolling: "touch",
+                  scrollbarWidth: "none",
+                }}
+              >
                 {filteredCategories.map((cat) => (
                   <button
                     key={cat.id}
+                    ref={(el) => {
+                      if (activeCategory === cat.id) {
+                        activeCategoryButtonRef.current = el;
+                      }
+                    }}
                     onClick={() => handleCategoryClick(cat.id)}
-                    className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer font-['Inter','Segoe UI',system-ui,sans-serif] ${
+                    className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer font-['Inter','Segoe UI',system-ui,sans-serif] flex-shrink-0 ${
                       activeCategory === cat.id
                         ? "bg-[#33101F] text-white shadow-sm"
                         : "bg-white text-[#8C6B76] hover:bg-[#E7C7CF]"
@@ -816,7 +873,7 @@ export default function CustomerOrdering() {
                       ref={(el) => {
                         categoryRefs.current[cat.id] = el;
                       }}
-                      className="space-y-4 scroll-mt-20"
+                      className="space-y-4 scroll-mt-24"
                     >
                       <h3 className="text-lg font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] border-l-4 border-[#33101F] pl-3">
                         {cat.name}
