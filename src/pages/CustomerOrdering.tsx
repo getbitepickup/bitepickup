@@ -366,25 +366,33 @@ export default function CustomerOrdering() {
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const categoryContainerRef = useRef<HTMLDivElement | null>(null);
-  const categorySentinelRef = useRef<HTMLDivElement | null>(null);
 
   // State for sticky category bar
   const [isCategorySticky, setIsCategorySticky] = useState(false);
 
-  // ====== STICKY CATEGORY BAR LOGIC ======
+  // ====== STICKY CATEGORY BAR LOGIC - FIXED ======
   useEffect(() => {
-    const handleScroll = () => {
-      if (!categorySentinelRef.current) return;
+    // Get the category bar element and its parent
+    const categoryBar = categoryContainerRef.current;
+    if (!categoryBar) return;
 
-      const sentinelRect = categorySentinelRef.current.getBoundingClientRect();
-      // When the sentinel goes above the viewport, the category bar becomes sticky
-      const shouldBeSticky = sentinelRect.bottom <= 0;
+    // Get the header height (approximate)
+    const headerHeight = 64; // Height of the main header (h-16)
+
+    const handleScroll = () => {
+      // Get the position of the category bar relative to the viewport
+      const rect = categoryBar.getBoundingClientRect();
+
+      // When the top of the category bar reaches the top of the viewport minus header height
+      // It should become sticky
+      const shouldBeSticky = rect.top <= headerHeight;
 
       if (shouldBeSticky !== isCategorySticky) {
         setIsCategorySticky(shouldBeSticky);
       }
     };
 
+    // Add scroll listener
     window.addEventListener("scroll", handleScroll, { passive: true });
     // Initial check
     handleScroll();
@@ -492,7 +500,7 @@ export default function CustomerOrdering() {
     const element = document.getElementById(`category-${categoryId}`);
     if (element) {
       // Account for the sticky category bar height
-      const stickyOffset = isCategorySticky ? 60 : 0;
+      const stickyOffset = isCategorySticky ? 64 : 0;
       const yOffset = -120 + stickyOffset;
       const y =
         element.getBoundingClientRect().top + window.pageYOffset + yOffset;
@@ -839,9 +847,6 @@ export default function CustomerOrdering() {
               {currentRestaurant.description}
             </p>
           </div>
-
-          {/* ====== SENTINEL FOR STICKY CATEGORY BAR ====== */}
-          <div ref={categorySentinelRef} style={{ height: "1px" }} />
         </>
       )}
 
@@ -858,15 +863,13 @@ export default function CustomerOrdering() {
                 ref={categoryContainerRef}
                 className={`py-3 border-b border-[#E7C7CF] flex gap-2 overflow-x-auto scrollbar-none md:overflow-x-visible md:flex-wrap ${
                   isCategorySticky
-                    ? "fixed top-0 left-0 right-0 z-30 bg-[#FAF3EA]/95 backdrop-blur-sm shadow-sm px-4"
+                    ? "fixed top-[64px] left-0 right-0 z-30 bg-[#FAF3EA] shadow-md px-4"
                     : "relative bg-[#FAF3EA]/95 backdrop-blur-sm"
                 }`}
                 style={{
                   WebkitOverflowScrolling: "touch",
                   scrollbarWidth: "none",
-                  transition: "all 0.2s ease-in-out",
-                  paddingTop: isCategorySticky ? "12px" : "12px",
-                  paddingBottom: isCategorySticky ? "12px" : "12px",
+                  transition: "all 0.15s ease-in-out",
                 }}
               >
                 {filteredCategories.map((cat) => (
