@@ -58,6 +58,9 @@ import { motion, AnimatePresence } from "motion/react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
+// Audio Context - created on user interaction (outside component to persist)
+let audioContext: AudioContext | null = null;
+
 export default function RestaurantDashboard() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -78,7 +81,7 @@ export default function RestaurantDashboard() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState<string>("");
 
-  // Polling refs (instead of SSE)
+  // Polling refs
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastOrderCountRef = useRef<number>(0);
   const [isPolling, setIsPolling] = useState(false);
@@ -89,9 +92,75 @@ export default function RestaurantDashboard() {
   const currentRestaurant =
     restaurants.find((r) => r.id === activeRestaurantId) || null;
 
+  // ============================================
+  // 🔊 AUDIO - Beep sound that works after user interaction
+  // ============================================
+
+  // Initialize AudioContext on user interaction
+  const ensureAudioContext = () => {
+    if (!audioContext) {
+      try {
+        audioContext = new (
+          window.AudioContext || (window as any).webkitAudioContext
+        )();
+        console.log("🔊 AudioContext created");
+      } catch (e) {
+        console.log("Web Audio not supported", e);
+      }
+    }
+    if (audioContext && audioContext.state === "suspended") {
+      audioContext.resume();
+      console.log("🔊 AudioContext resumed");
+    }
+    return audioContext;
+  };
+
+  // Play beep sound - works after user interaction
+  const playWebBeep = () => {
+    try {
+      const context = ensureAudioContext();
+      if (!context) {
+        console.log("🔊 No audio context available");
+        return;
+      }
+
+      const beep = (freq: number, duration: number, onset: number) => {
+        const osc = context.createOscillator();
+        const gain = context.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, context.currentTime + onset);
+        osc.connect(gain);
+        gain.connect(context.destination);
+        gain.gain.setValueAtTime(0.15, context.currentTime + onset);
+        gain.gain.exponentialRampToValueAtTime(
+          0.01,
+          context.currentTime + onset + duration,
+        );
+        osc.start(context.currentTime + onset);
+        osc.stop(context.currentTime + onset + duration);
+      };
+
+      beep(880, 0.15, 0);
+      beep(1046, 0.2, 0.18);
+      console.log("🔊 Beep played!");
+    } catch (e) {
+      console.log("Web Audio context blocked or unsupported", e);
+    }
+  };
+
+  // Initialize audio on first user click
+  useEffect(() => {
+    const handleFirstClick = () => {
+      ensureAudioContext();
+      document.removeEventListener("click", handleFirstClick);
+    };
+    document.addEventListener("click", handleFirstClick);
+    return () => document.removeEventListener("click", handleFirstClick);
+  }, []);
+
   // Request notification permission
   useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
+    if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
   }, []);
@@ -236,7 +305,7 @@ export default function RestaurantDashboard() {
           const ordersData = await getOrders(restaurantId);
           setOrders(ordersData);
           console.log("📦 Orders loaded:", ordersData.length);
-          
+
           // Set initial order count for polling
           lastOrderCountRef.current = ordersData.length;
           isFirstLoadRef.current = false;
@@ -260,7 +329,9 @@ export default function RestaurantDashboard() {
   // ============================================
   const startPolling = () => {
     if (!activeRestaurantId || !isAuthenticated) {
-      console.log('📡 Polling: Skipping - no active restaurant ID or not authenticated');
+      console.log(
+        "📡 Polling: Skipping - no active restaurant ID or not authenticated",
+      );
       return;
     }
 
@@ -270,59 +341,68 @@ export default function RestaurantDashboard() {
       pollingIntervalRef.current = null;
     }
 
-    console.log('📡 Polling: Started for restaurant', activeRestaurantId);
+    console.log("📡 Polling: Started for restaurant", activeRestaurantId);
     setIsPolling(true);
     setPollingError(null);
 
     // Function to check for new orders
     const checkForNewOrders = async () => {
       if (!activeRestaurantId) return;
-      
+
       try {
         const freshOrders = await getOrders(activeRestaurantId);
         const currentCount = freshOrders.length;
-        
+
         // If we have more orders than before, there's a new one
         if (currentCount > lastOrderCountRef.current) {
-          console.log('📡 Polling: New order detected!');
-          
+          console.log("📡 Polling: New order detected!");
+
           // Find the new orders (the ones at the beginning since they're sorted by date)
           const newOrdersCount = currentCount - lastOrderCountRef.current;
           const newOrders = freshOrders.slice(0, newOrdersCount);
-          
+
           // Add new orders to state
-          setOrders(prevOrders => {
-            const existingIds = new Set(prevOrders.map(o => o.id || o._id));
-            const ordersToAdd = newOrders.filter(o => {
+          setOrders((prevOrders) => {
+            const existingIds = new Set(prevOrders.map((o) => o.id || o._id));
+            const ordersToAdd = newOrders.filter((o) => {
               const id = o.id || o._id;
               return !existingIds.has(id);
             });
-            
+
             if (ordersToAdd.length > 0) {
-              console.log('📡 Adding new orders via polling:', ordersToAdd.length);
+              console.log(
+                "📡 Adding new orders via polling:",
+                ordersToAdd.length,
+              );
               // Play beep for new orders
-              ordersToAdd.forEach(() => playWebBeep());
-              
+              ordersToAdd.forEach(() => {
+                console.log("🔊 Playing beep for new order");
+                playWebBeep();
+              });
+
               // Show notification for first new order
               const firstOrder = ordersToAdd[0];
-              if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification('🆕 New Order Received!', {
-                  body: `Order from ${firstOrder.customerName} - $${firstOrder.totalPrice?.toFixed(2) || '0.00'}`,
-                  icon: '/hinarok-app-icon.png',
+              if (
+                "Notification" in window &&
+                Notification.permission === "granted"
+              ) {
+                new Notification("🆕 New Order Received!", {
+                  body: `Order from ${firstOrder.customerName} - $${firstOrder.totalPrice?.toFixed(2) || "0.00"}`,
+                  icon: "/hinarok-app-icon.png",
                 });
               }
-              
+
               return [...ordersToAdd, ...prevOrders];
             }
             return prevOrders;
           });
-          
+
           // Update last count
           lastOrderCountRef.current = currentCount;
         }
       } catch (error) {
         // Silent fail - don't spam console
-        console.log('📡 Polling: Error checking orders');
+        console.log("📡 Polling: Error checking orders");
       }
     };
 
@@ -348,80 +428,46 @@ export default function RestaurantDashboard() {
 
   // Manual refresh
   const handleManualRefresh = () => {
-    console.log('📡 Manual refresh triggered');
-    // Reset the order count to force a full refresh
+    console.log("📡 Manual refresh triggered");
     if (activeRestaurantId) {
-      getOrders(activeRestaurantId).then(freshOrders => {
-        setOrders(freshOrders);
-        lastOrderCountRef.current = freshOrders.length;
-        playWebBeep();
-        console.log('📡 Manual refresh complete');
-      }).catch(err => {
-        console.error('Manual refresh error:', err);
-      });
+      getOrders(activeRestaurantId)
+        .then((freshOrders) => {
+          setOrders(freshOrders);
+          lastOrderCountRef.current = freshOrders.length;
+          playWebBeep();
+          console.log("📡 Manual refresh complete");
+        })
+        .catch((err) => {
+          console.error("Manual refresh error:", err);
+        });
     }
   };
 
   // Initialize polling
   useEffect(() => {
-    console.log('📡 Polling useEffect triggered with:', {
+    console.log("📡 Polling useEffect triggered with:", {
       activeRestaurantId,
       isAuthenticated,
-      isPolling
+      isPolling,
     });
 
-    // Small delay to ensure everything is loaded
     const timer = setTimeout(() => {
       if (activeRestaurantId && isAuthenticated) {
         startPolling();
       }
     }, 1500);
 
-    // Cleanup on unmount
     return () => {
       clearTimeout(timer);
       stopPolling();
     };
   }, [activeRestaurantId, isAuthenticated]);
 
-  // Audio synthesizer double beep
-  const playWebBeep = () => {
-    try {
-      const context = new (
-        window.AudioContext || (window as any).webkitAudioContext
-      )();
-      
-      // Resume context if suspended
-      if (context.state === 'suspended') {
-        context.resume();
-      }
-
-      const beep = (freq: number, duration: number, onset: number) => {
-        const osc = context.createOscillator();
-        const gain = context.createGain();
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(freq, context.currentTime + onset);
-        osc.connect(gain);
-        gain.connect(context.destination);
-        gain.gain.setValueAtTime(0.15, context.currentTime + onset);
-        gain.gain.exponentialRampToValueAtTime(
-          0.01,
-          context.currentTime + onset + duration,
-        );
-        osc.start(context.currentTime + onset);
-        osc.stop(context.currentTime + onset + duration);
-      };
-
-      beep(880, 0.15, 0);
-      beep(1046, 0.2, 0.18);
-    } catch (e) {
-      console.log("Web Audio context blocked or unsupported", e);
-    }
-  };
-
   // Active restaurant orders
   const activeRestaurantOrders = orders.filter(
-    (o) => o.restaurantId === currentRestaurant?.id || o.restaurantId === currentRestaurant?._id,
+    (o) =>
+      o.restaurantId === currentRestaurant?.id ||
+      o.restaurantId === currentRestaurant?._id,
   );
 
   // Stats calculation
@@ -446,13 +492,6 @@ export default function RestaurantDashboard() {
       order.orderReference?.toLowerCase().includes(query)
     );
   });
-
-  // Trigger sound alert on mount of any brand new order
-  useEffect(() => {
-    if (newOrders.length > 0) {
-      playWebBeep();
-    }
-  }, [newOrders.length]);
 
   // Categories & Menu Items administration forms
   const [showCatModal, setShowCatModal] = useState(false);
@@ -882,11 +921,13 @@ export default function RestaurantDashboard() {
               ></span>
               {/* Polling Status Indicator */}
               <div className="flex items-center gap-1">
-                <span className={`text-[8px] font-bold uppercase px-2 py-0.5 rounded-full border flex items-center gap-1 ${
-                  isPolling 
-                    ? 'bg-emerald-500/20 text-emerald-600 border-emerald-500/30' 
-                    : 'bg-[#E8A13B]/20 text-[#E8A13B] border-[#E8A13B]/30 animate-pulse'
-                }`}>
+                <span
+                  className={`text-[8px] font-bold uppercase px-2 py-0.5 rounded-full border flex items-center gap-1 ${
+                    isPolling
+                      ? "bg-emerald-500/20 text-emerald-600 border-emerald-500/30"
+                      : "bg-[#E8A13B]/20 text-[#E8A13B] border-[#E8A13B]/30 animate-pulse"
+                  }`}
+                >
                   {isPolling ? (
                     <>
                       <Wifi className="w-3 h-3" />
@@ -910,7 +951,9 @@ export default function RestaurantDashboard() {
             </div>
             <p className="text-xs text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">
               Manage order feeds, categories, menu pricing, and graphics layout.
-              {isPolling ? ' ✅ Auto-refresh every 5 seconds' : ' ⏳ Starting...'}
+              {isPolling
+                ? " ✅ Auto-refresh every 5 seconds"
+                : " ⏳ Starting..."}
             </p>
           </div>
         </div>
