@@ -79,13 +79,12 @@ export default function RestaurantDashboard() {
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   // SSE connection refs
-  const eventSourceRef = useRef<any>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
   const [sseConnected, setSseConnected] = useState(false);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [sseError, setSseError] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const reconnectAttempts = useRef(0);
-  const readerRef = useRef<any>(null);
 
   // Get the current restaurant from the activeRestaurantId
   const currentRestaurant =
@@ -93,7 +92,7 @@ export default function RestaurantDashboard() {
 
   // Request notification permission
   useEffect(() => {
-    if ("Notification" in window && Notification.permission === "default") {
+    if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
   }, []);
@@ -254,17 +253,17 @@ export default function RestaurantDashboard() {
   }, [id, user, authLoading]);
 
   // ============================================
-  // ✅ SSE - Server-Sent Events Connection using fetch (More Reliable)
+  // ✅ SSE - Server-Sent Events Connection using EventSource (Simplified)
   // ============================================
-  const connectSSE = async () => {
+  const connectSSE = () => {
     // Only connect if we have an active restaurant ID and user is authenticated
     if (!activeRestaurantId) {
-      console.log("📡 SSE: Skipping - no active restaurant ID");
+      console.log('📡 SSE: Skipping - no active restaurant ID');
       return;
     }
 
     if (!isAuthenticated) {
-      console.log("📡 SSE: Skipping - not authenticated");
+      console.log('📡 SSE: Skipping - not authenticated');
       return;
     }
 
@@ -276,199 +275,135 @@ export default function RestaurantDashboard() {
 
     // Close existing connection if any
     if (eventSourceRef.current) {
-      console.log("📡 SSE: Closing existing connection");
-      try {
-        if (typeof eventSourceRef.current.close === "function") {
-          eventSourceRef.current.close();
-        }
-      } catch (e) {}
+      console.log('📡 SSE: Closing existing connection');
+      eventSourceRef.current.close();
       eventSourceRef.current = null;
     }
 
-    // Cancel any existing reader
-    if (readerRef.current) {
-      try {
-        readerRef.current.cancel();
-      } catch (e) {}
-      readerRef.current = null;
-    }
-
     // Get the API URL
-    const API_URL =
-      import.meta.env.VITE_API_URL || "https://bitepickup-backend.onrender.com";
-    const cleanApiUrl = API_URL.replace(/\/+$/, "");
-    const baseUrl = cleanApiUrl.endsWith("/api")
-      ? cleanApiUrl
-      : `${cleanApiUrl}/api`;
+    const API_URL = import.meta.env.VITE_API_URL || 'https://bitepickup-backend.onrender.com';
+    const cleanApiUrl = API_URL.replace(/\/+$/, '');
+    const baseUrl = cleanApiUrl.endsWith('/api') ? cleanApiUrl : `${cleanApiUrl}/api`;
     const sseUrl = `${baseUrl}/orders/stream/${activeRestaurantId}`;
-
+    
     console.log(`📡 SSE: Connecting to: ${sseUrl}`);
     setIsConnecting(true);
     setSseError(null);
 
     try {
-      const response = await fetch(sseUrl, {
-        method: "GET",
-        headers: {
-          Accept: "text/event-stream",
-          "Cache-Control": "no-cache",
-        },
-      });
+      // Create EventSource
+      const eventSource = new EventSource(sseUrl);
+      eventSourceRef.current = eventSource;
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+      // Connection opened
+      eventSource.onopen = () => {
+        console.log('📡 SSE: Connection opened successfully ✅');
+        setSseConnected(true);
+        setIsConnecting(false);
+        setSseError(null);
+        reconnectAttempts.current = 0;
+      };
 
-      console.log("📡 SSE: Response OK, reading stream...");
-      setSseConnected(true);
-      setIsConnecting(false);
-      setSseError(null);
-      reconnectAttempts.current = 0;
-
-      const reader = response.body.getReader();
-      readerRef.current = reader;
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      // Store the reader so we can cancel it later
-      eventSourceRef.current = { close: () => reader.cancel() };
-
-      // Read the stream
-      const readStream = async () => {
+      // Handle incoming messages
+      eventSource.onmessage = (event) => {
         try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) {
-              console.log("📡 SSE: Stream ended");
-              setSseConnected(false);
-              setIsConnecting(false);
-              // Attempt to reconnect
-              reconnectAttempts.current += 1;
-              const delay = Math.min(5000 * reconnectAttempts.current, 30000);
-              console.log(
-                `📡 SSE: Reconnecting in ${delay / 1000}s (attempt ${reconnectAttempts.current})`,
-              );
-              reconnectTimeoutRef.current = setTimeout(
-                () => connectSSE(),
-                delay,
-              );
-              break;
-            }
+          const data = JSON.parse(event.data);
+          console.log('📡 SSE: Event received:', data);
 
-            const chunk = decoder.decode(value, { stream: true });
-            buffer += chunk;
-            const lines = buffer.split("\n");
-            buffer = lines.pop() || "";
-
-            for (const line of lines) {
-              if (line.startsWith("data: ")) {
-                try {
-                  const jsonStr = line.slice(6);
-                  const data = JSON.parse(jsonStr);
-                  console.log("📡 SSE: Event received:", data);
-
-                  if (data.type === "CONNECTED") {
-                    console.log(
-                      "📡 SSE: Connected successfully:",
-                      data.message,
-                    );
-                    continue;
-                  }
-
-                  if (data.type === "NEW_ORDER") {
-                    console.log("📡 SSE: New order received! 🎉");
-                    const newOrder = data.data;
-                    const orderId = newOrder._id || newOrder.id;
-
-                    setOrders((prevOrders) => {
-                      const exists = prevOrders.some(
-                        (o) => o.id === orderId || o._id === orderId,
-                      );
-                      if (exists) {
-                        console.log(
-                          "📡 Order already exists, skipping duplicate",
-                        );
-                        return prevOrders;
-                      }
-
-                      const orderToAdd = {
-                        ...newOrder,
-                        id: orderId,
-                        _id: orderId,
-                        items: newOrder.items || [],
-                        timestamp:
-                          newOrder.timestamp ||
-                          newOrder.createdAt ||
-                          new Date().toISOString(),
-                      };
-
-                      console.log("📡 Adding new order:", orderToAdd);
-
-                      // Play beep sound for new order
-                      playWebBeep();
-
-                      // Show notification
-                      if (
-                        "Notification" in window &&
-                        Notification.permission === "granted"
-                      ) {
-                        new Notification("🆕 New Order Received!", {
-                          body: `Order from ${newOrder.customerName} - $${newOrder.totalPrice?.toFixed(2) || "0.00"}`,
-                          icon: "/hinarok-app-icon.png",
-                        });
-                      }
-
-                      return [orderToAdd, ...prevOrders];
-                    });
-                  }
-
-                  if (data.type === "ORDER_STATUS_UPDATE") {
-                    const { orderId, status } = data.data;
-                    console.log(
-                      `📡 SSE: Order ${orderId} status updated to ${status}`,
-                    );
-
-                    setOrders((prevOrders) =>
-                      prevOrders.map((order) => {
-                        const orderIdMatch =
-                          order.id === orderId || order._id === orderId;
-                        if (orderIdMatch) {
-                          return { ...order, status };
-                        }
-                        return order;
-                      }),
-                    );
-                  }
-                } catch (error) {
-                  console.error("❌ SSE: Parse error:", error, "Line:", line);
-                }
-              }
-            }
+          if (data.type === 'CONNECTED') {
+            console.log('📡 SSE: Connected successfully:', data.message);
+            return;
           }
+
+          if (data.type === 'NEW_ORDER') {
+            console.log('📡 SSE: New order received! 🎉');
+            const newOrder = data.data;
+            const orderId = newOrder._id || newOrder.id;
+            
+            setOrders(prevOrders => {
+              const exists = prevOrders.some(o => o.id === orderId || o._id === orderId);
+              if (exists) {
+                console.log('📡 Order already exists, skipping duplicate');
+                return prevOrders;
+              }
+              
+              const orderToAdd = {
+                ...newOrder,
+                id: orderId,
+                _id: orderId,
+                items: newOrder.items || [],
+                timestamp: newOrder.timestamp || newOrder.createdAt || new Date().toISOString(),
+              };
+              
+              console.log('📡 Adding new order:', orderToAdd);
+              
+              // Play beep sound for new order
+              playWebBeep();
+              
+              // Show notification
+              if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('🆕 New Order Received!', {
+                  body: `Order from ${newOrder.customerName} - $${newOrder.totalPrice?.toFixed(2) || '0.00'}`,
+                  icon: '/hinarok-app-icon.png',
+                });
+              }
+              
+              return [orderToAdd, ...prevOrders];
+            });
+          }
+
+          if (data.type === 'ORDER_STATUS_UPDATE') {
+            const { orderId, status } = data.data;
+            console.log(`📡 SSE: Order ${orderId} status updated to ${status}`);
+            
+            setOrders(prevOrders => 
+              prevOrders.map(order => {
+                const orderIdMatch = order.id === orderId || order._id === orderId;
+                if (orderIdMatch) {
+                  return { ...order, status };
+                }
+                return order;
+              })
+            );
+          }
+
         } catch (error) {
-          console.error("❌ SSE: Stream read error:", error);
-          setSseConnected(false);
-          setIsConnecting(false);
-          reconnectAttempts.current += 1;
-          const delay = Math.min(5000 * reconnectAttempts.current, 30000);
-          console.log(
-            `📡 SSE: Reconnecting in ${delay / 1000}s (attempt ${reconnectAttempts.current})`,
-          );
-          reconnectTimeoutRef.current = setTimeout(() => connectSSE(), delay);
+          console.error('❌ SSE: Message parse error:', error);
         }
       };
 
-      readStream();
+      // Handle errors
+      eventSource.onerror = (error) => {
+        console.error('❌ SSE: Connection error:', error);
+        setSseConnected(false);
+        setIsConnecting(false);
+        setSseError('Connection lost, reconnecting...');
+        
+        // Close the connection
+        if (eventSourceRef.current) {
+          eventSourceRef.current.close();
+          eventSourceRef.current = null;
+        }
+        
+        // Try to reconnect with exponential backoff
+        reconnectAttempts.current += 1;
+        const delay = Math.min(5000 * reconnectAttempts.current, 30000);
+        
+        console.log(`📡 SSE: Reconnecting in ${delay/1000}s (attempt ${reconnectAttempts.current})`);
+        
+        reconnectTimeoutRef.current = setTimeout(() => {
+          connectSSE();
+        }, delay);
+      };
+
     } catch (error) {
-      console.error("❌ SSE: Connection failed:", error);
+      console.error('❌ SSE: Connection failed:', error);
       setSseConnected(false);
       setIsConnecting(false);
-      setSseError("Connection failed");
+      setSseError('Connection failed');
       reconnectAttempts.current += 1;
       const delay = Math.min(5000 * reconnectAttempts.current, 30000);
-      console.log(
-        `📡 SSE: Reconnecting in ${delay / 1000}s (attempt ${reconnectAttempts.current})`,
-      );
+      console.log(`📡 SSE: Reconnecting in ${delay/1000}s (attempt ${reconnectAttempts.current})`);
       reconnectTimeoutRef.current = setTimeout(() => connectSSE(), delay);
     }
   };
@@ -481,35 +416,29 @@ export default function RestaurantDashboard() {
 
   // Initialize SSE connection
   useEffect(() => {
-    console.log("📡 SSE useEffect triggered with:", {
+    console.log('📡 SSE useEffect triggered with:', {
       activeRestaurantId,
       isAuthenticated,
-      sseConnected,
+      sseConnected
     });
 
-    connectSSE();
+    // Small delay to ensure everything is loaded
+    const timer = setTimeout(() => {
+      connectSSE();
+    }, 1000);
 
     // Cleanup on unmount
     return () => {
+      clearTimeout(timer);
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
       }
       if (eventSourceRef.current) {
-        console.log("📡 SSE: Closing connection on unmount");
-        try {
-          if (typeof eventSourceRef.current.close === "function") {
-            eventSourceRef.current.close();
-          }
-        } catch (e) {}
+        console.log('📡 SSE: Closing connection on unmount');
+        eventSourceRef.current.close();
         eventSourceRef.current = null;
         setSseConnected(false);
-      }
-      if (readerRef.current) {
-        try {
-          readerRef.current.cancel();
-        } catch (e) {}
-        readerRef.current = null;
       }
     };
   }, [activeRestaurantId, isAuthenticated]);
@@ -520,9 +449,9 @@ export default function RestaurantDashboard() {
       const context = new (
         window.AudioContext || (window as any).webkitAudioContext
       )();
-
+      
       // Resume context if suspended
-      if (context.state === "suspended") {
+      if (context.state === 'suspended') {
         context.resume();
       }
 
@@ -551,9 +480,7 @@ export default function RestaurantDashboard() {
 
   // Active restaurant orders
   const activeRestaurantOrders = orders.filter(
-    (o) =>
-      o.restaurantId === currentRestaurant?.id ||
-      o.restaurantId === currentRestaurant?._id,
+    (o) => o.restaurantId === currentRestaurant?.id || o.restaurantId === currentRestaurant?._id,
   );
 
   // Stats calculation
@@ -1014,15 +941,13 @@ export default function RestaurantDashboard() {
               ></span>
               {/* SSE Connection Status with Reconnect Button */}
               <div className="flex items-center gap-1">
-                <span
-                  className={`text-[8px] font-bold uppercase px-2 py-0.5 rounded-full border flex items-center gap-1 ${
-                    sseConnected
-                      ? "bg-emerald-500/20 text-emerald-600 border-emerald-500/30"
-                      : isConnecting
-                        ? "bg-[#E8A13B]/20 text-[#E8A13B] border-[#E8A13B]/30 animate-pulse"
-                        : "bg-[#C42348]/20 text-[#C42348] border-[#C42348]/30"
-                  }`}
-                >
+                <span className={`text-[8px] font-bold uppercase px-2 py-0.5 rounded-full border flex items-center gap-1 ${
+                  sseConnected 
+                    ? 'bg-emerald-500/20 text-emerald-600 border-emerald-500/30' 
+                    : isConnecting 
+                      ? 'bg-[#E8A13B]/20 text-[#E8A13B] border-[#E8A13B]/30 animate-pulse'
+                      : 'bg-[#C42348]/20 text-[#C42348] border-[#C42348]/30'
+                }`}>
                   {sseConnected ? (
                     <>
                       <Wifi className="w-3 h-3" />
@@ -1053,11 +978,7 @@ export default function RestaurantDashboard() {
             </div>
             <p className="text-xs text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">
               Manage order feeds, categories, menu pricing, and graphics layout.
-              {sseConnected
-                ? " ✅ Real-time updates active"
-                : isConnecting
-                  ? " ⏳ Connecting..."
-                  : " ⚠️ Click to reconnect"}
+              {sseConnected ? ' ✅ Real-time updates active' : isConnecting ? ' ⏳ Connecting...' : ' ⚠️ Click to reconnect'}
             </p>
           </div>
         </div>
