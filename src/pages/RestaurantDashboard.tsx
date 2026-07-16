@@ -78,15 +78,12 @@ export default function RestaurantDashboard() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState<string>("");
 
-  // SSE connection refs
-  const eventSourceRef = useRef<EventSource | null>(null);
-  const [sseConnected, setSseConnected] = useState(false);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [sseError, setSseError] = useState<string | null>(null);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const reconnectAttempts = useRef(0);
+  // Polling refs (instead of SSE)
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastOrderCountRef = useRef<number>(0);
+  const [isPolling, setIsPolling] = useState(false);
+  const [pollingError, setPollingError] = useState<string | null>(null);
+  const isFirstLoadRef = useRef<boolean>(true);
 
   // Get the current restaurant from the activeRestaurantId
   const currentRestaurant =
@@ -94,7 +91,7 @@ export default function RestaurantDashboard() {
 
   // Request notification permission
   useEffect(() => {
-    if ("Notification" in window && Notification.permission === "default") {
+    if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
   }, []);
@@ -239,9 +236,10 @@ export default function RestaurantDashboard() {
           const ordersData = await getOrders(restaurantId);
           setOrders(ordersData);
           console.log("📦 Orders loaded:", ordersData.length);
-
+          
           // Set initial order count for polling
           lastOrderCountRef.current = ordersData.length;
+          isFirstLoadRef.current = false;
         } else {
           console.warn("⚠️ No restaurant ID found!");
         }
@@ -258,228 +256,80 @@ export default function RestaurantDashboard() {
   }, [id, user, authLoading]);
 
   // ============================================
-  // ✅ SSE - Server-Sent Events Connection with Polling Fallback
+  // ✅ POLLING - Reliable order updates (works on all domains)
   // ============================================
-
-  // Function to check for new orders via polling (fallback)
-  const checkForNewOrders = async () => {
-    if (!activeRestaurantId) return;
-
-    try {
-      const freshOrders = await getOrders(activeRestaurantId);
-      const currentCount = freshOrders.length;
-
-      // If we have more orders than before, there's a new one
-      if (currentCount > lastOrderCountRef.current) {
-        console.log("📡 Polling: New order detected!");
-        // Find the new order (the first one in the list since they're sorted by date)
-        const newOrders = freshOrders.slice(
-          0,
-          currentCount - lastOrderCountRef.current,
-        );
-
-        // Add new orders to state
-        setOrders((prevOrders) => {
-          const existingIds = new Set(prevOrders.map((o) => o.id || o._id));
-          const ordersToAdd = newOrders.filter(
-            (o) => !existingIds.has(o.id || o._id),
-          );
-
-          if (ordersToAdd.length > 0) {
-            console.log(
-              "📡 Adding new orders via polling:",
-              ordersToAdd.length,
-            );
-            // Play beep for new orders
-            ordersToAdd.forEach(() => playWebBeep());
-            return [...ordersToAdd, ...prevOrders];
-          }
-          return prevOrders;
-        });
-
-        // Update last count
-        lastOrderCountRef.current = currentCount;
-      }
-    } catch (error) {
-      console.error("Polling error:", error);
-    }
-  };
-
-  // Main connection function
-  const connectSSE = () => {
-    // Only connect if we have an active restaurant ID and user is authenticated
-    if (!activeRestaurantId) {
-      console.log("📡 SSE: Skipping - no active restaurant ID");
-      return;
-    }
-
-    if (!isAuthenticated) {
-      console.log("📡 SSE: Skipping - not authenticated");
-      return;
-    }
-
-    // Clear any existing reconnect timeout
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
-
-    // Close existing connection if any
-    if (eventSourceRef.current) {
-      console.log("📡 SSE: Closing existing connection");
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
-    }
-
-    // Get the API URL
-    const API_URL =
-      import.meta.env.VITE_API_URL || "https://bitepickup-backend.onrender.com";
-    const cleanApiUrl = API_URL.replace(/\/+$/, "");
-    const baseUrl = cleanApiUrl.endsWith("/api")
-      ? cleanApiUrl
-      : `${cleanApiUrl}/api`;
-    const sseUrl = `${baseUrl}/orders/stream/${activeRestaurantId}`;
-
-    console.log(`📡 SSE: Connecting to: ${sseUrl}`);
-    setIsConnecting(true);
-    setSseError(null);
-
-    try {
-      // Create EventSource
-      const eventSource = new EventSource(sseUrl);
-      eventSourceRef.current = eventSource;
-
-      // Connection opened
-      eventSource.onopen = () => {
-        console.log("📡 SSE: Connection opened successfully ✅");
-        setSseConnected(true);
-        setIsConnecting(false);
-        setSseError(null);
-        reconnectAttempts.current = 0;
-        // Cancel polling when SSE is connected
-        if (pollingIntervalRef.current) {
-          clearTimeout(pollingIntervalRef.current);
-          pollingIntervalRef.current = null;
-        }
-      };
-
-      // Handle incoming messages
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          console.log("📡 SSE: Event received:", data);
-
-          if (data.type === "CONNECTED") {
-            console.log("📡 SSE: Connected successfully:", data.message);
-            return;
-          }
-
-          if (data.type === "NEW_ORDER") {
-            console.log("📡 SSE: New order received! 🎉");
-            const newOrder = data.data;
-            const orderId = newOrder._id || newOrder.id;
-
-            setOrders((prevOrders) => {
-              const exists = prevOrders.some(
-                (o) => o.id === orderId || o._id === orderId,
-              );
-              if (exists) {
-                console.log("📡 Order already exists, skipping duplicate");
-                return prevOrders;
-              }
-
-              const orderToAdd = {
-                ...newOrder,
-                id: orderId,
-                _id: orderId,
-                items: newOrder.items || [],
-                timestamp:
-                  newOrder.timestamp ||
-                  newOrder.createdAt ||
-                  new Date().toISOString(),
-              };
-
-              console.log("📡 Adding new order:", orderToAdd);
-
-              // Play beep sound for new order
-              playWebBeep();
-
-              // Show notification
-              if (
-                "Notification" in window &&
-                Notification.permission === "granted"
-              ) {
-                new Notification("🆕 New Order Received!", {
-                  body: `Order from ${newOrder.customerName} - $${newOrder.totalPrice?.toFixed(2) || "0.00"}`,
-                  icon: "/hinarok-app-icon.png",
-                });
-              }
-
-              // Update last order count
-              lastOrderCountRef.current = prevOrders.length + 1;
-
-              return [orderToAdd, ...prevOrders];
-            });
-          }
-
-          if (data.type === "ORDER_STATUS_UPDATE") {
-            const { orderId, status } = data.data;
-            console.log(`📡 SSE: Order ${orderId} status updated to ${status}`);
-
-            setOrders((prevOrders) =>
-              prevOrders.map((order) => {
-                const orderIdMatch =
-                  order.id === orderId || order._id === orderId;
-                if (orderIdMatch) {
-                  return { ...order, status };
-                }
-                return order;
-              }),
-            );
-          }
-        } catch (error) {
-          console.error("❌ SSE: Message parse error:", error);
-        }
-      };
-
-      // Handle errors
-      eventSource.onerror = (error) => {
-        console.error("❌ SSE: Connection error:", error);
-        setSseConnected(false);
-        setIsConnecting(false);
-        setSseError("Connection lost, using polling fallback...");
-
-        // Close the connection
-        if (eventSourceRef.current) {
-          eventSourceRef.current.close();
-          eventSourceRef.current = null;
-        }
-
-        // Start polling as fallback
-        startPolling();
-      };
-    } catch (error) {
-      console.error("❌ SSE: Connection failed:", error);
-      setSseConnected(false);
-      setIsConnecting(false);
-      setSseError("Connection failed, using polling fallback...");
-      // Start polling as fallback
-      startPolling();
-    }
-  };
-
-  // Start polling for new orders (fallback when SSE fails)
   const startPolling = () => {
+    if (!activeRestaurantId || !isAuthenticated) {
+      console.log('📡 Polling: Skipping - no active restaurant ID or not authenticated');
+      return;
+    }
+
     // Clear any existing polling
     if (pollingIntervalRef.current) {
-      clearTimeout(pollingIntervalRef.current);
+      clearInterval(pollingIntervalRef.current);
       pollingIntervalRef.current = null;
     }
 
-    console.log("📡 Polling: Started (fallback mode)");
+    console.log('📡 Polling: Started for restaurant', activeRestaurantId);
+    setIsPolling(true);
+    setPollingError(null);
 
-    // Check immediately
-    checkForNewOrders();
+    // Function to check for new orders
+    const checkForNewOrders = async () => {
+      if (!activeRestaurantId) return;
+      
+      try {
+        const freshOrders = await getOrders(activeRestaurantId);
+        const currentCount = freshOrders.length;
+        
+        // If we have more orders than before, there's a new one
+        if (currentCount > lastOrderCountRef.current) {
+          console.log('📡 Polling: New order detected!');
+          
+          // Find the new orders (the ones at the beginning since they're sorted by date)
+          const newOrdersCount = currentCount - lastOrderCountRef.current;
+          const newOrders = freshOrders.slice(0, newOrdersCount);
+          
+          // Add new orders to state
+          setOrders(prevOrders => {
+            const existingIds = new Set(prevOrders.map(o => o.id || o._id));
+            const ordersToAdd = newOrders.filter(o => {
+              const id = o.id || o._id;
+              return !existingIds.has(id);
+            });
+            
+            if (ordersToAdd.length > 0) {
+              console.log('📡 Adding new orders via polling:', ordersToAdd.length);
+              // Play beep for new orders
+              ordersToAdd.forEach(() => playWebBeep());
+              
+              // Show notification for first new order
+              const firstOrder = ordersToAdd[0];
+              if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('🆕 New Order Received!', {
+                  body: `Order from ${firstOrder.customerName} - $${firstOrder.totalPrice?.toFixed(2) || '0.00'}`,
+                  icon: '/hinarok-app-icon.png',
+                });
+              }
+              
+              return [...ordersToAdd, ...prevOrders];
+            }
+            return prevOrders;
+          });
+          
+          // Update last count
+          lastOrderCountRef.current = currentCount;
+        }
+      } catch (error) {
+        // Silent fail - don't spam console
+        console.log('📡 Polling: Error checking orders');
+      }
+    };
+
+    // Check immediately after a small delay
+    setTimeout(() => {
+      checkForNewOrders();
+    }, 500);
 
     // Then check every 5 seconds
     pollingIntervalRef.current = setInterval(() => {
@@ -487,47 +337,50 @@ export default function RestaurantDashboard() {
     }, 5000);
   };
 
-  // Manual reconnect
-  const handleReconnect = () => {
-    reconnectAttempts.current = 0;
-    // Clear polling
+  // Stop polling
+  const stopPolling = () => {
     if (pollingIntervalRef.current) {
-      clearTimeout(pollingIntervalRef.current);
+      clearInterval(pollingIntervalRef.current);
       pollingIntervalRef.current = null;
     }
-    connectSSE();
+    setIsPolling(false);
   };
 
-  // Initialize SSE connection
+  // Manual refresh
+  const handleManualRefresh = () => {
+    console.log('📡 Manual refresh triggered');
+    // Reset the order count to force a full refresh
+    if (activeRestaurantId) {
+      getOrders(activeRestaurantId).then(freshOrders => {
+        setOrders(freshOrders);
+        lastOrderCountRef.current = freshOrders.length;
+        playWebBeep();
+        console.log('📡 Manual refresh complete');
+      }).catch(err => {
+        console.error('Manual refresh error:', err);
+      });
+    }
+  };
+
+  // Initialize polling
   useEffect(() => {
-    console.log("📡 SSE useEffect triggered with:", {
+    console.log('📡 Polling useEffect triggered with:', {
       activeRestaurantId,
       isAuthenticated,
-      sseConnected,
+      isPolling
     });
 
     // Small delay to ensure everything is loaded
     const timer = setTimeout(() => {
-      connectSSE();
-    }, 1000);
+      if (activeRestaurantId && isAuthenticated) {
+        startPolling();
+      }
+    }, 1500);
 
     // Cleanup on unmount
     return () => {
       clearTimeout(timer);
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-        reconnectTimeoutRef.current = null;
-      }
-      if (pollingIntervalRef.current) {
-        clearTimeout(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
-      }
-      if (eventSourceRef.current) {
-        console.log("📡 SSE: Closing connection on unmount");
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
-        setSseConnected(false);
-      }
+      stopPolling();
     };
   }, [activeRestaurantId, isAuthenticated]);
 
@@ -537,9 +390,9 @@ export default function RestaurantDashboard() {
       const context = new (
         window.AudioContext || (window as any).webkitAudioContext
       )();
-
+      
       // Resume context if suspended
-      if (context.state === "suspended") {
+      if (context.state === 'suspended') {
         context.resume();
       }
 
@@ -568,9 +421,7 @@ export default function RestaurantDashboard() {
 
   // Active restaurant orders
   const activeRestaurantOrders = orders.filter(
-    (o) =>
-      o.restaurantId === currentRestaurant?.id ||
-      o.restaurantId === currentRestaurant?._id,
+    (o) => o.restaurantId === currentRestaurant?.id || o.restaurantId === currentRestaurant?._id,
   );
 
   // Stats calculation
@@ -1029,54 +880,37 @@ export default function RestaurantDashboard() {
                   currentRestaurant.isActive ? "Active Store" : "Inactive Store"
                 }
               ></span>
-              {/* SSE Connection Status with Reconnect Button */}
+              {/* Polling Status Indicator */}
               <div className="flex items-center gap-1">
-                <span
-                  className={`text-[8px] font-bold uppercase px-2 py-0.5 rounded-full border flex items-center gap-1 ${
-                    sseConnected
-                      ? "bg-emerald-500/20 text-emerald-600 border-emerald-500/30"
-                      : isConnecting
-                        ? "bg-[#E8A13B]/20 text-[#E8A13B] border-[#E8A13B]/30 animate-pulse"
-                        : "bg-[#C42348]/20 text-[#C42348] border-[#C42348]/30"
-                  }`}
-                >
-                  {sseConnected ? (
+                <span className={`text-[8px] font-bold uppercase px-2 py-0.5 rounded-full border flex items-center gap-1 ${
+                  isPolling 
+                    ? 'bg-emerald-500/20 text-emerald-600 border-emerald-500/30' 
+                    : 'bg-[#E8A13B]/20 text-[#E8A13B] border-[#E8A13B]/30 animate-pulse'
+                }`}>
+                  {isPolling ? (
                     <>
                       <Wifi className="w-3 h-3" />
                       LIVE
                     </>
-                  ) : isConnecting ? (
+                  ) : (
                     <>
                       <RefreshCw className="w-3 h-3 animate-spin" />
                       CONNECTING
                     </>
-                  ) : (
-                    <>
-                      <WifiOff className="w-3 h-3" />
-                      {sseError ? "FALLBACK" : "OFFLINE"}
-                    </>
                   )}
                 </span>
-                {!sseConnected && !isConnecting && (
-                  <button
-                    onClick={handleReconnect}
-                    className="text-[8px] bg-[#C42348] hover:bg-[#E84C6B] text-white px-2 py-0.5 rounded-full transition-colors"
-                    title="Reconnect real-time updates"
-                  >
-                    <RefreshCw className="w-3 h-3" />
-                  </button>
-                )}
+                <button
+                  onClick={handleManualRefresh}
+                  className="text-[8px] bg-[#C42348] hover:bg-[#E84C6B] text-white px-2 py-0.5 rounded-full transition-colors"
+                  title="Refresh orders manually"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                </button>
               </div>
             </div>
             <p className="text-xs text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">
               Manage order feeds, categories, menu pricing, and graphics layout.
-              {sseConnected
-                ? " ✅ Real-time updates active"
-                : isConnecting
-                  ? " ⏳ Connecting..."
-                  : sseError
-                    ? ` ⚠️ ${sseError}`
-                    : " ⚠️ Click to reconnect"}
+              {isPolling ? ' ✅ Auto-refresh every 5 seconds' : ' ⏳ Starting...'}
             </p>
           </div>
         </div>
@@ -1293,6 +1127,7 @@ export default function RestaurantDashboard() {
                                   currentRestaurant.id,
                                 );
                                 setOrders(ordersData);
+                                lastOrderCountRef.current = ordersData.length;
                               }}
                               className="flex-1 bg-[#E8A13B] hover:bg-[#F0B84D] text-[#33101F] text-xs font-extrabold py-2 rounded-lg transition-colors cursor-pointer font-['Inter','Segoe UI',system-ui,sans-serif]"
                             >
@@ -1416,6 +1251,7 @@ export default function RestaurantDashboard() {
                                   currentRestaurant.id,
                                 );
                                 setOrders(ordersData);
+                                lastOrderCountRef.current = ordersData.length;
                               }}
                               className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-extrabold py-2 rounded-lg transition-colors cursor-pointer font-['Inter','Segoe UI',system-ui,sans-serif]"
                             >
@@ -1537,6 +1373,7 @@ export default function RestaurantDashboard() {
                                   currentRestaurant.id,
                                 );
                                 setOrders(ordersData);
+                                lastOrderCountRef.current = ordersData.length;
                               }}
                               className="flex-1 bg-[#FAF3EA] border border-[#E7C7CF] hover:bg-[#E7C7CF] text-[#33101F] text-xs font-semibold py-2 rounded-lg transition-all cursor-pointer font-['Inter','Segoe UI',system-ui,sans-serif]"
                             >
