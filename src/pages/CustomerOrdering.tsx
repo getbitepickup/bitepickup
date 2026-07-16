@@ -372,11 +372,11 @@ export default function CustomerOrdering() {
 
   // ====== STICKY CATEGORY BAR LOGIC - FIXED ======
   useEffect(() => {
-    // Get the category bar element and its parent
+    // Get the category bar element
     const categoryBar = categoryContainerRef.current;
     if (!categoryBar) return;
 
-    // Get the header height (approximate)
+    // Get the header height (approximate - the main navigation bar)
     const headerHeight = 64; // Height of the main header (h-16)
 
     const handleScroll = () => {
@@ -858,18 +858,13 @@ export default function CustomerOrdering() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Left Col: Menu categories & Items */}
             <div className="md:col-span-2 space-y-8">
-              {/* Category buttons - FIXED STICKY BEHAVIOR */}
+              {/* Category buttons - FIXED: Using CSS sticky with proper positioning */}
               <div
                 ref={categoryContainerRef}
-                className={`py-3 border-b border-[#E7C7CF] flex gap-2 overflow-x-auto scrollbar-none md:overflow-x-visible md:flex-wrap ${
-                  isCategorySticky
-                    ? "fixed top-[64px] left-0 right-0 z-30 bg-[#FAF3EA] shadow-md px-4"
-                    : "relative bg-[#FAF3EA]/95 backdrop-blur-sm"
-                }`}
+                className={`sticky top-[64px] z-20 bg-[#FAF3EA] py-3 border-b border-[#E7C7CF] flex gap-2 overflow-x-auto scrollbar-none md:overflow-x-visible md:flex-wrap`}
                 style={{
                   WebkitOverflowScrolling: "touch",
                   scrollbarWidth: "none",
-                  transition: "all 0.15s ease-in-out",
                 }}
               >
                 {filteredCategories.map((cat) => (
@@ -886,9 +881,6 @@ export default function CustomerOrdering() {
                   </button>
                 ))}
               </div>
-
-              {/* Spacer div when category bar is sticky to prevent content jump */}
-              {isCategorySticky && <div style={{ height: "56px" }} />}
 
               {/* Menu lists grouped */}
               {filteredCategories.length === 0 ? (
