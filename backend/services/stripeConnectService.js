@@ -15,11 +15,16 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
  */
 const generateConnectLink = async (restaurantId, restaurantName, email) => {
   try {
-    // Create a Stripe Connect account for the restaurant
+    // ✅ FIXED: Use Express account type instead of Standard with recipient agreement
+    // Express accounts work for US-to-US connections without the recipient agreement error
     const account = await stripe.accounts.create({
-      type: "standard",
+      type: "express",
       country: "US",
       email: email || process.env.CONTACT_EMAIL || "orders@hinarok.com",
+      capabilities: {
+        card_payments: { requested: true },
+        transfers: { requested: true },
+      },
       business_profile: {
         name: restaurantName || "Hinarok Restaurant",
         url: `https://hinarok.com/restaurant/${restaurantId}`,
@@ -29,26 +34,30 @@ const generateConnectLink = async (restaurantId, restaurantName, email) => {
       company: {
         name: restaurantName || "Hinarok Restaurant",
       },
-      tos_acceptance: {
-        service_agreement: "recipient",
-      },
+      // ✅ REMOVED: tos_acceptance with recipient service_agreement
+      // Express accounts handle ToS acceptance through the onboarding flow
     });
 
     logger.info(
       `✅ Stripe Connect account created for restaurant ${restaurantId}: ${account.id}`,
     );
 
-    // Generate OAuth link
-    const clientId = process.env.STRIPE_CLIENT_ID;
-    if (!clientId) {
-      throw new Error("STRIPE_CLIENT_ID is not set in environment variables");
-    }
+    // ✅ FIXED: Generate account link for Express account onboarding
+    // This creates a proper onboarding link for the restaurant owner
+    const accountLink = await stripe.accountLinks.create({
+      account: account.id,
+      refresh_url: `${process.env.CLIENT_URL || "https://bitepickup.vercel.app"}/restaurant-dashboard/${restaurantId}?stripe=error&message=onboarding_refresh`,
+      return_url: `${process.env.CLIENT_URL || "https://bitepickup.vercel.app"}/restaurant-dashboard/${restaurantId}?stripe=connected`,
+      type: "account_onboarding",
+    });
 
-    const oauthLink = `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${clientId}&scope=read_write&state=${restaurantId}&stripe_user[email]=${encodeURIComponent(email || "")}`;
+    logger.info(
+      `✅ Account link generated for restaurant ${restaurantId}: ${accountLink.url}`,
+    );
 
     return {
       accountId: account.id,
-      oauthLink,
+      oauthLink: accountLink.url, // Returns the onboarding link instead of OAuth
       account,
     };
   } catch (error) {
