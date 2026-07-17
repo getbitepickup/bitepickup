@@ -27,9 +27,9 @@ const {
 } = require("./sseController");
 
 /**
- * @desc    Get all orders
+ * @desc    Get all orders (with permission check)
  * @route   GET /api/orders
- * @access  Admin only
+ * @access  Admin or Restaurant Owner
  */
 exports.getOrders = async (req, res) => {
   try {
@@ -38,6 +38,7 @@ exports.getOrders = async (req, res) => {
 
     const filter = {};
 
+    // If restaurantId is provided, filter by it
     if (restaurantId) {
       // Try to find the restaurant by various identifiers
       let restaurantDoc = null;
@@ -60,6 +61,43 @@ exports.getOrders = async (req, res) => {
         filter.restaurantId = restaurantDoc._id;
       } else {
         filter.restaurantId = restaurantId;
+      }
+    }
+
+    // ✅ PERMISSION CHECK: If user is not admin, they can only see their own restaurant's orders
+    if (req.user && req.user.role !== "admin") {
+      // User must be restaurant owner
+      if (req.user.role !== "restaurant_owner") {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message: "You do not have permission to view orders",
+        });
+      }
+
+      // Get the user's restaurant ID
+      const userRestaurantId = req.user.restaurantId;
+      if (!userRestaurantId) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message: "You do not have a restaurant assigned",
+        });
+      }
+
+      // If filter already has restaurantId, check if user owns it
+      if (filter.restaurantId) {
+        const userRestaurantIdStr = userRestaurantId.toString();
+        const filterRestaurantIdStr = filter.restaurantId.toString();
+
+        if (userRestaurantIdStr !== filterRestaurantIdStr) {
+          return res.status(HTTP_STATUS.FORBIDDEN).json({
+            success: false,
+            message:
+              "You do not have permission to view orders for this restaurant",
+          });
+        }
+      } else {
+        // No restaurant filter, restrict to user's restaurant
+        filter.restaurantId = userRestaurantId;
       }
     }
 
@@ -133,6 +171,28 @@ exports.getOrdersByRestaurant = async (req, res) => {
           pages: 0,
         },
       });
+    }
+
+    // ✅ PERMISSION CHECK: If user is not admin, check if they own this restaurant
+    if (req.user && req.user.role !== "admin") {
+      const userRestaurantId = req.user.restaurantId;
+      if (!userRestaurantId) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message: "You do not have a restaurant assigned",
+        });
+      }
+
+      const userRestaurantIdStr = userRestaurantId.toString();
+      const requestedRestaurantIdStr = restaurantDoc._id.toString();
+
+      if (userRestaurantIdStr !== requestedRestaurantIdStr) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message:
+            "You do not have permission to view orders for this restaurant",
+        });
+      }
     }
 
     const filter = { restaurantId: restaurantDoc._id };
@@ -496,6 +556,28 @@ exports.updateOrderStatus = async (req, res) => {
       });
     }
 
+    // ✅ Check if user has permission to update this order
+    if (req.user && req.user.role !== "admin") {
+      const userRestaurantId = req.user.restaurantId;
+      if (!userRestaurantId) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message: "You do not have a restaurant assigned",
+        });
+      }
+
+      const userRestaurantIdStr = userRestaurantId.toString();
+      const orderRestaurantIdStr = order.restaurantId.toString();
+
+      if (userRestaurantIdStr !== orderRestaurantIdStr) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message:
+            "You do not have permission to update orders for this restaurant",
+        });
+      }
+    }
+
     // Validate status
     const validStatuses = Object.values(ORDER_STATUS);
     if (!validStatuses.includes(status)) {
@@ -580,6 +662,28 @@ exports.getOrderStatistics = async (req, res) => {
           orders: { today: 0, week: 0, month: 0 },
         },
       });
+    }
+
+    // ✅ Check if user has permission to view this restaurant's statistics
+    if (req.user && req.user.role !== "admin") {
+      const userRestaurantId = req.user.restaurantId;
+      if (!userRestaurantId) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message: "You do not have a restaurant assigned",
+        });
+      }
+
+      const userRestaurantIdStr = userRestaurantId.toString();
+      const requestedRestaurantIdStr = restaurantDoc._id.toString();
+
+      if (userRestaurantIdStr !== requestedRestaurantIdStr) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message:
+            "You do not have permission to view statistics for this restaurant",
+        });
+      }
     }
 
     const actualRestaurantId = restaurantDoc._id;

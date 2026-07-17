@@ -36,6 +36,14 @@ const normalizeRestaurant = (restaurant: any): Restaurant => ({
   businessHours: restaurant?.businessHours,
   pickupSettings: restaurant?.pickupSettings,
   taxesAndFees: restaurant?.taxesAndFees,
+  stripeConnect: restaurant?.stripeConnect || {
+    accountId: null,
+    accountStatus: "pending",
+    connectedAt: null,
+    chargesEnabled: false,
+    payoutsEnabled: false,
+    detailsSubmitted: false,
+  },
 });
 
 const normalizeCategory = (category: any): Category => ({
@@ -83,6 +91,7 @@ const normalizeOrder = (order: any): Order => ({
   stripePaymentIntentId: order?.stripePaymentIntentId,
   stripePaymentStatus: order?.stripePaymentStatus,
   stripeClientSecret: order?.stripeClientSecret,
+  stripeAccountId: order?.stripeAccountId,
   paymentAmount: order?.paymentAmount,
   paymentCurrency: order?.paymentCurrency,
 });

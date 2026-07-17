@@ -45,6 +45,24 @@ const authenticate = async (req, res, next) => {
       });
     }
 
+    // ✅ Ensure restaurantId is accessible as a string
+    if (user.restaurantId) {
+      // If restaurantId is an object, extract the id
+      if (typeof user.restaurantId === "object" && user.restaurantId._id) {
+        user.restaurantId = user.restaurantId._id;
+      } else if (
+        typeof user.restaurantId === "object" &&
+        user.restaurantId.id
+      ) {
+        user.restaurantId = user.restaurantId.id;
+      } else if (typeof user.restaurantId === "object") {
+        // Try to convert the object to string using toString or id property
+        user.restaurantId = user.restaurantId.toString
+          ? user.restaurantId.toString()
+          : null;
+      }
+    }
+
     // Attach user to request
     req.user = user;
     next();
