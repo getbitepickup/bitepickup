@@ -1,5 +1,6 @@
 const Order = require("../models/Order");
 const Restaurant = require("../models/Restaurant");
+const User = require("../models/User");
 const {
   generateOrderReference,
   calculateOrderTotals,
@@ -27,6 +28,38 @@ const {
 } = require("./sseController");
 
 /**
+ * Helper function to resolve restaurantId from user object
+ * Handles all possible formats: string, ObjectId, object with _id/id
+ */
+const resolveRestaurantId = (user) => {
+  if (!user) return null;
+
+  // If user has restaurantId directly as string
+  if (typeof user.restaurantId === "string") {
+    return user.restaurantId;
+  }
+
+  // If user has restaurantId as object with _id
+  if (user.restaurantId && typeof user.restaurantId === "object") {
+    if (user.restaurantId._id) {
+      return user.restaurantId._id.toString();
+    }
+    if (user.restaurantId.id) {
+      return user.restaurantId.id.toString();
+    }
+    // Try to convert whole object to string
+    if (
+      user.restaurantId.toString &&
+      user.restaurantId.toString() !== "[object Object]"
+    ) {
+      return user.restaurantId.toString();
+    }
+  }
+
+  return null;
+};
+
+/**
  * @desc    Get all orders (with permission check)
  * @route   GET /api/orders
  * @access  Admin or Restaurant Owner
@@ -36,19 +69,60 @@ exports.getOrders = async (req, res) => {
     const { restaurantId, status, limit = 50, page = 1 } = req.query;
     const skip = (page - 1) * limit;
 
+    // ✅ LOG for debugging
+    console.log("🔍 getOrders called with:", {
+      restaurantId: restaurantId,
+      status: status,
+      userEmail: req.user?.email,
+      userRole: req.user?.role,
+      userRestaurantId: req.user?.restaurantId,
+      userRestaurantIdType: typeof req.user?.restaurantId,
+    });
+
     const filter = {};
 
-    // ✅ LOG the user for debugging
-    console.log(
-      "🔍 getOrders - User:",
-      req.user?.email,
-      "Role:",
-      req.user?.role,
-      "RestaurantId:",
-      req.user?.restaurantId,
-    );
+    // ============================================
+    // STEP 1: RESOLVE THE USER'S RESTAURANT ID
+    // ============================================
+    let userRestaurantId = null;
 
-    // If restaurantId is provided, filter by it
+    if (req.user) {
+      // Try to get restaurantId from user object
+      userRestaurantId = resolveRestaurantId(req.user);
+
+      // If still null and user is restaurant_owner, fetch from database
+      if (!userRestaurantId && req.user.role === "restaurant_owner") {
+        try {
+          const userDoc = await User.findById(req.user._id).populate(
+            "restaurantId",
+          );
+          if (userDoc) {
+            userRestaurantId = resolveRestaurantId(userDoc);
+            // Update req.user for future use
+            if (userRestaurantId) {
+              req.user.restaurantId = userRestaurantId;
+              console.log(
+                "🔄 Fetched restaurantId from database:",
+                userRestaurantId,
+              );
+            }
+          }
+        } catch (err) {
+          console.log(
+            "⚠️ Could not fetch restaurantId from database:",
+            err.message,
+          );
+        }
+      }
+    }
+
+    console.log("🔑 Resolved userRestaurantId:", userRestaurantId);
+
+    // ============================================
+    // STEP 2: BUILD FILTER
+    // ============================================
+
+    // If restaurantId is provided in query params, use it
     if (restaurantId) {
       // Try to find the restaurant by various identifiers
       let restaurantDoc = null;
@@ -69,64 +143,92 @@ exports.getOrders = async (req, res) => {
 
       if (restaurantDoc) {
         filter.restaurantId = restaurantDoc._id;
+        console.log("✅ Found restaurant by ID:", restaurantDoc._id);
       } else {
         filter.restaurantId = restaurantId;
+        console.log("⚠️ Using raw restaurantId:", restaurantId);
       }
     }
 
-    // ✅ PERMISSION CHECK: If user is not admin, they can only see their own restaurant's orders
-    if (req.user && req.user.role !== "admin") {
-      // User must be restaurant owner
-      if (req.user.role !== "restaurant_owner") {
-        console.log("❌ User is not a restaurant owner, role:", req.user.role);
+    // ============================================
+    // STEP 3: APPLY PERMISSION CHECKS
+    // ============================================
+
+    if (req.user) {
+      // Admin can see all orders
+      if (req.user.role === "admin") {
+        console.log("👑 Admin user, no restriction");
+      }
+      // Restaurant owner can only see their own orders
+      else if (req.user.role === "restaurant_owner") {
+        console.log("🔒 Restaurant owner, applying restriction...");
+
+        if (!userRestaurantId) {
+          console.log("❌ User has no restaurantId assigned");
+          return res.status(HTTP_STATUS.FORBIDDEN).json({
+            success: false,
+            message:
+              "You do not have a restaurant assigned to your account. Please contact the administrator.",
+          });
+        }
+
+        const userRestaurantIdStr = userRestaurantId.toString();
+
+        // If filter already has restaurantId, check if user owns it
+        if (filter.restaurantId) {
+          const filterRestaurantIdStr = filter.restaurantId.toString();
+
+          if (filterRestaurantIdStr !== userRestaurantIdStr) {
+            console.log(
+              `❌ Permission denied: user ${userRestaurantIdStr} tried to access ${filterRestaurantIdStr}`,
+            );
+            return res.status(HTTP_STATUS.FORBIDDEN).json({
+              success: false,
+              message:
+                "You do not have permission to view orders for this restaurant",
+            });
+          }
+        } else {
+          // No restaurant filter, restrict to user's restaurant
+          if (mongoose.Types.ObjectId.isValid(userRestaurantIdStr)) {
+            filter.restaurantId = new mongoose.Types.ObjectId(
+              userRestaurantIdStr,
+            );
+          } else {
+            filter.restaurantId = userRestaurantIdStr;
+          }
+          console.log(
+            "✅ Filter set to user's restaurant:",
+            filter.restaurantId,
+          );
+        }
+      } else {
+        // Unknown role
+        console.log("⚠️ Unknown role:", req.user.role);
         return res.status(HTTP_STATUS.FORBIDDEN).json({
           success: false,
           message: "You do not have permission to view orders",
         });
       }
-
-      // Get the user's restaurant ID
-      const userRestaurantId = req.user.restaurantId;
-      if (!userRestaurantId) {
-        console.log("❌ User has no restaurantId assigned");
-        return res.status(HTTP_STATUS.FORBIDDEN).json({
-          success: false,
-          message: "You do not have a restaurant assigned",
-        });
-      }
-
-      const userRestaurantIdStr = userRestaurantId.toString();
-
-      // If filter already has restaurantId, check if user owns it
-      if (filter.restaurantId) {
-        const filterRestaurantIdStr = filter.restaurantId.toString();
-
-        if (userRestaurantIdStr !== filterRestaurantIdStr) {
-          console.log(
-            `❌ User ${userRestaurantIdStr} tried to access ${filterRestaurantIdStr}`,
-          );
-          return res.status(HTTP_STATUS.FORBIDDEN).json({
-            success: false,
-            message:
-              "You do not have permission to view orders for this restaurant",
-          });
-        }
-      } else {
-        // No restaurant filter, restrict to user's restaurant
-        filter.restaurantId = mongoose.Types.ObjectId.isValid(
-          userRestaurantIdStr,
-        )
-          ? new mongoose.Types.ObjectId(userRestaurantIdStr)
-          : userRestaurantIdStr;
-      }
-
-      console.log(
-        "✅ Filter applied for restaurant owner:",
-        filter.restaurantId,
-      );
+    } else {
+      // No user (should not happen with auth middleware)
+      console.log("⚠️ No user object found");
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+        success: false,
+        message: "Authentication required",
+      });
     }
 
-    if (status) filter.status = status;
+    // Add status filter if provided
+    if (status) {
+      filter.status = status;
+    }
+
+    console.log("📊 Final filter:", JSON.stringify(filter));
+
+    // ============================================
+    // STEP 4: FETCH ORDERS
+    // ============================================
 
     const orders = await Order.find(filter)
       .sort({ createdAt: -1 })
@@ -149,6 +251,7 @@ exports.getOrders = async (req, res) => {
     });
   } catch (error) {
     logger.error(`Get orders error: ${error.message}`);
+    console.error("❌ Get orders error details:", error);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
       message: "Failed to fetch orders",
@@ -200,9 +303,10 @@ exports.getOrdersByRestaurant = async (req, res) => {
       });
     }
 
-    // ✅ PERMISSION CHECK: If user is not admin, check if they own this restaurant
+    // ✅ PERMISSION CHECK
     if (req.user && req.user.role !== "admin") {
-      const userRestaurantId = req.user.restaurantId;
+      const userRestaurantId = resolveRestaurantId(req.user);
+
       if (!userRestaurantId) {
         return res.status(HTTP_STATUS.FORBIDDEN).json({
           success: false,
@@ -210,8 +314,8 @@ exports.getOrdersByRestaurant = async (req, res) => {
         });
       }
 
-      const userRestaurantIdStr = userRestaurantId.toString();
       const requestedRestaurantIdStr = restaurantDoc._id.toString();
+      const userRestaurantIdStr = userRestaurantId.toString();
 
       if (userRestaurantIdStr !== requestedRestaurantIdStr) {
         return res.status(HTTP_STATUS.FORBIDDEN).json({
@@ -585,7 +689,8 @@ exports.updateOrderStatus = async (req, res) => {
 
     // ✅ Check if user has permission to update this order
     if (req.user && req.user.role !== "admin") {
-      const userRestaurantId = req.user.restaurantId;
+      const userRestaurantId = resolveRestaurantId(req.user);
+
       if (!userRestaurantId) {
         return res.status(HTTP_STATUS.FORBIDDEN).json({
           success: false,
@@ -593,8 +698,8 @@ exports.updateOrderStatus = async (req, res) => {
         });
       }
 
-      const userRestaurantIdStr = userRestaurantId.toString();
       const orderRestaurantIdStr = order.restaurantId.toString();
+      const userRestaurantIdStr = userRestaurantId.toString();
 
       if (userRestaurantIdStr !== orderRestaurantIdStr) {
         return res.status(HTTP_STATUS.FORBIDDEN).json({
@@ -693,7 +798,8 @@ exports.getOrderStatistics = async (req, res) => {
 
     // ✅ Check if user has permission to view this restaurant's statistics
     if (req.user && req.user.role !== "admin") {
-      const userRestaurantId = req.user.restaurantId;
+      const userRestaurantId = resolveRestaurantId(req.user);
+
       if (!userRestaurantId) {
         return res.status(HTTP_STATUS.FORBIDDEN).json({
           success: false,
@@ -701,8 +807,8 @@ exports.getOrderStatistics = async (req, res) => {
         });
       }
 
-      const userRestaurantIdStr = userRestaurantId.toString();
       const requestedRestaurantIdStr = restaurantDoc._id.toString();
+      const userRestaurantIdStr = userRestaurantId.toString();
 
       if (userRestaurantIdStr !== requestedRestaurantIdStr) {
         return res.status(HTTP_STATUS.FORBIDDEN).json({

@@ -30,9 +30,7 @@ const authenticate = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // Find user with restaurantId populated
-    const user = await User.findById(decoded.id)
-      .select("-password")
-      .populate("restaurantId");
+    const user = await User.findById(decoded.id).select("-password");
     if (!user) {
       return res.status(HTTP_STATUS.UNAUTHORIZED).json({
         success: false,
@@ -47,36 +45,41 @@ const authenticate = async (req, res, next) => {
       });
     }
 
+    // ✅ Convert user to plain object
+    const userObj = user.toObject ? user.toObject() : { ...user };
+
     // ✅ Ensure restaurantId is properly resolved to a string
     let restaurantId = null;
-    if (user.restaurantId) {
-      if (typeof user.restaurantId === "object" && user.restaurantId._id) {
-        restaurantId = user.restaurantId._id.toString();
+    if (userObj.restaurantId) {
+      if (typeof userObj.restaurantId === "string") {
+        restaurantId = userObj.restaurantId;
       } else if (
-        typeof user.restaurantId === "object" &&
-        user.restaurantId.id
+        typeof userObj.restaurantId === "object" &&
+        userObj.restaurantId._id
       ) {
-        restaurantId = user.restaurantId.id.toString();
-      } else if (typeof user.restaurantId === "string") {
-        restaurantId = user.restaurantId;
+        restaurantId = userObj.restaurantId._id.toString();
       } else if (
-        typeof user.restaurantId === "object" &&
-        user.restaurantId.toString
+        typeof userObj.restaurantId === "object" &&
+        userObj.restaurantId.id
       ) {
-        restaurantId = user.restaurantId.toString();
+        restaurantId = userObj.restaurantId.id.toString();
+      } else if (typeof userObj.restaurantId === "object") {
+        restaurantId = userObj.restaurantId.toString();
       }
     }
 
-    // Create a clean user object for req.user
-    const userObj = user.toObject ? user.toObject() : { ...user };
     userObj.restaurantId = restaurantId;
+
+    // ✅ Log authentication success
+    console.log("✅ Auth middleware - User authenticated:", {
+      id: userObj._id,
+      email: userObj.email,
+      role: userObj.role,
+      restaurantId: restaurantId,
+    });
 
     // Attach user to request
     req.user = userObj;
-
-    logger.debug(
-      `✅ Authenticated user: ${user.email}, role: ${user.role}, restaurantId: ${restaurantId}`,
-    );
 
     next();
   } catch (error) {
