@@ -29,8 +29,10 @@ const authenticate = async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Find user
-    const user = await User.findById(decoded.id).select("-password");
+    // Find user with restaurantId populated
+    const user = await User.findById(decoded.id)
+      .select("-password")
+      .populate("restaurantId");
     if (!user) {
       return res.status(HTTP_STATUS.UNAUTHORIZED).json({
         success: false,
@@ -45,26 +47,37 @@ const authenticate = async (req, res, next) => {
       });
     }
 
-    // ✅ Ensure restaurantId is accessible as a string
+    // ✅ Ensure restaurantId is properly resolved to a string
+    let restaurantId = null;
     if (user.restaurantId) {
-      // If restaurantId is an object, extract the id
       if (typeof user.restaurantId === "object" && user.restaurantId._id) {
-        user.restaurantId = user.restaurantId._id;
+        restaurantId = user.restaurantId._id.toString();
       } else if (
         typeof user.restaurantId === "object" &&
         user.restaurantId.id
       ) {
-        user.restaurantId = user.restaurantId.id;
-      } else if (typeof user.restaurantId === "object") {
-        // Try to convert the object to string using toString or id property
-        user.restaurantId = user.restaurantId.toString
-          ? user.restaurantId.toString()
-          : null;
+        restaurantId = user.restaurantId.id.toString();
+      } else if (typeof user.restaurantId === "string") {
+        restaurantId = user.restaurantId;
+      } else if (
+        typeof user.restaurantId === "object" &&
+        user.restaurantId.toString
+      ) {
+        restaurantId = user.restaurantId.toString();
       }
     }
 
+    // Create a clean user object for req.user
+    const userObj = user.toObject ? user.toObject() : { ...user };
+    userObj.restaurantId = restaurantId;
+
     // Attach user to request
-    req.user = user;
+    req.user = userObj;
+
+    logger.debug(
+      `✅ Authenticated user: ${user.email}, role: ${user.role}, restaurantId: ${restaurantId}`,
+    );
+
     next();
   } catch (error) {
     if (error.name === "JsonWebTokenError") {

@@ -38,6 +38,16 @@ exports.getOrders = async (req, res) => {
 
     const filter = {};
 
+    // ✅ LOG the user for debugging
+    console.log(
+      "🔍 getOrders - User:",
+      req.user?.email,
+      "Role:",
+      req.user?.role,
+      "RestaurantId:",
+      req.user?.restaurantId,
+    );
+
     // If restaurantId is provided, filter by it
     if (restaurantId) {
       // Try to find the restaurant by various identifiers
@@ -68,6 +78,7 @@ exports.getOrders = async (req, res) => {
     if (req.user && req.user.role !== "admin") {
       // User must be restaurant owner
       if (req.user.role !== "restaurant_owner") {
+        console.log("❌ User is not a restaurant owner, role:", req.user.role);
         return res.status(HTTP_STATUS.FORBIDDEN).json({
           success: false,
           message: "You do not have permission to view orders",
@@ -77,18 +88,23 @@ exports.getOrders = async (req, res) => {
       // Get the user's restaurant ID
       const userRestaurantId = req.user.restaurantId;
       if (!userRestaurantId) {
+        console.log("❌ User has no restaurantId assigned");
         return res.status(HTTP_STATUS.FORBIDDEN).json({
           success: false,
           message: "You do not have a restaurant assigned",
         });
       }
 
+      const userRestaurantIdStr = userRestaurantId.toString();
+
       // If filter already has restaurantId, check if user owns it
       if (filter.restaurantId) {
-        const userRestaurantIdStr = userRestaurantId.toString();
         const filterRestaurantIdStr = filter.restaurantId.toString();
 
         if (userRestaurantIdStr !== filterRestaurantIdStr) {
+          console.log(
+            `❌ User ${userRestaurantIdStr} tried to access ${filterRestaurantIdStr}`,
+          );
           return res.status(HTTP_STATUS.FORBIDDEN).json({
             success: false,
             message:
@@ -97,8 +113,17 @@ exports.getOrders = async (req, res) => {
         }
       } else {
         // No restaurant filter, restrict to user's restaurant
-        filter.restaurantId = userRestaurantId;
+        filter.restaurantId = mongoose.Types.ObjectId.isValid(
+          userRestaurantIdStr,
+        )
+          ? new mongoose.Types.ObjectId(userRestaurantIdStr)
+          : userRestaurantIdStr;
       }
+
+      console.log(
+        "✅ Filter applied for restaurant owner:",
+        filter.restaurantId,
+      );
     }
 
     if (status) filter.status = status;
@@ -109,6 +134,8 @@ exports.getOrders = async (req, res) => {
       .skip(skip);
 
     const total = await Order.countDocuments(filter);
+
+    console.log(`📊 Found ${orders.length} orders for user ${req.user?.email}`);
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
