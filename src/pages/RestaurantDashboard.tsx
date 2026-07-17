@@ -320,7 +320,7 @@ export default function RestaurantDashboard() {
           setMenuItems(menuData);
           console.log("🍽️ Menu items loaded:", menuData.length);
 
-          const ordersData = await getOrders(restaurantId);
+          const ordersData = await getOrders({ restaurantId: restaurantId });
           setOrders(ordersData);
           console.log("📦 Orders loaded:", ordersData.length);
 
@@ -368,7 +368,9 @@ export default function RestaurantDashboard() {
       if (!activeRestaurantId) return;
 
       try {
-        const freshOrders = await getOrders(activeRestaurantId);
+        const freshOrders = await getOrders({
+          restaurantId: activeRestaurantId,
+        });
         const currentCount = freshOrders.length;
 
         // If we have more orders than before, there's a new one
@@ -448,7 +450,7 @@ export default function RestaurantDashboard() {
   const handleManualRefresh = () => {
     console.log("📡 Manual refresh triggered");
     if (activeRestaurantId) {
-      getOrders(activeRestaurantId)
+      getOrders({ restaurantId: activeRestaurantId })
         .then((freshOrders) => {
           setOrders(freshOrders);
           lastOrderCountRef.current = freshOrders.length;
