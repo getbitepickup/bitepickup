@@ -493,7 +493,7 @@ export default function RestaurantDashboard() {
       return;
     }
 
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("accessToken");
     if (!token) {
       alert("Please login first");
       return;
@@ -541,7 +541,7 @@ export default function RestaurantDashboard() {
   const checkStripeStatus = async () => {
     if (!currentRestaurant || !currentRestaurant.id) return;
 
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("accessToken");
     if (!token) return;
 
     try {
