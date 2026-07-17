@@ -128,4 +128,18 @@ router.get(
   orderController.getOrderStatistics
 );
 
+/**
+ * @route   GET /api/orders/payment/:orderId
+ * @desc    Get payment status for an order
+ * @access  Public
+ */
+router.get(
+  '/payment/:orderId',
+  [
+    param('orderId').isMongoId().withMessage('Invalid order ID'),
+  ],
+  validateRequest,
+  orderController.getPaymentStatus
+);
+
 module.exports = router;
