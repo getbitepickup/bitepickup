@@ -484,7 +484,7 @@ export default function RestaurantDashboard() {
   }, [activeRestaurantId, isAuthenticated]);
 
   // ============================================
-  // STRIPE CONNECT FUNCTIONS
+  // STRIPE CONNECT FUNCTIONS - FIXED
   // ============================================
 
   const handleConnectStripe = async () => {
@@ -493,6 +493,7 @@ export default function RestaurantDashboard() {
       return;
     }
 
+    // ✅ FIX 1: Use 'accessToken' instead of 'token'
     const token = localStorage.getItem("accessToken");
     if (!token) {
       alert("Please login first");
@@ -503,11 +504,18 @@ export default function RestaurantDashboard() {
       setIsCheckingStripe(true);
       setStripeError(null);
 
+      // ✅ FIX 2: Clean the API URL to avoid double /api/
       const API_URL =
         import.meta.env.VITE_API_URL ||
         "https://bitepickup-backend.onrender.com";
+      const cleanApiUrl = API_URL.replace(/\/+$/, "");
+      // If the URL already ends with /api, use it as is, otherwise add /api
+      const baseUrl = cleanApiUrl.endsWith("/api")
+        ? cleanApiUrl
+        : `${cleanApiUrl}/api`;
+
       const response = await fetch(
-        `${API_URL}/api/stripe/connect/${currentRestaurant.id}`,
+        `${baseUrl}/stripe/connect/${currentRestaurant.id}`,
         {
           method: "GET",
           headers: {
@@ -541,16 +549,24 @@ export default function RestaurantDashboard() {
   const checkStripeStatus = async () => {
     if (!currentRestaurant || !currentRestaurant.id) return;
 
+    // ✅ FIX 1: Use 'accessToken' instead of 'token'
     const token = localStorage.getItem("accessToken");
     if (!token) return;
 
     try {
       setIsCheckingStripe(true);
+
+      // ✅ FIX 2: Clean the API URL to avoid double /api/
       const API_URL =
         import.meta.env.VITE_API_URL ||
         "https://bitepickup-backend.onrender.com";
+      const cleanApiUrl = API_URL.replace(/\/+$/, "");
+      const baseUrl = cleanApiUrl.endsWith("/api")
+        ? cleanApiUrl
+        : `${cleanApiUrl}/api`;
+
       const response = await fetch(
-        `${API_URL}/api/stripe/status/${currentRestaurant.id}`,
+        `${baseUrl}/stripe/status/${currentRestaurant.id}`,
         {
           method: "GET",
           headers: {
@@ -2173,6 +2189,7 @@ export default function RestaurantDashboard() {
               exit={{ opacity: 0, y: -10 }}
               className="max-w-4xl mx-auto space-y-8"
             >
+              {/* ✅ FIX 3: Stripe Connect card moved OUTSIDE the form */}
               <form onSubmit={handleSaveSettings} className="space-y-6">
                 {/* 1. Pause Ordering Settings Card */}
                 <div className="bg-white border border-[#E7C7CF] rounded-2xl p-6 sm:p-8 space-y-4">
@@ -2526,175 +2543,6 @@ export default function RestaurantDashboard() {
                   </div>
                 </div>
 
-                {/* ✅ STRIPE CONNECT CARD */}
-                <div className="bg-white border border-[#E7C7CF] rounded-2xl p-6 sm:p-8 space-y-6">
-                  <div>
-                    <h3 className="text-base font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] flex items-center gap-2">
-                      <CreditCard className="w-5 h-5 text-[#C42348]" />
-                      <span>Stripe Payment Connect</span>
-                    </h3>
-                    <p className="text-xs text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
-                      Connect your Stripe account to receive online payments
-                      directly from customers. No platform fees or commissions —
-                      you receive the full amount.
-                    </p>
-                  </div>
-
-                  <div className="bg-[#FAF3EA] rounded-xl p-4 border border-[#E7C7CF]">
-                    {/* Status Display */}
-                    <div className="flex items-center justify-between flex-wrap gap-4">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-3 h-3 rounded-full ${stripeStatus.isConnected ? "bg-emerald-500" : "bg-[#8C6B76]"}`}
-                        ></div>
-                        <span className="font-semibold text-sm font-['Inter','Segoe UI',system-ui,sans-serif]">
-                          {isCheckingStripe ? (
-                            <span className="text-[#8C6B76]">
-                              Checking status...
-                            </span>
-                          ) : stripeStatus.isConnected ? (
-                            <span className="text-emerald-600 flex items-center gap-1.5">
-                              <CheckCircle className="w-4 h-4" /> Connected
-                            </span>
-                          ) : stripeStatus.status === "onboarding" ? (
-                            <span className="text-[#E8A13B] flex items-center gap-1.5">
-                              <AlertCircle className="w-4 h-4" /> Onboarding in
-                              progress
-                            </span>
-                          ) : (
-                            <span className="text-[#8C6B76]">
-                              Not connected
-                            </span>
-                          )}
-                        </span>
-                      </div>
-
-                      {stripeStatus.isConnected && stripeStatus.accountId && (
-                        <span className="text-[10px] font-mono text-[#8C6B76] bg-white px-2 py-1 rounded border border-[#E7C7CF]">
-                          ID: {stripeStatus.accountId.slice(0, 8)}...
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Status Details */}
-                    {stripeStatus.isConnected && (
-                      <div className="mt-3 grid grid-cols-2 gap-2 text-[10px] text-[#8C6B76]">
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${stripeStatus.chargesEnabled ? "bg-emerald-500" : "bg-[#C42348]"}`}
-                          ></span>
-                          Charges:{" "}
-                          {stripeStatus.chargesEnabled
-                            ? "✅ Enabled"
-                            : "⏳ Pending"}
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${stripeStatus.payoutsEnabled ? "bg-emerald-500" : "bg-[#C42348]"}`}
-                          ></span>
-                          Payouts:{" "}
-                          {stripeStatus.payoutsEnabled
-                            ? "✅ Enabled"
-                            : "⏳ Pending"}
-                        </div>
-                      </div>
-                    )}
-
-                    {stripeError && (
-                      <div className="mt-3 bg-[#C42348]/10 border border-[#C42348]/20 text-[#C42348] p-3 rounded-xl text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
-                        ⚠️ {stripeError}
-                      </div>
-                    )}
-
-                    {/* Info Messages */}
-                    {!stripeStatus.isConnected &&
-                      stripeStatus.status !== "onboarding" && (
-                        <div className="mt-3 bg-blue-50 border border-blue-100 p-3 rounded-xl text-[10px] text-blue-700 font-['Inter','Segoe UI',system-ui,sans-serif]">
-                          <p className="font-semibold">
-                            💡 Why connect Stripe?
-                          </p>
-                          <ul className="mt-1 space-y-0.5 list-disc list-inside">
-                            <li>
-                              Receive online payments directly to your bank
-                              account
-                            </li>
-                            <li>Zero platform fees — you keep 100%</li>
-                            <li>
-                              Secure payment processing for your customers
-                            </li>
-                          </ul>
-                        </div>
-                      )}
-
-                    {stripeStatus.isConnected &&
-                      stripeStatus.detailsSubmitted === false && (
-                        <div className="mt-3 bg-[#E8A13B]/10 border border-[#E8A13B]/20 text-[#E8A13B] p-3 rounded-xl text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
-                          ⚠️ Please complete your Stripe account setup by
-                          submitting your business details.
-                          <button
-                            onClick={() =>
-                              window.open(
-                                "https://dashboard.stripe.com/account",
-                                "_blank",
-                              )
-                            }
-                            className="block mt-1 text-[#C42348] font-semibold hover:underline flex items-center gap-1"
-                          >
-                            Complete setup on Stripe{" "}
-                            <ExternalLink className="w-3 h-3" />
-                          </button>
-                        </div>
-                      )}
-
-                    {/* Action Buttons */}
-                    <div className="mt-4 flex flex-wrap gap-3">
-                      {!stripeStatus.isConnected ? (
-                        <button
-                          onClick={handleConnectStripe}
-                          disabled={isCheckingStripe}
-                          className={`bg-[#C42348] hover:bg-[#E84C6B] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 font-['Inter','Segoe UI',system-ui,sans-serif] ${
-                            isCheckingStripe
-                              ? "opacity-50 cursor-not-allowed"
-                              : ""
-                          }`}
-                        >
-                          <CreditCard className="w-4 h-4" />
-                          {isCheckingStripe
-                            ? "Connecting..."
-                            : "Connect Stripe Account"}
-                        </button>
-                      ) : (
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() =>
-                              window.open(
-                                "https://dashboard.stripe.com",
-                                "_blank",
-                              )
-                            }
-                            className="bg-[#FAF3EA] hover:bg-[#E7C7CF] text-[#33101F] px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 font-['Inter','Segoe UI',system-ui,sans-serif]"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                            Go to Stripe Dashboard
-                          </button>
-                          <button
-                            onClick={checkStripeStatus}
-                            disabled={isCheckingStripe}
-                            className="bg-[#FAF3EA] hover:bg-[#E7C7CF] text-[#8C6B76] px-4 py-2.5 rounded-xl text-xs font-bold transition-all font-['Inter','Segoe UI',system-ui,sans-serif]"
-                          >
-                            Refresh Status
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    <p className="text-[10px] text-[#8C6B76] mt-3 font-['Inter','Segoe UI',system-ui,sans-serif]">
-                      🔒 Your payment data is secure. Stripe handles all payment
-                      processing and compliance.
-                    </p>
-                  </div>
-                </div>
-
                 <div className="flex justify-end pt-4 border-t border-[#E7C7CF]">
                   <button
                     id="save-restaurant-settings-btn"
@@ -2706,6 +2554,169 @@ export default function RestaurantDashboard() {
                   </button>
                 </div>
               </form>
+
+              {/* ✅ FIX 3: STRIPE CONNECT CARD - MOVED OUTSIDE THE FORM */}
+              <div className="bg-white border border-[#E7C7CF] rounded-2xl p-6 sm:p-8 space-y-6">
+                <div>
+                  <h3 className="text-base font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] flex items-center gap-2">
+                    <CreditCard className="w-5 h-5 text-[#C42348]" />
+                    <span>Stripe Payment Connect</span>
+                  </h3>
+                  <p className="text-xs text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
+                    Connect your Stripe account to receive online payments
+                    directly from customers. No platform fees or commissions —
+                    you receive the full amount.
+                  </p>
+                </div>
+
+                <div className="bg-[#FAF3EA] rounded-xl p-4 border border-[#E7C7CF]">
+                  {/* Status Display */}
+                  <div className="flex items-center justify-between flex-wrap gap-4">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-3 h-3 rounded-full ${stripeStatus.isConnected ? "bg-emerald-500" : "bg-[#8C6B76]"}`}
+                      ></div>
+                      <span className="font-semibold text-sm font-['Inter','Segoe UI',system-ui,sans-serif]">
+                        {isCheckingStripe ? (
+                          <span className="text-[#8C6B76]">
+                            Checking status...
+                          </span>
+                        ) : stripeStatus.isConnected ? (
+                          <span className="text-emerald-600 flex items-center gap-1.5">
+                            <CheckCircle className="w-4 h-4" /> Connected
+                          </span>
+                        ) : stripeStatus.status === "onboarding" ? (
+                          <span className="text-[#E8A13B] flex items-center gap-1.5">
+                            <AlertCircle className="w-4 h-4" /> Onboarding in
+                            progress
+                          </span>
+                        ) : (
+                          <span className="text-[#8C6B76]">Not connected</span>
+                        )}
+                      </span>
+                    </div>
+
+                    {stripeStatus.isConnected && stripeStatus.accountId && (
+                      <span className="text-[10px] font-mono text-[#8C6B76] bg-white px-2 py-1 rounded border border-[#E7C7CF]">
+                        ID: {stripeStatus.accountId.slice(0, 8)}...
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Status Details */}
+                  {stripeStatus.isConnected && (
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-[10px] text-[#8C6B76]">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${stripeStatus.chargesEnabled ? "bg-emerald-500" : "bg-[#C42348]"}`}
+                        ></span>
+                        Charges:{" "}
+                        {stripeStatus.chargesEnabled
+                          ? "✅ Enabled"
+                          : "⏳ Pending"}
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${stripeStatus.payoutsEnabled ? "bg-emerald-500" : "bg-[#C42348]"}`}
+                        ></span>
+                        Payouts:{" "}
+                        {stripeStatus.payoutsEnabled
+                          ? "✅ Enabled"
+                          : "⏳ Pending"}
+                      </div>
+                    </div>
+                  )}
+
+                  {stripeError && (
+                    <div className="mt-3 bg-[#C42348]/10 border border-[#C42348]/20 text-[#C42348] p-3 rounded-xl text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
+                      ⚠️ {stripeError}
+                    </div>
+                  )}
+
+                  {/* Info Messages */}
+                  {!stripeStatus.isConnected &&
+                    stripeStatus.status !== "onboarding" && (
+                      <div className="mt-3 bg-blue-50 border border-blue-100 p-3 rounded-xl text-[10px] text-blue-700 font-['Inter','Segoe UI',system-ui,sans-serif]">
+                        <p className="font-semibold">💡 Why connect Stripe?</p>
+                        <ul className="mt-1 space-y-0.5 list-disc list-inside">
+                          <li>
+                            Receive online payments directly to your bank
+                            account
+                          </li>
+                          <li>Zero platform fees — you keep 100%</li>
+                          <li>Secure payment processing for your customers</li>
+                        </ul>
+                      </div>
+                    )}
+
+                  {stripeStatus.isConnected &&
+                    stripeStatus.detailsSubmitted === false && (
+                      <div className="mt-3 bg-[#E8A13B]/10 border border-[#E8A13B]/20 text-[#E8A13B] p-3 rounded-xl text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
+                        ⚠️ Please complete your Stripe account setup by
+                        submitting your business details.
+                        <button
+                          onClick={() =>
+                            window.open(
+                              "https://dashboard.stripe.com/account",
+                              "_blank",
+                            )
+                          }
+                          className="block mt-1 text-[#C42348] font-semibold hover:underline flex items-center gap-1"
+                        >
+                          Complete setup on Stripe{" "}
+                          <ExternalLink className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+
+                  {/* Action Buttons */}
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    {!stripeStatus.isConnected ? (
+                      <button
+                        onClick={handleConnectStripe}
+                        disabled={isCheckingStripe}
+                        className={`bg-[#C42348] hover:bg-[#E84C6B] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 font-['Inter','Segoe UI',system-ui,sans-serif] ${
+                          isCheckingStripe
+                            ? "opacity-50 cursor-not-allowed"
+                            : ""
+                        }`}
+                      >
+                        <CreditCard className="w-4 h-4" />
+                        {isCheckingStripe
+                          ? "Connecting..."
+                          : "Connect Stripe Account"}
+                      </button>
+                    ) : (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() =>
+                            window.open(
+                              "https://dashboard.stripe.com",
+                              "_blank",
+                            )
+                          }
+                          className="bg-[#FAF3EA] hover:bg-[#E7C7CF] text-[#33101F] px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 font-['Inter','Segoe UI',system-ui,sans-serif]"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          Go to Stripe Dashboard
+                        </button>
+                        <button
+                          onClick={checkStripeStatus}
+                          disabled={isCheckingStripe}
+                          className="bg-[#FAF3EA] hover:bg-[#E7C7CF] text-[#8C6B76] px-4 py-2.5 rounded-xl text-xs font-bold transition-all font-['Inter','Segoe UI',system-ui,sans-serif]"
+                        >
+                          Refresh Status
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <p className="text-[10px] text-[#8C6B76] mt-3 font-['Inter','Segoe UI',system-ui,sans-serif]">
+                    🔒 Your payment data is secure. Stripe handles all payment
+                    processing and compliance.
+                  </p>
+                </div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
