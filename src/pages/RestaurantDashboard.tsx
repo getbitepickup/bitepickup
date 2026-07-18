@@ -645,9 +645,7 @@ export default function RestaurantDashboard() {
     // Validate file type
     const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
     if (!allowedTypes.includes(file.type)) {
-      onError(
-        "Invalid file type. Only JPEG, PNG, GIF, and WEBP are allowed.",
-      );
+      onError("Invalid file type. Only JPEG, PNG, GIF, and WEBP are allowed.");
       return;
     }
 
@@ -716,7 +714,9 @@ export default function RestaurantDashboard() {
           data.logo = url;
           localStorage.setItem("currentRestaurant", JSON.stringify(data));
         }
-        alert("✅ Logo uploaded successfully! Save your profile to apply changes.");
+        alert(
+          "✅ Logo uploaded successfully! Save your profile to apply changes.",
+        );
       },
       (error) => {
         setUploadError(error);
@@ -745,7 +745,9 @@ export default function RestaurantDashboard() {
             r.id === currentRestaurant.id ? { ...r, coverImage: url } : r,
           ),
         );
-        alert("✅ Cover image uploaded successfully! Save your profile to apply changes.");
+        alert(
+          "✅ Cover image uploaded successfully! Save your profile to apply changes.",
+        );
       },
       (error) => {
         setUploadError(error);
@@ -766,84 +768,34 @@ export default function RestaurantDashboard() {
     setUploadingItemImage(true);
     setUploadError(null);
 
-    // We need to create the menu item first to get an ID, then upload the image
-    // Or we can upload and then update the menu item
-    // For simplicity, we'll upload and then update the menu item
-
-    // First, create or get the menu item ID
-    const menuItemId = editingItemId || "temp";
-    
-    // If it's a new item, we need to create it first without image
+    // ✅ FIX: Only upload image if we're editing an existing item
+    // For new items, the image will be uploaded after the item is saved
     if (!editingItemId) {
-      // Create the menu item first
-      const priceNum = parseFloat(itemForm.price);
-      if (isNaN(priceNum) || priceNum < 0) {
-        alert("Please enter a valid price first");
-        setUploadingItemImage(false);
-        e.target.value = "";
-        return;
-      }
-
-      const dataPayload = {
-        restaurantId: currentRestaurant!.id,
-        categoryId: itemForm.categoryId,
-        name: itemForm.name.trim() || "Temporary Item",
-        description: itemForm.description ? itemForm.description.trim() : "",
-        price: priceNum,
-        image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80",
-        availability: itemForm.availability || "available",
-        isAvailable: itemForm.availability !== "hidden",
-      };
-
-      try {
-        const result = await addMenuItem(dataPayload);
-        const newItemId = result.data.id || result.data._id;
-        setEditingItemId(newItemId);
-        
-        // Now upload the image for the newly created item
-        await handleImageUpload(
-          file,
-          `/upload/menu-item/${newItemId}`,
-          (url) => {
-            setItemForm((prev) => ({ ...prev, image: url }));
-            // Update the menu item in the list
-            setMenuItems((prev) =>
-              prev.map((item) =>
-                item.id === newItemId ? { ...item, image: url } : item,
-              ),
-            );
-            alert("✅ Menu item image uploaded successfully!");
-          },
-          (error) => {
-            setUploadError(error);
-            alert(`❌ Upload failed: ${error}`);
-          },
-        );
-      } catch (error) {
-        console.error("Failed to create menu item:", error);
-        alert("Failed to create menu item. Please try again.");
-      }
-    } else {
-      // Upload image for existing menu item
-      await handleImageUpload(
-        file,
-        `/upload/menu-item/${editingItemId}`,
-        (url) => {
-          setItemForm((prev) => ({ ...prev, image: url }));
-          // Update the menu item in the list
-          setMenuItems((prev) =>
-            prev.map((item) =>
-              item.id === editingItemId ? { ...item, image: url } : item,
-            ),
-          );
-          alert("✅ Menu item image uploaded successfully!");
-        },
-        (error) => {
-          setUploadError(error);
-          alert(`❌ Upload failed: ${error}`);
-        },
-      );
+      alert("Please save the menu item first, then upload an image.");
+      setUploadingItemImage(false);
+      e.target.value = "";
+      return;
     }
+
+    // Upload image for existing menu item
+    await handleImageUpload(
+      file,
+      `/upload/menu-item/${editingItemId}`,
+      (url) => {
+        setItemForm((prev) => ({ ...prev, image: url }));
+        // Update the menu item in the list
+        setMenuItems((prev) =>
+          prev.map((item) =>
+            item.id === editingItemId ? { ...item, image: url } : item,
+          ),
+        );
+        alert("✅ Menu item image uploaded successfully!");
+      },
+      (error) => {
+        setUploadError(error);
+        alert(`❌ Upload failed: ${error}`);
+      },
+    );
 
     setUploadingItemImage(false);
     e.target.value = "";
@@ -2434,7 +2386,9 @@ export default function RestaurantDashboard() {
                             className="hidden"
                             disabled={uploadingLogo}
                           />
-                          <div className={`bg-[#C42348] hover:bg-[#E84C6B] text-white px-3 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-1 ${uploadingLogo ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                          <div
+                            className={`bg-[#C42348] hover:bg-[#E84C6B] text-white px-3 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-1 ${uploadingLogo ? "opacity-50 cursor-not-allowed" : ""}`}
+                          >
                             {uploadingLogo ? (
                               <>
                                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -2450,7 +2404,8 @@ export default function RestaurantDashboard() {
                         </label>
                       </div>
                       <p className="text-[10px] text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
-                        Upload a logo or enter a URL. Max 5MB (JPG, PNG, GIF, WEBP).
+                        Upload a logo or enter a URL. Max 5MB (JPG, PNG, GIF,
+                        WEBP).
                       </p>
                     </div>
 
@@ -2480,7 +2435,9 @@ export default function RestaurantDashboard() {
                             className="hidden"
                             disabled={uploadingCover}
                           />
-                          <div className={`bg-[#C42348] hover:bg-[#E84C6B] text-white px-3 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-1 ${uploadingCover ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                          <div
+                            className={`bg-[#C42348] hover:bg-[#E84C6B] text-white px-3 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-1 ${uploadingCover ? "opacity-50 cursor-not-allowed" : ""}`}
+                          >
                             {uploadingCover ? (
                               <>
                                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -2496,7 +2453,8 @@ export default function RestaurantDashboard() {
                         </label>
                       </div>
                       <p className="text-[10px] text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
-                        Upload a cover image or enter a URL. Max 5MB (JPG, PNG, GIF, WEBP).
+                        Upload a cover image or enter a URL. Max 5MB (JPG, PNG,
+                        GIF, WEBP).
                       </p>
                     </div>
                   </div>
@@ -3143,7 +3101,9 @@ export default function RestaurantDashboard() {
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
                     <span className="text-[#8C6B76]">Subtotal</span>
-                    <span>${receiptOrder.totalPrice?.toFixed(2) || "0.00"}</span>
+                    <span>
+                      ${receiptOrder.totalPrice?.toFixed(2) || "0.00"}
+                    </span>
                   </div>
                   {receiptOrder.taxAmount && receiptOrder.taxAmount > 0 && (
                     <div className="flex justify-between text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
@@ -3159,7 +3119,9 @@ export default function RestaurantDashboard() {
                   )}
                   <div className="flex justify-between text-sm font-bold text-[#33101F] pt-1 border-t border-[#E7C7CF] font-['Baloo_2','Trebuchet_MS',sans-serif]">
                     <span>Total</span>
-                    <span>${receiptOrder.totalPrice?.toFixed(2) || "0.00"}</span>
+                    <span>
+                      ${receiptOrder.totalPrice?.toFixed(2) || "0.00"}
+                    </span>
                   </div>
                 </div>
 
@@ -3364,7 +3326,10 @@ export default function RestaurantDashboard() {
                     type="text"
                     value={itemForm.image}
                     onChange={(e) =>
-                      setItemForm((prev) => ({ ...prev, image: e.target.value }))
+                      setItemForm((prev) => ({
+                        ...prev,
+                        image: e.target.value,
+                      }))
                     }
                     placeholder="https://images.unsplash.com/..."
                     className="flex-1 px-3.5 py-2 bg-[#FAF3EA] border border-[#E7C7CF] focus:border-[#C42348] rounded-xl focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif]"
@@ -3377,7 +3342,9 @@ export default function RestaurantDashboard() {
                       className="hidden"
                       disabled={uploadingItemImage}
                     />
-                    <div className={`bg-[#C42348] hover:bg-[#E84C6B] text-white px-3 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-1 whitespace-nowrap ${uploadingItemImage ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                    <div
+                      className={`bg-[#C42348] hover:bg-[#E84C6B] text-white px-3 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-1 whitespace-nowrap ${uploadingItemImage ? "opacity-50 cursor-not-allowed" : ""}`}
+                    >
                       {uploadingItemImage ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />

@@ -31,38 +31,28 @@ import {
   setCurrentRestaurantId,
 } from "../store/apiStore";
 import { Restaurant, Category, MenuItem, CartItem, Order } from "../types";
-import {
-  Elements,
-  PaymentElement,
-  useStripe,
-  useElements,
-  CardElement,
-  PaymentRequestButtonElement,
-} from "@stripe/react-stripe-js";
+import { Elements, PaymentElement, useStripe, useElements, CardElement, PaymentRequestButtonElement } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 
 // Load Stripe with publishable key
-const stripePromise = loadStripe(
-  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ||
-    "pk_test_51TtmeRCut5206diIEYVMUx93Qc5b2v1LLSJRUe2rfWEzcqnm1LzPg7l189eAkr3hgKVnYbxcqBRGbOmttygrK0gG00XSNo3T6C",
-);
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_51TtmeRCut5206diIEYVMUx93Qc5b2v1LLSJRUe2rfWEzcqnm1LzPg7l189eAkr3hgKVnYbxcqBRGbOmttygrK0gG00XSNo3T6C');
 
 // ============================================
 // STRIPE PAYMENT FORM COMPONENT
 // ============================================
-const StripePaymentForm = ({
-  clientSecret,
-  orderId,
+const StripePaymentForm = ({ 
+  clientSecret, 
+  orderId, 
   orderReference,
-  onSuccess,
+  onSuccess, 
   onError,
   onCancel,
-  amount,
-}: {
-  clientSecret: string;
+  amount 
+}: { 
+  clientSecret: string; 
   orderId: string;
   orderReference: string;
-  onSuccess: () => void;
+  onSuccess: () => void; 
   onError: (error: string) => void;
   onCancel: () => void;
   amount: number;
@@ -75,7 +65,7 @@ const StripePaymentForm = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    
     if (!stripe || !elements) {
       setPaymentError("Stripe is not initialized. Please try again.");
       return;
@@ -89,42 +79,38 @@ const StripePaymentForm = ({
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url:
-            window.location.origin +
-            `/restaurant/${window.location.pathname.split("/")[2] || ""}`,
-          receipt_email:
-            document.querySelector<HTMLInputElement>("#customer-email-input")
-              ?.value || undefined,
+          return_url: window.location.origin + `/restaurant/${window.location.pathname.split('/')[2] || ''}`,
+          receipt_email: document.querySelector<HTMLInputElement>('#customer-email-input')?.value || undefined,
         },
-        redirect: "if_required",
+        redirect: 'if_required',
       });
 
       if (error) {
-        console.error("Payment error:", error);
-        setPaymentError(error.message || "Payment failed. Please try again.");
-        onError(error.message || "Payment failed");
+        console.error('Payment error:', error);
+        setPaymentError(error.message || 'Payment failed. Please try again.');
+        onError(error.message || 'Payment failed');
         setIsLoading(false);
         return;
       }
 
-      if (paymentIntent && paymentIntent.status === "succeeded") {
+      if (paymentIntent && paymentIntent.status === 'succeeded') {
         setPaymentSuccess(true);
         onSuccess();
         setIsLoading(false);
-      } else if (paymentIntent && paymentIntent.status === "requires_action") {
+      } else if (paymentIntent && paymentIntent.status === 'requires_action') {
         // Payment requires 3D Secure or other action
         // The confirmPayment will handle this automatically with return_url
-        console.log("Payment requires action:", paymentIntent);
+        console.log('Payment requires action:', paymentIntent);
         setIsLoading(false);
       } else {
-        setPaymentError("Payment was not completed. Please try again.");
-        onError("Payment was not completed");
+        setPaymentError('Payment was not completed. Please try again.');
+        onError('Payment was not completed');
         setIsLoading(false);
       }
     } catch (err: any) {
-      console.error("Payment submission error:", err);
-      setPaymentError(err.message || "An unexpected error occurred.");
-      onError(err.message || "An unexpected error occurred");
+      console.error('Payment submission error:', err);
+      setPaymentError(err.message || 'An unexpected error occurred.');
+      onError(err.message || 'An unexpected error occurred');
       setIsLoading(false);
     }
   };
@@ -133,9 +119,7 @@ const StripePaymentForm = ({
     <div className="space-y-4">
       <div className="bg-[#FAF3EA] p-4 rounded-xl border border-[#E7C7CF]">
         <div className="flex justify-between items-center mb-4">
-          <span className="text-sm font-semibold text-[#33101F]">
-            Order Total
-          </span>
+          <span className="text-sm font-semibold text-[#33101F]">Order Total</span>
           <span className="text-xl font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#C42348]">
             ${amount.toFixed(2)}
           </span>
@@ -147,10 +131,10 @@ const StripePaymentForm = ({
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="bg-white rounded-xl border border-[#E7C7CF] p-4">
-          <PaymentElement
+          <PaymentElement 
             options={{
-              layout: "tabs",
-              business: { name: "Hinarok" },
+              layout: 'tabs',
+              business: { name: 'Hinarok' },
             }}
           />
         </div>
@@ -186,9 +170,9 @@ const StripePaymentForm = ({
                 Processing...
               </>
             ) : paymentSuccess ? (
-              "✅ Paid"
+              '✅ Paid'
             ) : (
-              "Pay Now"
+              'Pay Now'
             )}
           </button>
         </div>
@@ -200,19 +184,19 @@ const StripePaymentForm = ({
 // ============================================
 // STRIPE PAYMENT WRAPPER
 // ============================================
-const StripePaymentWrapper = ({
-  clientSecret,
+const StripePaymentWrapper = ({ 
+  clientSecret, 
   orderId,
   orderReference,
-  onSuccess,
+  onSuccess, 
   onError,
   onCancel,
-  amount,
-}: {
-  clientSecret: string;
+  amount 
+}: { 
+  clientSecret: string; 
   orderId: string;
   orderReference: string;
-  onSuccess: () => void;
+  onSuccess: () => void; 
   onError: (error: string) => void;
   onCancel: () => void;
   amount: number;
@@ -220,20 +204,20 @@ const StripePaymentWrapper = ({
   const options = {
     clientSecret,
     appearance: {
-      theme: "stripe",
+      theme: 'stripe',
       variables: {
-        colorPrimary: "#C42348",
-        colorBackground: "#ffffff",
-        colorText: "#33101F",
-        fontFamily: "Inter, Segoe UI, system-ui, sans-serif",
-        borderRadius: "12px",
+        colorPrimary: '#C42348',
+        colorBackground: '#ffffff',
+        colorText: '#33101F',
+        fontFamily: 'Inter, Segoe UI, system-ui, sans-serif',
+        borderRadius: '12px',
       },
     },
   };
 
   return (
     <Elements stripe={stripePromise} options={options}>
-      <StripePaymentForm
+      <StripePaymentForm 
         clientSecret={clientSecret}
         orderId={orderId}
         orderReference={orderReference}
@@ -272,9 +256,7 @@ export default function CustomerOrdering() {
   const [pendingOrderRef, setPendingOrderRef] = useState<string | null>(null);
   const [pendingOrderTotal, setPendingOrderTotal] = useState<number>(0);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-  const [orderPlacementError, setOrderPlacementError] = useState<string | null>(
-    null,
-  );
+  const [orderPlacementError, setOrderPlacementError] = useState<string | null>(null);
 
   // Refs for cleanup
   const fetchAbortControllerRef = useRef<AbortController | null>(null);
@@ -296,6 +278,12 @@ export default function CustomerOrdering() {
       return parts[0];
     }
     return null;
+  };
+
+  // ✅ FIX: Normalize slug for comparison (remove dashes for comparison)
+  const normalizeSlug = (value: string) => {
+    if (!value) return '';
+    return value.toLowerCase().replace(/-/g, '');
   };
 
   useEffect(() => {
@@ -327,7 +315,8 @@ export default function CustomerOrdering() {
         let found = null;
         const subdomain = getSubdomainFromHost();
 
-        // ✅ FIX: Determine the lookup key - prioritize slug from URL, then subdomain
+        // ✅ FIX: Normalize both slug and subdomain for comparison
+        // If we have a slug from URL or subdomain from host, normalize them
         let lookupKey = slug;
         let isSubdomainLookup = false;
 
@@ -338,38 +327,65 @@ export default function CustomerOrdering() {
           console.log("🔍 Looking up by subdomain:", lookupKey);
         }
 
-        // If we have a lookup key (slug or subdomain), find the restaurant
+        // ✅ FIX: If we have a lookup key, try multiple matching strategies
         if (lookupKey) {
-          // Try to find by slug first (exact match)
+          const normalizedLookup = normalizeSlug(lookupKey);
+          console.log("🔍 Normalized lookup key:", normalizedLookup);
+          
+          // Strategy 1: Exact match on slug
           found = activeRestaurants.find((r) => r.slug === lookupKey);
-
-          // If not found by slug, try by subdomain
+          
+          // Strategy 2: Exact match on subdomain
           if (!found) {
             found = activeRestaurants.find((r) => r.subdomain === lookupKey);
           }
-
-          // If still not found, try case-insensitive matching
+          
+          // Strategy 3: Case-insensitive match
           if (!found) {
             const lowerLookup = lookupKey.toLowerCase();
             found = activeRestaurants.find(
-              (r) =>
-                r.slug?.toLowerCase() === lowerLookup ||
-                r.subdomain?.toLowerCase() === lowerLookup,
+              (r) => r.slug?.toLowerCase() === lowerLookup || 
+                     r.subdomain?.toLowerCase() === lowerLookup
             );
+          }
+          
+          // ✅ STRATEGY 4: Normalized match (remove dashes for comparison)
+          if (!found) {
+            found = activeRestaurants.find((r) => {
+              const normalizedSlug = normalizeSlug(r.slug || '');
+              const normalizedSubdomain = normalizeSlug(r.subdomain || '');
+              return normalizedSlug === normalizedLookup || 
+                     normalizedSubdomain === normalizedLookup;
+            });
+          }
+          
+          // ✅ STRATEGY 5: Partial match (contains the lookup key)
+          if (!found) {
+            found = activeRestaurants.find((r) => {
+              const slugLower = (r.slug || '').toLowerCase();
+              const subdomainLower = (r.subdomain || '').toLowerCase();
+              const lookupLower = lookupKey.toLowerCase();
+              return slugLower.includes(lookupLower) || 
+                     subdomainLower.includes(lookupLower);
+            });
           }
 
           if (found) {
             console.log("🔍 Found ACTIVE restaurant:", found.name);
+            console.log("   → Slug:", found.slug);
+            console.log("   → Subdomain:", found.subdomain);
           } else {
             // Check if the restaurant exists but is inactive
             const existsButInactive = resData.find(
-              (r) => r.slug === lookupKey && r.isActive === false,
+              (r) => {
+                const normalizedR = normalizeSlug(r.slug || '');
+                const normalizedRSub = normalizeSlug(r.subdomain || '');
+                return normalizedR === normalizedLookup || 
+                       normalizedRSub === normalizedLookup;
+              }
             );
             if (existsButInactive) {
-              console.log(
-                "⚠️ Restaurant exists but is INACTIVE:",
-                existsButInactive.name,
-              );
+              console.log("⚠️ Restaurant exists but is INACTIVE:", existsButInactive.name);
               setCurrentRestaurant(null);
               setDataLoaded(true);
               setLoading(false);
@@ -381,26 +397,17 @@ export default function CustomerOrdering() {
 
         // ✅ FIX: If no restaurant found by lookup key, and we're on a subdomain, try ALL active restaurants
         if (!found && subdomain) {
-          console.log(
-            "🔍 Trying fallback: check all active restaurants by subdomain contains",
-          );
-          // Try to find by subdomain containing the subdomain string
+          console.log("🔍 Trying fallback: check all active restaurants by subdomain contains");
+          const normalizedSubdomain = normalizeSlug(subdomain);
+          
+          // Try to find by subdomain containing the subdomain string (normalized)
           found = activeRestaurants.find((r) => {
-            if (
-              r.subdomain &&
-              r.subdomain.toLowerCase().includes(subdomain.toLowerCase())
-            ) {
-              return true;
-            }
-            if (
-              r.slug &&
-              r.slug.toLowerCase().includes(subdomain.toLowerCase())
-            ) {
-              return true;
-            }
-            return false;
+            const normalizedRSub = normalizeSlug(r.subdomain || '');
+            const normalizedRSlug = normalizeSlug(r.slug || '');
+            return normalizedRSub.includes(normalizedSubdomain) || 
+                   normalizedRSlug.includes(normalizedSubdomain);
           });
-
+          
           if (found) {
             console.log("🔍 Found by fallback:", found.name);
           }
@@ -412,14 +419,20 @@ export default function CustomerOrdering() {
             const stored = localStorage.getItem("currentRestaurant");
             if (stored) {
               const parsed = JSON.parse(stored);
-              // Verify the stored restaurant matches the lookup key
+              // Verify the stored restaurant matches the lookup key using normalized comparison
               let matchesLookup = false;
               if (lookupKey) {
-                matchesLookup =
-                  parsed.slug === lookupKey || parsed.subdomain === lookupKey;
+                const normalizedLookup = normalizeSlug(lookupKey);
+                const normalizedParsedSlug = normalizeSlug(parsed.slug || '');
+                const normalizedParsedSub = normalizeSlug(parsed.subdomain || '');
+                matchesLookup = normalizedParsedSlug === normalizedLookup || 
+                               normalizedParsedSub === normalizedLookup;
               } else if (subdomain) {
-                matchesLookup =
-                  parsed.slug === subdomain || parsed.subdomain === subdomain;
+                const normalizedSubdomain = normalizeSlug(subdomain);
+                const normalizedParsedSlug = normalizeSlug(parsed.slug || '');
+                const normalizedParsedSub = normalizeSlug(parsed.subdomain || '');
+                matchesLookup = normalizedParsedSlug === normalizedSubdomain || 
+                               normalizedParsedSub === normalizedSubdomain;
               }
 
               if (matchesLookup) {
@@ -428,10 +441,7 @@ export default function CustomerOrdering() {
                 );
                 if (verified) {
                   found = verified;
-                  console.log(
-                    "🔍 Found restaurant from localStorage (verified):",
-                    found.name,
-                  );
+                  console.log("🔍 Found restaurant from localStorage (verified):", found.name);
                 } else {
                   localStorage.removeItem("currentRestaurant");
                   localStorage.removeItem("currentRestaurantId");
@@ -954,9 +964,7 @@ export default function CustomerOrdering() {
       }
     } catch (error: any) {
       console.error("❌ Failed to place order:", error);
-      setOrderPlacementError(
-        error.message || "Failed to place order. Please try again.",
-      );
+      setOrderPlacementError(error.message || "Failed to place order. Please try again.");
       setIsPlacingOrder(false);
     }
   };
@@ -968,7 +976,7 @@ export default function CustomerOrdering() {
     setShowStripePayment(false);
     setCheckoutStep("success");
     setClientSecret(null);
-
+    
     // Set receipt data
     setPlacedOrderReceipt({
       subtotal: cartTotal,
@@ -977,7 +985,7 @@ export default function CustomerOrdering() {
       total: finalTotalValue,
       specialInstructions: specialInstructions.trim() || undefined,
     });
-
+    
     setRecentOrderId(pendingOrderRef || pendingOrderId || "");
     setCart([]);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1793,9 +1801,7 @@ export default function CustomerOrdering() {
               id="receipt-success-heading"
               className="text-2xl font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F]"
             >
-              {paymentChoice === "online"
-                ? "Payment Successful! ✅"
-                : "Order Placed Successfully!"}
+              {paymentChoice === "online" ? "Payment Successful! ✅" : "Order Placed Successfully!"}
             </h2>
             <p className="text-[#8C6B76] text-xs mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
               Ticket Reference:{" "}
@@ -1867,7 +1873,7 @@ export default function CustomerOrdering() {
 
               <div className="border-t border-dashed border-[#E7C7CF] pt-2.5">
                 <p className="text-[11px] leading-relaxed text-[#8C6B76] text-center font-['Inter','Segoe UI',system-ui,sans-serif]">
-                  {paymentChoice === "online"
+                  {paymentChoice === "online" 
                     ? "Your payment has been confirmed and your order is being prepared."
                     : "Your order has been received and is being prepared."}
                   <br />
