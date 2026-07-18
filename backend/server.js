@@ -24,6 +24,7 @@ const userRoutes = require("./routes/userRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
 const stripeRoutes = require("./routes/stripeRoutes");
 const webhookRoutes = require("./routes/webhookRoutes");
+const uploadRoutes = require("./routes/uploadRoutes"); // ✅ NEW
 
 // Import SSE handler
 const {
@@ -114,6 +115,7 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/stripe", stripeRoutes);
+app.use("/api/upload", uploadRoutes); // ✅ NEW - Upload routes
 
 // 404 Not Found handler
 app.use(notFound);
