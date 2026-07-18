@@ -31,28 +31,38 @@ import {
   setCurrentRestaurantId,
 } from "../store/apiStore";
 import { Restaurant, Category, MenuItem, CartItem, Order } from "../types";
-import { Elements, PaymentElement, useStripe, useElements, CardElement, PaymentRequestButtonElement } from "@stripe/react-stripe-js";
+import {
+  Elements,
+  PaymentElement,
+  useStripe,
+  useElements,
+  CardElement,
+  PaymentRequestButtonElement,
+} from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 
 // Load Stripe with publishable key
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_51TtmeRCut5206diIEYVMUx93Qc5b2v1LLSJRUe2rfWEzcqnm1LzPg7l189eAkr3hgKVnYbxcqBRGbOmttygrK0gG00XSNo3T6C');
+const stripePromise = loadStripe(
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ||
+    "pk_test_51TtmeRCut5206diIEYVMUx93Qc5b2v1LLSJRUe2rfWEzcqnm1LzPg7l189eAkr3hgKVnYbxcqBRGbOmttygrK0gG00XSNo3T6C",
+);
 
 // ============================================
 // STRIPE PAYMENT FORM COMPONENT
 // ============================================
-const StripePaymentForm = ({ 
-  clientSecret, 
-  orderId, 
+const StripePaymentForm = ({
+  clientSecret,
+  orderId,
   orderReference,
-  onSuccess, 
+  onSuccess,
   onError,
   onCancel,
-  amount 
-}: { 
-  clientSecret: string; 
+  amount,
+}: {
+  clientSecret: string;
   orderId: string;
   orderReference: string;
-  onSuccess: () => void; 
+  onSuccess: () => void;
   onError: (error: string) => void;
   onCancel: () => void;
   amount: number;
@@ -65,7 +75,7 @@ const StripePaymentForm = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!stripe || !elements) {
       setPaymentError("Stripe is not initialized. Please try again.");
       return;
@@ -79,38 +89,42 @@ const StripePaymentForm = ({
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: window.location.origin + `/restaurant/${window.location.pathname.split('/')[2] || ''}`,
-          receipt_email: document.querySelector<HTMLInputElement>('#customer-email-input')?.value || undefined,
+          return_url:
+            window.location.origin +
+            `/restaurant/${window.location.pathname.split("/")[2] || ""}`,
+          receipt_email:
+            document.querySelector<HTMLInputElement>("#customer-email-input")
+              ?.value || undefined,
         },
-        redirect: 'if_required',
+        redirect: "if_required",
       });
 
       if (error) {
-        console.error('Payment error:', error);
-        setPaymentError(error.message || 'Payment failed. Please try again.');
-        onError(error.message || 'Payment failed');
+        console.error("Payment error:", error);
+        setPaymentError(error.message || "Payment failed. Please try again.");
+        onError(error.message || "Payment failed");
         setIsLoading(false);
         return;
       }
 
-      if (paymentIntent && paymentIntent.status === 'succeeded') {
+      if (paymentIntent && paymentIntent.status === "succeeded") {
         setPaymentSuccess(true);
         onSuccess();
         setIsLoading(false);
-      } else if (paymentIntent && paymentIntent.status === 'requires_action') {
+      } else if (paymentIntent && paymentIntent.status === "requires_action") {
         // Payment requires 3D Secure or other action
         // The confirmPayment will handle this automatically with return_url
-        console.log('Payment requires action:', paymentIntent);
+        console.log("Payment requires action:", paymentIntent);
         setIsLoading(false);
       } else {
-        setPaymentError('Payment was not completed. Please try again.');
-        onError('Payment was not completed');
+        setPaymentError("Payment was not completed. Please try again.");
+        onError("Payment was not completed");
         setIsLoading(false);
       }
     } catch (err: any) {
-      console.error('Payment submission error:', err);
-      setPaymentError(err.message || 'An unexpected error occurred.');
-      onError(err.message || 'An unexpected error occurred');
+      console.error("Payment submission error:", err);
+      setPaymentError(err.message || "An unexpected error occurred.");
+      onError(err.message || "An unexpected error occurred");
       setIsLoading(false);
     }
   };
@@ -119,7 +133,9 @@ const StripePaymentForm = ({
     <div className="space-y-4">
       <div className="bg-[#FAF3EA] p-4 rounded-xl border border-[#E7C7CF]">
         <div className="flex justify-between items-center mb-4">
-          <span className="text-sm font-semibold text-[#33101F]">Order Total</span>
+          <span className="text-sm font-semibold text-[#33101F]">
+            Order Total
+          </span>
           <span className="text-xl font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#C42348]">
             ${amount.toFixed(2)}
           </span>
@@ -131,10 +147,10 @@ const StripePaymentForm = ({
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="bg-white rounded-xl border border-[#E7C7CF] p-4">
-          <PaymentElement 
+          <PaymentElement
             options={{
-              layout: 'tabs',
-              business: { name: 'Hinarok' },
+              layout: "tabs",
+              business: { name: "Hinarok" },
             }}
           />
         </div>
@@ -170,9 +186,9 @@ const StripePaymentForm = ({
                 Processing...
               </>
             ) : paymentSuccess ? (
-              '✅ Paid'
+              "✅ Paid"
             ) : (
-              'Pay Now'
+              "Pay Now"
             )}
           </button>
         </div>
@@ -184,19 +200,19 @@ const StripePaymentForm = ({
 // ============================================
 // STRIPE PAYMENT WRAPPER
 // ============================================
-const StripePaymentWrapper = ({ 
-  clientSecret, 
+const StripePaymentWrapper = ({
+  clientSecret,
   orderId,
   orderReference,
-  onSuccess, 
+  onSuccess,
   onError,
   onCancel,
-  amount 
-}: { 
-  clientSecret: string; 
+  amount,
+}: {
+  clientSecret: string;
   orderId: string;
   orderReference: string;
-  onSuccess: () => void; 
+  onSuccess: () => void;
   onError: (error: string) => void;
   onCancel: () => void;
   amount: number;
@@ -204,20 +220,20 @@ const StripePaymentWrapper = ({
   const options = {
     clientSecret,
     appearance: {
-      theme: 'stripe',
+      theme: "stripe",
       variables: {
-        colorPrimary: '#C42348',
-        colorBackground: '#ffffff',
-        colorText: '#33101F',
-        fontFamily: 'Inter, Segoe UI, system-ui, sans-serif',
-        borderRadius: '12px',
+        colorPrimary: "#C42348",
+        colorBackground: "#ffffff",
+        colorText: "#33101F",
+        fontFamily: "Inter, Segoe UI, system-ui, sans-serif",
+        borderRadius: "12px",
       },
     },
   };
 
   return (
     <Elements stripe={stripePromise} options={options}>
-      <StripePaymentForm 
+      <StripePaymentForm
         clientSecret={clientSecret}
         orderId={orderId}
         orderReference={orderReference}
@@ -256,7 +272,9 @@ export default function CustomerOrdering() {
   const [pendingOrderRef, setPendingOrderRef] = useState<string | null>(null);
   const [pendingOrderTotal, setPendingOrderTotal] = useState<number>(0);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-  const [orderPlacementError, setOrderPlacementError] = useState<string | null>(null);
+  const [orderPlacementError, setOrderPlacementError] = useState<string | null>(
+    null,
+  );
 
   // Refs for cleanup
   const fetchAbortControllerRef = useRef<AbortController | null>(null);
@@ -309,102 +327,114 @@ export default function CustomerOrdering() {
         let found = null;
         const subdomain = getSubdomainFromHost();
 
-        // FIRST: Try to find by slug (from URL param) - this is the source of truth
-        if (slug) {
-          // ONLY find if the restaurant is ACTIVE
-          found = activeRestaurants.find((r) => r.slug === slug);
+        // ✅ FIX: Determine the lookup key - prioritize slug from URL, then subdomain
+        let lookupKey = slug;
+        let isSubdomainLookup = false;
+
+        // If we're on a subdomain and slug is empty, use subdomain as lookup
+        if (!lookupKey && subdomain) {
+          lookupKey = subdomain;
+          isSubdomainLookup = true;
+          console.log("🔍 Looking up by subdomain:", lookupKey);
+        }
+
+        // If we have a lookup key (slug or subdomain), find the restaurant
+        if (lookupKey) {
+          // Try to find by slug first (exact match)
+          found = activeRestaurants.find((r) => r.slug === lookupKey);
+
+          // If not found by slug, try by subdomain
+          if (!found) {
+            found = activeRestaurants.find((r) => r.subdomain === lookupKey);
+          }
+
+          // If still not found, try case-insensitive matching
+          if (!found) {
+            const lowerLookup = lookupKey.toLowerCase();
+            found = activeRestaurants.find(
+              (r) =>
+                r.slug?.toLowerCase() === lowerLookup ||
+                r.subdomain?.toLowerCase() === lowerLookup,
+            );
+          }
+
           if (found) {
-            console.log("🔍 Found ACTIVE restaurant by slug:", found.name);
+            console.log("🔍 Found ACTIVE restaurant:", found.name);
           } else {
             // Check if the restaurant exists but is inactive
             const existsButInactive = resData.find(
-              (r) => r.slug === slug && r.isActive === false,
+              (r) => r.slug === lookupKey && r.isActive === false,
             );
             if (existsButInactive) {
               console.log(
                 "⚠️ Restaurant exists but is INACTIVE:",
                 existsButInactive.name,
               );
-              // Don't set found - this will trigger "Restaurant Not Found"
-              // But we want to show a specific message for inactive
               setCurrentRestaurant(null);
               setDataLoaded(true);
               setLoading(false);
               return;
             }
+            console.log("❌ No restaurant found for:", lookupKey);
           }
         }
 
-        // SECOND: Try to find by subdomain (from hostname) - ONLY if ACTIVE
+        // ✅ FIX: If no restaurant found by lookup key, and we're on a subdomain, try ALL active restaurants
         if (!found && subdomain) {
+          console.log(
+            "🔍 Trying fallback: check all active restaurants by subdomain contains",
+          );
+          // Try to find by subdomain containing the subdomain string
           found = activeRestaurants.find((r) => {
-            if (r.subdomain && r.subdomain.includes(subdomain)) {
+            if (
+              r.subdomain &&
+              r.subdomain.toLowerCase().includes(subdomain.toLowerCase())
+            ) {
               return true;
             }
-            if (r.slug === subdomain) {
+            if (
+              r.slug &&
+              r.slug.toLowerCase().includes(subdomain.toLowerCase())
+            ) {
               return true;
             }
             return false;
           });
+
           if (found) {
-            console.log("🔍 Found ACTIVE restaurant by subdomain:", found.name);
-          } else {
-            // Check if the restaurant exists but is inactive
-            const existsButInactive = resData.find((r) => {
-              if (r.subdomain && r.subdomain.includes(subdomain)) return true;
-              if (r.slug === subdomain) return true;
-              return false;
-            });
-            if (existsButInactive && existsButInactive.isActive === false) {
-              console.log(
-                "⚠️ Restaurant exists but is INACTIVE (subdomain):",
-                existsButInactive.name,
-              );
-              setCurrentRestaurant(null);
-              setDataLoaded(true);
-              setLoading(false);
-              return;
-            }
+            console.log("🔍 Found by fallback:", found.name);
           }
         }
 
-        // THIRD: Try to find from localStorage but ONLY if it's ACTIVE and matches the slug/subdomain
+        // ✅ FIX: Try localStorage only if we still don't have a match
         if (!found) {
           try {
             const stored = localStorage.getItem("currentRestaurant");
             if (stored) {
               const parsed = JSON.parse(stored);
-              // Verify the stored restaurant matches the slug we're looking for
-              let matchesSlug = false;
-              if (slug) {
-                matchesSlug = parsed.slug === slug;
+              // Verify the stored restaurant matches the lookup key
+              let matchesLookup = false;
+              if (lookupKey) {
+                matchesLookup =
+                  parsed.slug === lookupKey || parsed.subdomain === lookupKey;
               } else if (subdomain) {
-                matchesSlug =
+                matchesLookup =
                   parsed.slug === subdomain || parsed.subdomain === subdomain;
               }
 
-              // Only use localStorage if it matches the current URL
-              if (matchesSlug) {
+              if (matchesLookup) {
                 const verified = activeRestaurants.find(
                   (r) => r.id === parsed.id,
                 );
                 if (verified) {
                   found = verified;
                   console.log(
-                    "🔍 Found ACTIVE restaurant from localStorage (verified):",
+                    "🔍 Found restaurant from localStorage (verified):",
                     found.name,
                   );
                 } else {
-                  // Stored restaurant is not active, clear it
                   localStorage.removeItem("currentRestaurant");
                   localStorage.removeItem("currentRestaurantId");
-                  // If we're on a specific slug and it's not active, show not found
-                  if (slug || subdomain) {
-                    setCurrentRestaurant(null);
-                    setDataLoaded(true);
-                    setLoading(false);
-                    return;
-                  }
                 }
               }
             }
@@ -413,19 +443,14 @@ export default function CustomerOrdering() {
           }
         }
 
-        // IMPORTANT: NO FALLBACK TO FIRST ACTIVE RESTAURANT
-        // If we're on a specific restaurant URL (slug or subdomain) and we didn't find an ACTIVE match,
-        // we should show "Restaurant Not Found"
-        if (!found) {
-          // Check if we're on a restaurant URL (has slug or subdomain)
-          const isRestaurantUrl = slug || subdomain;
-          if (isRestaurantUrl) {
-            // Don't fallback - show not found
-            setCurrentRestaurant(null);
-            setDataLoaded(true);
-            setLoading(false);
-            return;
-          }
+        // IMPORTANT: If we're on a restaurant URL (has slug or subdomain) and we didn't find an ACTIVE match,
+        // show "Restaurant Not Found"
+        const isRestaurantUrl = slug || subdomain;
+        if (!found && isRestaurantUrl) {
+          setCurrentRestaurant(null);
+          setDataLoaded(true);
+          setLoading(false);
+          return;
         }
 
         if (found) {
@@ -929,7 +954,9 @@ export default function CustomerOrdering() {
       }
     } catch (error: any) {
       console.error("❌ Failed to place order:", error);
-      setOrderPlacementError(error.message || "Failed to place order. Please try again.");
+      setOrderPlacementError(
+        error.message || "Failed to place order. Please try again.",
+      );
       setIsPlacingOrder(false);
     }
   };
@@ -941,7 +968,7 @@ export default function CustomerOrdering() {
     setShowStripePayment(false);
     setCheckoutStep("success");
     setClientSecret(null);
-    
+
     // Set receipt data
     setPlacedOrderReceipt({
       subtotal: cartTotal,
@@ -950,7 +977,7 @@ export default function CustomerOrdering() {
       total: finalTotalValue,
       specialInstructions: specialInstructions.trim() || undefined,
     });
-    
+
     setRecentOrderId(pendingOrderRef || pendingOrderId || "");
     setCart([]);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1766,7 +1793,9 @@ export default function CustomerOrdering() {
               id="receipt-success-heading"
               className="text-2xl font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F]"
             >
-              {paymentChoice === "online" ? "Payment Successful! ✅" : "Order Placed Successfully!"}
+              {paymentChoice === "online"
+                ? "Payment Successful! ✅"
+                : "Order Placed Successfully!"}
             </h2>
             <p className="text-[#8C6B76] text-xs mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
               Ticket Reference:{" "}
@@ -1838,7 +1867,7 @@ export default function CustomerOrdering() {
 
               <div className="border-t border-dashed border-[#E7C7CF] pt-2.5">
                 <p className="text-[11px] leading-relaxed text-[#8C6B76] text-center font-['Inter','Segoe UI',system-ui,sans-serif]">
-                  {paymentChoice === "online" 
+                  {paymentChoice === "online"
                     ? "Your payment has been confirmed and your order is being prepared."
                     : "Your order has been received and is being prepared."}
                   <br />

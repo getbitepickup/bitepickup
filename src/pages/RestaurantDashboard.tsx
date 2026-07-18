@@ -57,6 +57,9 @@ import {
   CheckCircle,
   AlertCircle,
   ExternalLink,
+  Upload,
+  Loader2,
+  Printer,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -105,6 +108,12 @@ export default function RestaurantDashboard() {
   });
   const [isCheckingStripe, setIsCheckingStripe] = useState(false);
   const [stripeError, setStripeError] = useState<string | null>(null);
+
+  // ✅ Image Upload States
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [uploadingItemImage, setUploadingItemImage] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   // Get the current restaurant from the activeRestaurantId
   const currentRestaurant =
@@ -617,6 +626,229 @@ export default function RestaurantDashboard() {
     }
   }, [currentRestaurant?.id]);
 
+  // ============================================
+  // ✅ IMAGE UPLOAD FUNCTIONS
+  // ============================================
+
+  const handleImageUpload = async (
+    file: File,
+    endpoint: string,
+    onSuccess: (url: string) => void,
+    onError: (error: string) => void,
+  ) => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      onError("Please login first");
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      onError(
+        "Invalid file type. Only JPEG, PNG, GIF, and WEBP are allowed.",
+      );
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      onError("File is too large. Maximum size is 5MB.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+      const API_URL =
+        import.meta.env.VITE_API_URL ||
+        "https://bitepickup-backend.onrender.com";
+      const cleanApiUrl = API_URL.replace(/\/+$/, "");
+      const baseUrl = cleanApiUrl.endsWith("/api")
+        ? cleanApiUrl
+        : `${cleanApiUrl}/api`;
+
+      const response = await fetch(`${baseUrl}${endpoint}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        onSuccess(data.data.url);
+        return data.data.url;
+      } else {
+        onError(data.message || "Upload failed");
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      onError("Failed to upload image. Please try again.");
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentRestaurant) return;
+
+    setUploadingLogo(true);
+    setUploadError(null);
+
+    await handleImageUpload(
+      file,
+      `/upload/restaurant/${currentRestaurant.id}/logo`,
+      (url) => {
+        setProfileForm((prev) => ({ ...prev, logo: url }));
+        // Update restaurant in state
+        setRestaurants((prev) =>
+          prev.map((r) =>
+            r.id === currentRestaurant.id ? { ...r, logo: url } : r,
+          ),
+        );
+        // Update localStorage
+        const stored = localStorage.getItem("currentRestaurant");
+        if (stored) {
+          const data = JSON.parse(stored);
+          data.logo = url;
+          localStorage.setItem("currentRestaurant", JSON.stringify(data));
+        }
+        alert("✅ Logo uploaded successfully! Save your profile to apply changes.");
+      },
+      (error) => {
+        setUploadError(error);
+        alert(`❌ Upload failed: ${error}`);
+      },
+    );
+
+    setUploadingLogo(false);
+    e.target.value = ""; // Reset input
+  };
+
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentRestaurant) return;
+
+    setUploadingCover(true);
+    setUploadError(null);
+
+    await handleImageUpload(
+      file,
+      `/upload/restaurant/${currentRestaurant.id}/cover`,
+      (url) => {
+        setProfileForm((prev) => ({ ...prev, coverImage: url }));
+        setRestaurants((prev) =>
+          prev.map((r) =>
+            r.id === currentRestaurant.id ? { ...r, coverImage: url } : r,
+          ),
+        );
+        alert("✅ Cover image uploaded successfully! Save your profile to apply changes.");
+      },
+      (error) => {
+        setUploadError(error);
+        alert(`❌ Upload failed: ${error}`);
+      },
+    );
+
+    setUploadingCover(false);
+    e.target.value = "";
+  };
+
+  const handleMenuItemImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingItemImage(true);
+    setUploadError(null);
+
+    // We need to create the menu item first to get an ID, then upload the image
+    // Or we can upload and then update the menu item
+    // For simplicity, we'll upload and then update the menu item
+
+    // First, create or get the menu item ID
+    const menuItemId = editingItemId || "temp";
+    
+    // If it's a new item, we need to create it first without image
+    if (!editingItemId) {
+      // Create the menu item first
+      const priceNum = parseFloat(itemForm.price);
+      if (isNaN(priceNum) || priceNum < 0) {
+        alert("Please enter a valid price first");
+        setUploadingItemImage(false);
+        e.target.value = "";
+        return;
+      }
+
+      const dataPayload = {
+        restaurantId: currentRestaurant!.id,
+        categoryId: itemForm.categoryId,
+        name: itemForm.name.trim() || "Temporary Item",
+        description: itemForm.description ? itemForm.description.trim() : "",
+        price: priceNum,
+        image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80",
+        availability: itemForm.availability || "available",
+        isAvailable: itemForm.availability !== "hidden",
+      };
+
+      try {
+        const result = await addMenuItem(dataPayload);
+        const newItemId = result.data.id || result.data._id;
+        setEditingItemId(newItemId);
+        
+        // Now upload the image for the newly created item
+        await handleImageUpload(
+          file,
+          `/upload/menu-item/${newItemId}`,
+          (url) => {
+            setItemForm((prev) => ({ ...prev, image: url }));
+            // Update the menu item in the list
+            setMenuItems((prev) =>
+              prev.map((item) =>
+                item.id === newItemId ? { ...item, image: url } : item,
+              ),
+            );
+            alert("✅ Menu item image uploaded successfully!");
+          },
+          (error) => {
+            setUploadError(error);
+            alert(`❌ Upload failed: ${error}`);
+          },
+        );
+      } catch (error) {
+        console.error("Failed to create menu item:", error);
+        alert("Failed to create menu item. Please try again.");
+      }
+    } else {
+      // Upload image for existing menu item
+      await handleImageUpload(
+        file,
+        `/upload/menu-item/${editingItemId}`,
+        (url) => {
+          setItemForm((prev) => ({ ...prev, image: url }));
+          // Update the menu item in the list
+          setMenuItems((prev) =>
+            prev.map((item) =>
+              item.id === editingItemId ? { ...item, image: url } : item,
+            ),
+          );
+          alert("✅ Menu item image uploaded successfully!");
+        },
+        (error) => {
+          setUploadError(error);
+          alert(`❌ Upload failed: ${error}`);
+        },
+      );
+    }
+
+    setUploadingItemImage(false);
+    e.target.value = "";
+  };
+
   // Active restaurant orders
   const activeRestaurantOrders = orders.filter(
     (o) =>
@@ -696,6 +928,10 @@ export default function RestaurantDashboard() {
     serviceFeeAmount: 2.5,
   });
 
+  // ✅ Receipt Print State
+  const [receiptOrder, setReceiptOrder] = useState<Order | null>(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+
   useEffect(() => {
     if (currentRestaurant) {
       setProfileForm({
@@ -751,6 +987,16 @@ export default function RestaurantDashboard() {
       default:
         return status;
     }
+  };
+
+  // ✅ Receipt Print Handler
+  const handlePrintReceipt = (order: Order) => {
+    setReceiptOrder(order);
+    setShowReceiptModal(true);
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   const handleSaveSettings = async (e: React.FormEvent) => {
@@ -1330,6 +1576,14 @@ export default function RestaurantDashboard() {
                             >
                               Accept & Prepare
                             </button>
+                            {/* ✅ Print Receipt Button for New Orders */}
+                            <button
+                              onClick={() => handlePrintReceipt(order)}
+                              className="bg-[#FAF3EA] hover:bg-[#E7C7CF] text-[#8C6B76] p-2 rounded-lg border border-[#E7C7CF] transition-colors"
+                              title="Print Receipt"
+                            >
+                              <Printer className="w-4 h-4" />
+                            </button>
                           </div>
                         </div>
                       ))
@@ -1454,6 +1708,14 @@ export default function RestaurantDashboard() {
                             >
                               Ready for Pickup
                             </button>
+                            {/* ✅ Print Receipt Button for Preparing Orders */}
+                            <button
+                              onClick={() => handlePrintReceipt(order)}
+                              className="bg-[#FAF3EA] hover:bg-[#E7C7CF] text-[#8C6B76] p-2 rounded-lg border border-[#E7C7CF] transition-colors"
+                              title="Print Receipt"
+                            >
+                              <Printer className="w-4 h-4" />
+                            </button>
                           </div>
                         </div>
                       ))
@@ -1576,6 +1838,14 @@ export default function RestaurantDashboard() {
                             >
                               Arrived & Completed
                             </button>
+                            {/* ✅ Print Receipt Button for Ready Orders */}
+                            <button
+                              onClick={() => handlePrintReceipt(order)}
+                              className="bg-[#FAF3EA] hover:bg-[#E7C7CF] text-[#8C6B76] p-2 rounded-lg border border-[#E7C7CF] transition-colors"
+                              title="Print Receipt"
+                            >
+                              <Printer className="w-4 h-4" />
+                            </button>
                           </div>
                         </div>
                       ))
@@ -1663,13 +1933,14 @@ export default function RestaurantDashboard() {
                         <th className="px-6 py-4">Total</th>
                         <th className="px-6 py-4">Status</th>
                         <th className="px-6 py-4">Date</th>
+                        <th className="px-6 py-4">Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#E7C7CF]/60">
                       {filteredCompletedOrders.length === 0 ? (
                         <tr>
                           <td
-                            colSpan={6}
+                            colSpan={7}
                             className="text-center py-12 text-[#8C6B76]"
                           >
                             {searchQuery
@@ -1734,6 +2005,15 @@ export default function RestaurantDashboard() {
                                   minute: "2-digit",
                                 })}
                               </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <button
+                                onClick={() => handlePrintReceipt(order)}
+                                className="bg-[#FAF3EA] hover:bg-[#E7C7CF] text-[#8C6B76] p-1.5 rounded-lg border border-[#E7C7CF] transition-colors"
+                                title="Print Receipt"
+                              >
+                                <Printer className="w-4 h-4" />
+                              </button>
                             </td>
                           </tr>
                         ))
@@ -2130,38 +2410,94 @@ export default function RestaurantDashboard() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-[#8C6B76] mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
-                        Logo URL
+                        Logo
                       </label>
-                      <input
-                        id="profile-logo-input"
-                        type="text"
-                        value={profileForm.logo}
-                        onChange={(e) =>
-                          setProfileForm((prev) => ({
-                            ...prev,
-                            logo: e.target.value,
-                          }))
-                        }
-                        className="w-full px-3.5 py-2 bg-[#FAF3EA] border border-[#E7C7CF] focus:border-[#C42348] rounded-xl text-xs text-[#33101F] focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif]"
-                      />
+                      <div className="flex items-center gap-3">
+                        <input
+                          id="profile-logo-input"
+                          type="text"
+                          value={profileForm.logo}
+                          onChange={(e) =>
+                            setProfileForm((prev) => ({
+                              ...prev,
+                              logo: e.target.value,
+                            }))
+                          }
+                          className="flex-1 px-3.5 py-2 bg-[#FAF3EA] border border-[#E7C7CF] focus:border-[#C42348] rounded-xl text-xs text-[#33101F] focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif]"
+                          placeholder="https://example.com/logo.png"
+                        />
+                        <label className="cursor-pointer">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleLogoUpload}
+                            className="hidden"
+                            disabled={uploadingLogo}
+                          />
+                          <div className={`bg-[#C42348] hover:bg-[#E84C6B] text-white px-3 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-1 ${uploadingLogo ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                            {uploadingLogo ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span>Uploading...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="w-4 h-4" />
+                                <span>Upload</span>
+                              </>
+                            )}
+                          </div>
+                        </label>
+                      </div>
+                      <p className="text-[10px] text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
+                        Upload a logo or enter a URL. Max 5MB (JPG, PNG, GIF, WEBP).
+                      </p>
                     </div>
 
                     <div>
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-[#8C6B76] mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
-                        Cover Image URL
+                        Cover Image
                       </label>
-                      <input
-                        id="profile-cover-input"
-                        type="text"
-                        value={profileForm.coverImage}
-                        onChange={(e) =>
-                          setProfileForm((prev) => ({
-                            ...prev,
-                            coverImage: e.target.value,
-                          }))
-                        }
-                        className="w-full px-3.5 py-2 bg-[#FAF3EA] border border-[#E7C7CF] focus:border-[#C42348] rounded-xl text-xs text-[#33101F] focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif]"
-                      />
+                      <div className="flex items-center gap-3">
+                        <input
+                          id="profile-cover-input"
+                          type="text"
+                          value={profileForm.coverImage}
+                          onChange={(e) =>
+                            setProfileForm((prev) => ({
+                              ...prev,
+                              coverImage: e.target.value,
+                            }))
+                          }
+                          className="flex-1 px-3.5 py-2 bg-[#FAF3EA] border border-[#E7C7CF] focus:border-[#C42348] rounded-xl text-xs text-[#33101F] focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif]"
+                          placeholder="https://example.com/cover.jpg"
+                        />
+                        <label className="cursor-pointer">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleCoverUpload}
+                            className="hidden"
+                            disabled={uploadingCover}
+                          />
+                          <div className={`bg-[#C42348] hover:bg-[#E84C6B] text-white px-3 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-1 ${uploadingCover ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                            {uploadingCover ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span>Uploading...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="w-4 h-4" />
+                                <span>Upload</span>
+                              </>
+                            )}
+                          </div>
+                        </label>
+                      </div>
+                      <p className="text-[10px] text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
+                        Upload a cover image or enter a URL. Max 5MB (JPG, PNG, GIF, WEBP).
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -2722,6 +3058,149 @@ export default function RestaurantDashboard() {
         </AnimatePresence>
       </div>
 
+      {/* ✅ RECEIPT MODAL */}
+      {showReceiptModal && receiptOrder && (
+        <div className="fixed inset-0 z-50 bg-[#33101F]/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="p-6">
+              {/* Receipt Header */}
+              <div className="flex justify-between items-start border-b border-[#E7C7CF] pb-4 mb-4">
+                <div>
+                  <h2 className="text-xl font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F]">
+                    {currentRestaurant?.name || "Restaurant"}
+                  </h2>
+                  <p className="text-[10px] text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">
+                    {currentRestaurant?.address || ""}
+                  </p>
+                  <p className="text-[10px] text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">
+                    {currentRestaurant?.phone || ""}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowReceiptModal(false)}
+                  className="text-[#8C6B76] hover:text-[#33101F] p-1"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Receipt Content */}
+              <div className="space-y-4" id="receipt-content">
+                <div className="flex justify-between text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
+                  <span className="text-[#8C6B76]">Order #</span>
+                  <span className="font-bold text-[#33101F]">
+                    {receiptOrder.orderReference || receiptOrder.id?.slice(-6)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
+                  <span className="text-[#8C6B76]">Customer</span>
+                  <span className="font-bold text-[#33101F]">
+                    {receiptOrder.customerName}
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
+                  <span className="text-[#8C6B76]">Pickup Time</span>
+                  <span className="font-bold text-[#33101F]">
+                    {receiptOrder.pickupTimeOption === "ASAP"
+                      ? "ASAP"
+                      : receiptOrder.scheduledTime || "ASAP"}
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
+                  <span className="text-[#8C6B76]">Payment</span>
+                  <span className="font-bold text-[#33101F] capitalize">
+                    {receiptOrder.paymentMethod === "online"
+                      ? "Card (Paid)"
+                      : "Cash at Pickup"}
+                  </span>
+                </div>
+
+                <div className="border-t border-[#E7C7CF] my-2"></div>
+
+                {/* Items */}
+                <div className="space-y-2">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">
+                    Items
+                  </div>
+                  {receiptOrder.items.map((item: any, idx: number) => (
+                    <div
+                      key={idx}
+                      className="flex justify-between text-xs font-['Inter','Segoe UI',system-ui,sans-serif]"
+                    >
+                      <span>
+                        {item.quantity}x {item.name}
+                      </span>
+                      <span className="font-bold text-[#33101F]">
+                        ${(item.price * item.quantity).toFixed(2)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="border-t border-[#E7C7CF] my-2"></div>
+
+                {/* Totals */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
+                    <span className="text-[#8C6B76]">Subtotal</span>
+                    <span>${receiptOrder.totalPrice?.toFixed(2) || "0.00"}</span>
+                  </div>
+                  {receiptOrder.taxAmount && receiptOrder.taxAmount > 0 && (
+                    <div className="flex justify-between text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
+                      <span className="text-[#8C6B76]">Tax</span>
+                      <span>${receiptOrder.taxAmount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {receiptOrder.serviceFee && receiptOrder.serviceFee > 0 && (
+                    <div className="flex justify-between text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
+                      <span className="text-[#8C6B76]">Service Fee</span>
+                      <span>${receiptOrder.serviceFee.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm font-bold text-[#33101F] pt-1 border-t border-[#E7C7CF] font-['Baloo_2','Trebuchet_MS',sans-serif]">
+                    <span>Total</span>
+                    <span>${receiptOrder.totalPrice?.toFixed(2) || "0.00"}</span>
+                  </div>
+                </div>
+
+                {receiptOrder.specialInstructions && (
+                  <div className="mt-2 p-2 bg-[#FAF3EA] rounded-lg border border-[#E7C7CF]">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">
+                      Special Instructions
+                    </div>
+                    <p className="text-xs text-[#33101F] mt-0.5">
+                      {receiptOrder.specialInstructions}
+                    </p>
+                  </div>
+                )}
+
+                <div className="text-center text-[10px] text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif] border-t border-[#E7C7CF] pt-4 mt-4">
+                  <p>Thank you for your order!</p>
+                  <p className="mt-0.5">{new Date().toLocaleString()}</p>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2 mt-6 pt-4 border-t border-[#E7C7CF]">
+                <button
+                  onClick={handlePrint}
+                  className="flex-1 bg-[#C42348] hover:bg-[#E84C6B] text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-2 font-['Inter','Segoe UI',system-ui,sans-serif]"
+                >
+                  <Printer className="w-4 h-4" />
+                  Print Receipt
+                </button>
+                <button
+                  onClick={() => setShowReceiptModal(false)}
+                  className="bg-[#FAF3EA] hover:bg-[#E7C7CF] text-[#8C6B76] px-4 py-2.5 rounded-xl text-xs font-bold transition-colors font-['Inter','Segoe UI',system-ui,sans-serif]"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* CATEGORY DIALOG MODAL LAYOUT */}
       {showCatModal && (
         <div className="fixed inset-0 z-50 bg-[#33101F]/75 backdrop-blur-sm flex items-center justify-center p-4">
@@ -2877,18 +3356,45 @@ export default function RestaurantDashboard() {
 
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-[#8C6B76] mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
-                  Image URL
+                  Image
                 </label>
-                <input
-                  id="item-image-modal-input"
-                  type="text"
-                  value={itemForm.image}
-                  onChange={(e) =>
-                    setItemForm((prev) => ({ ...prev, image: e.target.value }))
-                  }
-                  placeholder="https://images.unsplash.com/..."
-                  className="w-full px-3.5 py-2 bg-[#FAF3EA] border border-[#E7C7CF] focus:border-[#C42348] rounded-xl focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif]"
-                />
+                <div className="flex items-center gap-3">
+                  <input
+                    id="item-image-modal-input"
+                    type="text"
+                    value={itemForm.image}
+                    onChange={(e) =>
+                      setItemForm((prev) => ({ ...prev, image: e.target.value }))
+                    }
+                    placeholder="https://images.unsplash.com/..."
+                    className="flex-1 px-3.5 py-2 bg-[#FAF3EA] border border-[#E7C7CF] focus:border-[#C42348] rounded-xl focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif]"
+                  />
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleMenuItemImageUpload}
+                      className="hidden"
+                      disabled={uploadingItemImage}
+                    />
+                    <div className={`bg-[#C42348] hover:bg-[#E84C6B] text-white px-3 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-1 whitespace-nowrap ${uploadingItemImage ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                      {uploadingItemImage ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Uploading...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4" />
+                          <span>Upload</span>
+                        </>
+                      )}
+                    </div>
+                  </label>
+                </div>
+                <p className="text-[10px] text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
+                  Upload an image or enter a URL. Max 5MB (JPG, PNG, GIF, WEBP).
+                </p>
               </div>
 
               <div>
