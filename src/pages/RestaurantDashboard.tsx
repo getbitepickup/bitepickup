@@ -760,6 +760,7 @@ export default function RestaurantDashboard() {
   };
 
   // ✅ Menu Item Image Upload - Frontend only (works for existing items)
+  // ✅ Menu Item Image Upload - Pass restaurantId to backend
   const handleMenuItemImageUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
@@ -772,6 +773,13 @@ export default function RestaurantDashboard() {
     // ✅ Only works when editing an existing item
     if (!editingItemId) {
       alert("Please save the menu item first, then you can upload an image.");
+      setUploadingItemImage(false);
+      e.target.value = "";
+      return;
+    }
+
+    if (!currentRestaurant) {
+      alert("Restaurant information is missing.");
       setUploadingItemImage(false);
       e.target.value = "";
       return;
@@ -804,6 +812,8 @@ export default function RestaurantDashboard() {
 
     const formData = new FormData();
     formData.append("image", file);
+    // ✅ PASS THE RESTAURANT ID TO THE BACKEND
+    formData.append("restaurantId", currentRestaurant.id);
 
     try {
       const API_URL =
@@ -815,6 +825,7 @@ export default function RestaurantDashboard() {
         : `${cleanApiUrl}/api`;
 
       console.log("📤 Uploading image for menu item:", editingItemId);
+      console.log("📤 With restaurantId:", currentRestaurant.id);
 
       const response = await fetch(
         `${baseUrl}/upload/menu-item/${editingItemId}`,

@@ -162,11 +162,31 @@ exports.uploadMenuItemImage = async (req, res) => {
     }
 
     // ✅ FIX: Check if restaurantId exists on the menu item
-    if (!menuItem.restaurantId) {
-      logger.error(`❌ Menu item ${menuItemId} has no restaurantId`);
+    // If not, try to get it from the user's context or request
+    let restaurantId = menuItem.restaurantId;
 
-      // Try to find the restaurant by checking if this menu item has a restaurantId field
-      // If not, return a clear error
+    // If restaurantId is not on the menu item, check if it was passed in the request
+    if (!restaurantId && req.body.restaurantId) {
+      restaurantId = req.body.restaurantId;
+    }
+
+    // If still no restaurantId, check if user has a restaurant assigned
+    if (!restaurantId && req.user && req.user.restaurantId) {
+      restaurantId = req.user.restaurantId;
+    }
+
+    // If still no restaurantId, try to find the restaurant by the menu item's category
+    if (!restaurantId && menuItem.categoryId) {
+      const Category = require("../models/Category");
+      const category = await Category.findById(menuItem.categoryId);
+      if (category && category.restaurantId) {
+        restaurantId = category.restaurantId;
+      }
+    }
+
+    // ✅ FINAL CHECK: If we still don't have a restaurantId, return error
+    if (!restaurantId) {
+      logger.error(`❌ Menu item ${menuItemId} has no restaurantId`);
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
         message:
@@ -177,22 +197,23 @@ exports.uploadMenuItemImage = async (req, res) => {
     // Convert buffer to base64
     const base64Image = bufferToBase64(req.file.buffer);
 
-    // ✅ FIX: Ensure restaurantId is a string
-    const restaurantIdStr = menuItem.restaurantId.toString();
-
     // Upload to Cloudinary with the restaurant ID
     const result = await uploadMenuItemImage(
       base64Image,
-      restaurantIdStr,
+      restaurantId.toString(),
       menuItemId,
     );
 
     // Update menu item with new image URL
     menuItem.image = result.url;
+    // Also ensure restaurantId is set on the menu item
+    if (!menuItem.restaurantId) {
+      menuItem.restaurantId = restaurantId;
+    }
     await menuItem.save();
 
     logger.info(
-      `✅ Menu item image updated: ${menuItemId} for restaurant ${restaurantIdStr}`,
+      `✅ Menu item image updated: ${menuItemId} for restaurant ${restaurantId}`,
     );
 
     res.status(HTTP_STATUS.OK).json({
