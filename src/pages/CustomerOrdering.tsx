@@ -629,11 +629,14 @@ export default function CustomerOrdering() {
     ? categories.filter((c) => c.restaurantId === currentRestaurant.id)
     : [];
 
+  // ✅ FIX: Filter out BOTH 'hidden' AND 'out_of_stock' items from customer view
   const filteredMenuItems = currentRestaurant
     ? menuItems.filter((i) => {
         if (i.restaurantId !== currentRestaurant.id) return false;
-        const isHidden = i.availability === "hidden";
-        return !isHidden;
+        // Hide items that are either 'hidden' OR 'out_of_stock'
+        const isHiddenOrOutOfStock =
+          i.availability === "hidden" || i.availability === "out_of_stock";
+        return !isHiddenOrOutOfStock;
       })
     : [];
 

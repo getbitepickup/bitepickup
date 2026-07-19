@@ -1,7 +1,11 @@
-const MenuItem = require('../models/MenuItem');
-const Category = require('../models/Category');
-const { HTTP_STATUS, SUCCESS_MESSAGES, ERROR_MESSAGES } = require('../utils/constants');
-const logger = require('../utils/logger');
+const MenuItem = require("../models/MenuItem");
+const Category = require("../models/Category");
+const {
+  HTTP_STATUS,
+  SUCCESS_MESSAGES,
+  ERROR_MESSAGES,
+} = require("../utils/constants");
+const logger = require("../utils/logger");
 
 /**
  * @desc    Get all menu items
@@ -15,10 +19,10 @@ exports.getMenuItems = async (req, res) => {
 
     if (restaurantId) filter.restaurantId = restaurantId;
     if (categoryId) filter.categoryId = categoryId;
-    if (isAvailable !== undefined) filter.isAvailable = isAvailable === 'true';
+    if (isAvailable !== undefined) filter.isAvailable = isAvailable === "true";
 
     const menuItems = await MenuItem.find(filter)
-      .populate('categoryId', 'name')
+      .populate("categoryId", "name")
       .sort({ displayOrder: 1, name: 1 });
 
     res.status(HTTP_STATUS.OK).json({
@@ -29,7 +33,7 @@ exports.getMenuItems = async (req, res) => {
     logger.error(`Get menu items error: ${error.message}`);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Failed to fetch menu items',
+      message: "Failed to fetch menu items",
     });
   }
 };
@@ -45,14 +49,16 @@ exports.getMenuItemsByRestaurant = async (req, res) => {
     const { categoryId, includeHidden } = req.query;
 
     const filter = { restaurantId };
-    
+
     if (categoryId) filter.categoryId = categoryId;
-    if (includeHidden !== 'true') {
-      filter.availability = { $ne: 'hidden' };
+
+    // ✅ FIX: When includeHidden is not 'true', hide BOTH hidden AND out_of_stock items
+    if (includeHidden !== "true") {
+      filter.availability = { $nin: ["hidden", "out_of_stock"] };
     }
 
     const menuItems = await MenuItem.find(filter)
-      .populate('categoryId', 'name')
+      .populate("categoryId", "name")
       .sort({ displayOrder: 1, name: 1 });
 
     res.status(HTTP_STATUS.OK).json({
@@ -63,7 +69,7 @@ exports.getMenuItemsByRestaurant = async (req, res) => {
     logger.error(`Get menu items by restaurant error: ${error.message}`);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Failed to fetch menu items',
+      message: "Failed to fetch menu items",
     });
   }
 };
@@ -75,13 +81,15 @@ exports.getMenuItemsByRestaurant = async (req, res) => {
  */
 exports.getMenuItemById = async (req, res) => {
   try {
-    const menuItem = await MenuItem.findById(req.params.id)
-      .populate('categoryId', 'name');
+    const menuItem = await MenuItem.findById(req.params.id).populate(
+      "categoryId",
+      "name",
+    );
 
     if (!menuItem) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
-        message: ERROR_MESSAGES.NOT_FOUND('Menu item'),
+        message: ERROR_MESSAGES.NOT_FOUND("Menu item"),
       });
     }
 
@@ -93,7 +101,7 @@ exports.getMenuItemById = async (req, res) => {
     logger.error(`Get menu item by ID error: ${error.message}`);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Failed to fetch menu item',
+      message: "Failed to fetch menu item",
     });
   }
 };
@@ -117,10 +125,17 @@ exports.createMenuItem = async (req, res) => {
     } = req.body;
 
     // Validate required fields
-    if (!restaurantId || !categoryId || !name || price === undefined || price === null || price === '') {
+    if (
+      !restaurantId ||
+      !categoryId ||
+      !name ||
+      price === undefined ||
+      price === null ||
+      price === ""
+    ) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
-        message: 'Restaurant ID, category ID, name, and price are required',
+        message: "Restaurant ID, category ID, name, and price are required",
       });
     }
 
@@ -129,7 +144,7 @@ exports.createMenuItem = async (req, res) => {
     if (!category) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
-        message: ERROR_MESSAGES.NOT_FOUND('Category'),
+        message: ERROR_MESSAGES.NOT_FOUND("Category"),
       });
     }
 
@@ -138,8 +153,14 @@ exports.createMenuItem = async (req, res) => {
     if (isNaN(parsedPrice) || parsedPrice < 0) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
-        message: 'Price must be a valid positive number',
+        message: "Price must be a valid positive number",
       });
+    }
+
+    // ✅ FIX: Set isAvailable based on availability
+    let isAvailable = true;
+    if (availability === "hidden" || availability === "out_of_stock") {
+      isAvailable = false;
     }
 
     // Build menu item data with defaults
@@ -147,11 +168,14 @@ exports.createMenuItem = async (req, res) => {
       restaurantId,
       categoryId,
       name: name.trim(),
-      description: description && description.trim() ? description.trim() : '',
+      description: description && description.trim() ? description.trim() : "",
       price: parsedPrice,
-      image: image && image.trim() ? image.trim() : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80',
-      availability: availability || 'available',
-      isAvailable: availability !== 'hidden',
+      image:
+        image && image.trim()
+          ? image.trim()
+          : "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80",
+      availability: availability || "available",
+      isAvailable: isAvailable,
       displayOrder: displayOrder || 0,
     };
 
@@ -159,15 +183,15 @@ exports.createMenuItem = async (req, res) => {
 
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
-      message: SUCCESS_MESSAGES.RESOURCE_CREATED('Menu item'),
+      message: SUCCESS_MESSAGES.RESOURCE_CREATED("Menu item"),
       data: menuItem,
     });
   } catch (error) {
     logger.error(`Create menu item error: ${error.message}`);
-    console.error('❌ Create menu item error details:', error);
+    console.error("❌ Create menu item error details:", error);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: error.message || 'Failed to create menu item',
+      message: error.message || "Failed to create menu item",
     });
   }
 };
@@ -195,7 +219,7 @@ exports.updateMenuItem = async (req, res) => {
     if (!menuItem) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
-        message: ERROR_MESSAGES.NOT_FOUND('Menu item'),
+        message: ERROR_MESSAGES.NOT_FOUND("Menu item"),
       });
     }
 
@@ -210,11 +234,23 @@ exports.updateMenuItem = async (req, res) => {
       }
     }
     if (image) menuItem.image = image;
+
+    // ✅ FIX: Properly handle availability and isAvailable together
     if (availability) {
       menuItem.availability = availability;
-      menuItem.isAvailable = availability !== 'hidden';
+      // Set isAvailable based on availability
+      if (availability === "available") {
+        menuItem.isAvailable = true;
+      } else if (availability === "out_of_stock" || availability === "hidden") {
+        menuItem.isAvailable = false;
+      }
     }
-    if (isAvailable !== undefined) menuItem.isAvailable = isAvailable;
+
+    // If isAvailable is explicitly provided, use it (but only if availability wasn't set)
+    if (isAvailable !== undefined && !availability) {
+      menuItem.isAvailable = isAvailable;
+    }
+
     if (displayOrder !== undefined) menuItem.displayOrder = displayOrder;
     menuItem.updatedAt = new Date();
 
@@ -222,14 +258,14 @@ exports.updateMenuItem = async (req, res) => {
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
-      message: SUCCESS_MESSAGES.RESOURCE_UPDATED('Menu item'),
+      message: SUCCESS_MESSAGES.RESOURCE_UPDATED("Menu item"),
       data: menuItem,
     });
   } catch (error) {
     logger.error(`Update menu item error: ${error.message}`);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Failed to update menu item',
+      message: "Failed to update menu item",
     });
   }
 };
@@ -246,7 +282,7 @@ exports.deleteMenuItem = async (req, res) => {
     if (!menuItem) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
-        message: ERROR_MESSAGES.NOT_FOUND('Menu item'),
+        message: ERROR_MESSAGES.NOT_FOUND("Menu item"),
       });
     }
 
@@ -254,13 +290,13 @@ exports.deleteMenuItem = async (req, res) => {
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
-      message: SUCCESS_MESSAGES.RESOURCE_DELETED('Menu item'),
+      message: SUCCESS_MESSAGES.RESOURCE_DELETED("Menu item"),
     });
   } catch (error) {
     logger.error(`Delete menu item error: ${error.message}`);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Failed to delete menu item',
+      message: "Failed to delete menu item",
     });
   }
 };
