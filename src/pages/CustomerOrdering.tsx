@@ -629,14 +629,13 @@ export default function CustomerOrdering() {
     ? categories.filter((c) => c.restaurantId === currentRestaurant.id)
     : [];
 
-  // ✅ FIX: Filter out BOTH 'hidden' AND 'out_of_stock' items from customer view
+  // ✅ FIX: Filter out ONLY 'hidden' items, keep 'out_of_stock' items visible
   const filteredMenuItems = currentRestaurant
     ? menuItems.filter((i) => {
         if (i.restaurantId !== currentRestaurant.id) return false;
-        // Hide items that are either 'hidden' OR 'out_of_stock'
-        const isHiddenOrOutOfStock =
-          i.availability === "hidden" || i.availability === "out_of_stock";
-        return !isHiddenOrOutOfStock;
+        // Only hide items that are explicitly marked as 'hidden'
+        // 'out_of_stock' items should still be visible with a label
+        return i.availability !== "hidden";
       })
     : [];
 
@@ -843,6 +842,34 @@ export default function CustomerOrdering() {
       }
     };
   }, []);
+
+  // Handle item card click for mobile
+  // ✅ FIX: Don't open sheet for out of stock items
+  const handleItemClick = (item: MenuItem) => {
+    if (item.availability === "out_of_stock") return;
+
+    if (window.innerWidth < 768) {
+      setSelectedItem(item);
+      const existingInCart = cart.find((i) => i.menuItemId === item.id);
+      setItemQuantity(existingInCart?.quantity || 1);
+      setItemSpecialInstructions(existingInCart?.specialInstructions || "");
+      setIsItemSheetOpen(true);
+    }
+  };
+
+  // Handle add from item sheet
+  const handleAddFromSheet = () => {
+    if (selectedItem) {
+      // Remove existing item from cart if present
+      const existing = cart.find((i) => i.menuItemId === selectedItem.id);
+      if (existing) {
+        removeFromCart(selectedItem.id);
+      }
+      addToCart(selectedItem, itemQuantity, itemSpecialInstructions);
+      setIsItemSheetOpen(false);
+      setSelectedItem(null);
+    }
+  };
 
   if (loading || !dataLoaded) {
     return (
@@ -1112,31 +1139,6 @@ export default function CustomerOrdering() {
 
   const timeSlots = generateTimeSlots();
 
-  // Handle item card click for mobile
-  const handleItemClick = (item: MenuItem) => {
-    if (window.innerWidth < 768) {
-      setSelectedItem(item);
-      const existingInCart = cart.find((i) => i.menuItemId === item.id);
-      setItemQuantity(existingInCart?.quantity || 1);
-      setItemSpecialInstructions(existingInCart?.specialInstructions || "");
-      setIsItemSheetOpen(true);
-    }
-  };
-
-  // Handle add from item sheet
-  const handleAddFromSheet = () => {
-    if (selectedItem) {
-      // Remove existing item from cart if present
-      const existing = cart.find((i) => i.menuItemId === selectedItem.id);
-      if (existing) {
-        removeFromCart(selectedItem.id);
-      }
-      addToCart(selectedItem, itemQuantity, itemSpecialInstructions);
-      setIsItemSheetOpen(false);
-      setSelectedItem(null);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-[#FAF3EA] text-[#33101F] font-['Inter','Segoe UI',system-ui,sans-serif]">
       {/* 1. Header Banner & Restaurant Bio */}
@@ -1296,11 +1298,20 @@ export default function CustomerOrdering() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-1 gap-4">
                         {categoryItems.map((item) => (
+                          // ✅ FIX: Show out of stock items with disabled state
                           <div
                             id={`menu-card-${item.id}`}
                             key={item.id}
-                            className="flex gap-4 p-4 rounded-xl border border-[#E7C7CF] hover:border-[#C42348] hover:shadow-sm transition-all bg-white cursor-pointer md:cursor-default"
-                            onClick={() => handleItemClick(item)}
+                            className={`flex gap-4 p-4 rounded-xl border transition-all bg-white ${
+                              item.availability === "out_of_stock"
+                                ? "border-[#E8A13B]/50 bg-[#FAF3EA] opacity-75 cursor-default"
+                                : "border-[#E7C7CF] hover:border-[#C42348] hover:shadow-sm cursor-pointer md:cursor-default"
+                            }`}
+                            onClick={() => {
+                              if (item.availability !== "out_of_stock") {
+                                handleItemClick(item);
+                              }
+                            }}
                           >
                             <div className="flex-1 space-y-1">
                               <h4 className="font-['Baloo_2','Trebuchet_MS',sans-serif] font-semibold text-[#33101F] text-sm md:text-base">
@@ -1321,16 +1332,39 @@ export default function CustomerOrdering() {
                                 alt={item.name}
                                 className="w-full h-full object-cover"
                               />
+                              {/* ✅ FIX: Show "Out of Stock" label on the image */}
+                              {item.availability === "out_of_stock" && (
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                  <span className="bg-[#E8A13B] text-[#33101F] text-[10px] font-bold px-2 py-1 rounded-full rotate-[-15deg] shadow-md uppercase tracking-wider">
+                                    Out of Stock
+                                  </span>
+                                </div>
+                              )}
                               <button
                                 id={`add-btn-${item.id}`}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  addToCart(item);
+                                  if (item.availability !== "out_of_stock") {
+                                    addToCart(item);
+                                  }
                                 }}
-                                className="absolute bottom-1 right-1 bg-white hover:bg-[#C42348] hover:text-white text-[#33101F] w-7 h-7 rounded-full shadow-lg flex items-center justify-center font-bold transition-all border border-[#E7C7CF] cursor-pointer"
-                                title="Add to order"
+                                disabled={item.availability === "out_of_stock"}
+                                className={`absolute bottom-1 right-1 bg-white hover:bg-[#C42348] hover:text-white text-[#33101F] w-7 h-7 rounded-full shadow-lg flex items-center justify-center font-bold transition-all border border-[#E7C7CF] ${
+                                  item.availability === "out_of_stock"
+                                    ? "opacity-50 cursor-not-allowed hover:bg-white hover:text-[#33101F]"
+                                    : "cursor-pointer"
+                                }`}
+                                title={
+                                  item.availability === "out_of_stock"
+                                    ? "Out of Stock"
+                                    : "Add to order"
+                                }
                               >
-                                <Plus className="w-4 h-4" />
+                                {item.availability === "out_of_stock" ? (
+                                  <X className="w-4 h-4" />
+                                ) : (
+                                  <Plus className="w-4 h-4" />
+                                )}
                               </button>
                             </div>
                           </div>
