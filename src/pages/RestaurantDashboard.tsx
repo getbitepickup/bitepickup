@@ -760,6 +760,7 @@ export default function RestaurantDashboard() {
   };
 
   // ✅ FIXED: Menu item image upload - only works for existing items
+  // ✅ FIXED: Menu item image upload - only works when editing existing items
   const handleMenuItemImageUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
@@ -770,33 +771,83 @@ export default function RestaurantDashboard() {
     setUploadError(null);
 
     // ✅ FIX: Only upload image if we're editing an existing item
-    // For new items, the image will be uploaded after the item is saved
+    // For new items, users can only enter a URL
     if (!editingItemId) {
-      alert("Please save the menu item first, then upload an image.");
+      alert("Please save the menu item first, then you can upload an image.");
       setUploadingItemImage(false);
       e.target.value = "";
       return;
     }
 
-    // Upload image for existing menu item
-    await handleImageUpload(
-      file,
-      `/upload/menu-item/${editingItemId}`,
-      (url) => {
-        setItemForm((prev) => ({ ...prev, image: url }));
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      alert("Please login first");
+      setUploadingItemImage(false);
+      e.target.value = "";
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      alert("Invalid file type. Only JPEG, PNG, GIF, and WEBP are allowed.");
+      setUploadingItemImage(false);
+      e.target.value = "";
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File is too large. Maximum size is 5MB.");
+      setUploadingItemImage(false);
+      e.target.value = "";
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+      const API_URL =
+        import.meta.env.VITE_API_URL ||
+        "https://bitepickup-backend.onrender.com";
+      const cleanApiUrl = API_URL.replace(/\/+$/, "");
+      const baseUrl = cleanApiUrl.endsWith("/api")
+        ? cleanApiUrl
+        : `${cleanApiUrl}/api`;
+
+      // Upload image for existing menu item
+      const response = await fetch(
+        `${baseUrl}/upload/menu-item/${editingItemId}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        },
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        setItemForm((prev) => ({ ...prev, image: data.data.url }));
         // Update the menu item in the list
         setMenuItems((prev) =>
           prev.map((item) =>
-            item.id === editingItemId ? { ...item, image: url } : item,
+            item.id === editingItemId
+              ? { ...item, image: data.data.url }
+              : item,
           ),
         );
         alert("✅ Menu item image uploaded successfully!");
-      },
-      (error) => {
-        setUploadError(error);
-        alert(`❌ Upload failed: ${error}`);
-      },
-    );
+      } else {
+        alert(`❌ Upload failed: ${data.message || "Unknown error"}`);
+      }
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      alert(`❌ Upload failed: ${error.message || "Please try again."}`);
+    }
 
     setUploadingItemImage(false);
     e.target.value = "";

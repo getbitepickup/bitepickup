@@ -253,6 +253,38 @@ export default function CustomerOrdering() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
 
+  // ✅ FIX: Redirect dash-based slugs to non-dash versions
+  useEffect(() => {
+    // If the slug contains a dash, redirect to the non-dash version
+    if (slug && slug.includes("-")) {
+      const noDashSlug = slug.replace(/-/g, "");
+      console.log(`🔄 Redirecting dash slug: ${slug} → ${noDashSlug}`);
+      navigate(`/restaurant/${noDashSlug}`, { replace: true });
+      return;
+    }
+
+    // Also check subdomain for dash
+    const hostname = window.location.hostname;
+    const isMainDomain =
+      hostname === "hinarok.com" ||
+      hostname === "www.hinarok.com" ||
+      hostname === "localhost" ||
+      hostname.includes("vercel.app");
+
+    if (!isMainDomain) {
+      const subdomain = hostname.split(".")[0];
+      if (subdomain && subdomain.includes("-")) {
+        const noDashSubdomain = subdomain.replace(/-/g, "");
+        const newUrl = `https://${noDashSubdomain}.${hostname.split(".").slice(1).join(".")}`;
+        console.log(
+          `🔄 Redirecting dash subdomain: ${subdomain} → ${noDashSubdomain}`,
+        );
+        window.location.href = newUrl;
+        return;
+      }
+    }
+  }, [slug, navigate]);
+
   // Load state from API
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
