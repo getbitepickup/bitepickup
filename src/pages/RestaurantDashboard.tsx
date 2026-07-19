@@ -936,7 +936,7 @@ export default function RestaurantDashboard() {
 
   const [taxesAndFees, setTaxesAndFees] = useState({
     taxRatePercent: 8.5,
-    serviceFeeAmount: 2.5,
+    serviceFeeAmount: 0, // ✅ FIX: Changed from 2.5 to 0
   });
 
   // ✅ Receipt Print State
@@ -1549,6 +1549,7 @@ export default function RestaurantDashboard() {
                             </div>
                           )}
 
+                          {/* ✅ FIX: Show service fee breakdown */}
                           <div className="grid grid-cols-2 gap-2 text-[10px] p-2 bg-[#FAF3EA] rounded-lg text-[#8C6B76] border border-[#E7C7CF]">
                             <div>
                               <span className="block font-semibold font-['Inter','Segoe UI',system-ui,sans-serif]">
@@ -1568,6 +1569,14 @@ export default function RestaurantDashboard() {
                                 {order.paymentMethod === "online"
                                   ? "Credit Paid"
                                   : "Cash at Desk"}
+                              </span>
+                            </div>
+                            <div className="col-span-2 border-t border-[#E7C7CF] pt-1 mt-1">
+                              <span className="block font-semibold font-['Inter','Segoe UI',system-ui,sans-serif]">
+                                Platform Fee:
+                              </span>
+                              <span className="text-[#33101F] font-bold">
+                                ${(order.serviceFee || 0).toFixed(2)}
                               </span>
                             </div>
                           </div>
@@ -1684,6 +1693,7 @@ export default function RestaurantDashboard() {
                             </div>
                           )}
 
+                          {/* ✅ FIX: Show service fee breakdown */}
                           <div className="grid grid-cols-2 gap-2 text-[10px] p-2 bg-[#FAF3EA] rounded-lg text-[#8C6B76] border border-[#E7C7CF]">
                             <div>
                               <span className="block font-semibold font-['Inter','Segoe UI',system-ui,sans-serif]">
@@ -1701,6 +1711,14 @@ export default function RestaurantDashboard() {
                               </span>
                               <span className="font-mono">
                                 {order.customerPhone}
+                              </span>
+                            </div>
+                            <div className="col-span-2 border-t border-[#E7C7CF] pt-1 mt-1">
+                              <span className="block font-semibold font-['Inter','Segoe UI',system-ui,sans-serif]">
+                                Platform Fee:
+                              </span>
+                              <span className="text-[#33101F] font-bold">
+                                ${(order.serviceFee || 0).toFixed(2)}
                               </span>
                             </div>
                           </div>
@@ -1817,6 +1835,7 @@ export default function RestaurantDashboard() {
                             </div>
                           )}
 
+                          {/* ✅ FIX: Show service fee breakdown */}
                           <div className="grid grid-cols-2 gap-2 text-[10px] p-2 bg-[#FAF3EA] rounded-lg text-[#8C6B76] border border-[#E7C7CF]">
                             <div>
                               <span className="block font-semibold font-['Inter','Segoe UI',system-ui,sans-serif]">
@@ -1832,6 +1851,14 @@ export default function RestaurantDashboard() {
                               </span>
                               <span className="font-mono">
                                 {order.customerPhone}
+                              </span>
+                            </div>
+                            <div className="col-span-2 border-t border-[#E7C7CF] pt-1 mt-1">
+                              <span className="block font-semibold font-['Inter','Segoe UI',system-ui,sans-serif]">
+                                Platform Fee:
+                              </span>
+                              <span className="text-[#33101F] font-bold">
+                                ${(order.serviceFee || 0).toFixed(2)}
                               </span>
                             </div>
                           </div>
@@ -2880,7 +2907,7 @@ export default function RestaurantDashboard() {
                   </div>
                 </div>
 
-                {/* 4. Taxes & Fees Card */}
+                {/* 4. Taxes & Fees Card - ✅ FIXED with serviceFee default 0 */}
                 <div className="bg-white border border-[#E7C7CF] rounded-2xl p-6 sm:p-8 space-y-6">
                   <div>
                     <h3 className="text-base font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] flex items-center gap-2">
@@ -3194,13 +3221,11 @@ export default function RestaurantDashboard() {
 
                 <div className="border-t border-[#E7C7CF] my-2"></div>
 
-                {/* Totals */}
+                {/* Totals - ✅ FIXED with service fee */}
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
                     <span className="text-[#8C6B76]">Subtotal</span>
-                    <span>
-                      ${receiptOrder.totalPrice?.toFixed(2) || "0.00"}
-                    </span>
+                    <span>${receiptOrder.subtotal?.toFixed(2) || "0.00"}</span>
                   </div>
                   {receiptOrder.taxAmount && receiptOrder.taxAmount > 0 && (
                     <div className="flex justify-between text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
@@ -3208,12 +3233,10 @@ export default function RestaurantDashboard() {
                       <span>${receiptOrder.taxAmount.toFixed(2)}</span>
                     </div>
                   )}
-                  {receiptOrder.serviceFee && receiptOrder.serviceFee > 0 && (
-                    <div className="flex justify-between text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
-                      <span className="text-[#8C6B76]">Service Fee</span>
-                      <span>${receiptOrder.serviceFee.toFixed(2)}</span>
-                    </div>
-                  )}
+                  <div className="flex justify-between text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
+                    <span className="text-[#8C6B76]">Platform Fee</span>
+                    <span>${(receiptOrder.serviceFee || 0).toFixed(2)}</span>
+                  </div>
                   <div className="flex justify-between text-sm font-bold text-[#33101F] pt-1 border-t border-[#E7C7CF] font-['Baloo_2','Trebuchet_MS',sans-serif]">
                     <span>Total</span>
                     <span>

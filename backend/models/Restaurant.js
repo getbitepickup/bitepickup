@@ -93,7 +93,7 @@ const restaurantSchema = new mongoose.Schema({
     },
     serviceFeeAmount: {
       type: Number,
-      default: 2.5,
+      default: 0, // ✅ FIX: Changed from 2.5 to 0
     },
   },
   subscription: {

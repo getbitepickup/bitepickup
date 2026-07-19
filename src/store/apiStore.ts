@@ -35,7 +35,10 @@ const normalizeRestaurant = (restaurant: any): Restaurant => ({
   isOrderingPaused: Boolean(restaurant?.isOrderingPaused),
   businessHours: restaurant?.businessHours,
   pickupSettings: restaurant?.pickupSettings,
-  taxesAndFees: restaurant?.taxesAndFees,
+  taxesAndFees: restaurant?.taxesAndFees || {
+    taxRatePercent: 8.5,
+    serviceFeeAmount: 0, // ✅ FIX: Default to 0
+  },
   stripeConnect: restaurant?.stripeConnect || {
     accountId: null,
     accountStatus: "pending",
@@ -81,11 +84,11 @@ const normalizeOrder = (order: any): Order => ({
   paymentMethod: order?.paymentMethod || "pickup",
   status: order?.status || "NEW",
   timestamp: order?.timestamp || new Date().toISOString(),
-  specialInstructions: order?.specialInstructions,
-  taxAmount: order?.taxAmount,
-  serviceFee: order?.serviceFee,
-  finalTotal: order?.finalTotal,
-  orderReference: order?.orderReference,
+  specialInstructions: order?.specialInstructions || "",
+  taxAmount: order?.taxAmount || 0,
+  serviceFee: order?.serviceFee || 0, // ✅ FIX: Ensure serviceFee defaults to 0
+  finalTotal: order?.finalTotal || 0,
+  orderReference: order?.orderReference || "",
   // ✅ Stripe Payment Fields
   paymentStatus: order?.paymentStatus || "pending",
   stripePaymentIntentId: order?.stripePaymentIntentId,

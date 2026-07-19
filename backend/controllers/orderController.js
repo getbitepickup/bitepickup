@@ -246,6 +246,10 @@ exports.getOrders = async (req, res) => {
       if (!orderObj.specialInstructions) {
         orderObj.specialInstructions = "";
       }
+      // Ensure serviceFee is included and properly set
+      if (orderObj.serviceFee === undefined || orderObj.serviceFee === null) {
+        orderObj.serviceFee = 0;
+      }
       return orderObj;
     });
 
@@ -358,6 +362,9 @@ exports.getOrdersByRestaurant = async (req, res) => {
       if (!orderObj.specialInstructions) {
         orderObj.specialInstructions = "";
       }
+      if (orderObj.serviceFee === undefined || orderObj.serviceFee === null) {
+        orderObj.serviceFee = 0;
+      }
       return orderObj;
     });
 
@@ -401,6 +408,9 @@ exports.getOrderById = async (req, res) => {
     if (!orderObj.specialInstructions) {
       orderObj.specialInstructions = "";
     }
+    if (orderObj.serviceFee === undefined || orderObj.serviceFee === null) {
+      orderObj.serviceFee = 0;
+    }
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
@@ -437,6 +447,9 @@ exports.getOrderByReference = async (req, res) => {
     const orderObj = order.toObject ? order.toObject() : order;
     if (!orderObj.specialInstructions) {
       orderObj.specialInstructions = "";
+    }
+    if (orderObj.serviceFee === undefined || orderObj.serviceFee === null) {
+      orderObj.serviceFee = 0;
     }
 
     res.status(HTTP_STATUS.OK).json({
@@ -527,9 +540,9 @@ exports.createOrder = async (req, res) => {
       });
     }
 
-    // Calculate totals
+    // ✅ FIX: Calculate totals with serviceFee set to 0 by default
     const taxRate = restaurantDoc.taxesAndFees?.taxRatePercent || 8.5;
-    const serviceFee = restaurantDoc.taxesAndFees?.serviceFeeAmount || 2.5;
+    const serviceFee = restaurantDoc.taxesAndFees?.serviceFeeAmount || 0; // ✅ Changed from 2.5 to 0
 
     const subtotal = items.reduce(
       (sum, item) => sum + item.price * item.quantity,
@@ -551,13 +564,12 @@ exports.createOrder = async (req, res) => {
       items,
       subtotal,
       taxAmount,
-      serviceFee,
+      serviceFee, // ✅ This will be 0 by default
       totalPrice: Math.round(totalPrice * 100) / 100,
       pickupTimeOption: pickupTimeOption || "ASAP",
       scheduledTime: scheduledTime || null,
       paymentMethod: paymentMethod || "online",
       status: "NEW",
-      // ✅ FIX: Ensure specialInstructions is stored properly
       specialInstructions: specialInstructions || "",
       orderReference,
       // ✅ Payment fields
@@ -670,6 +682,12 @@ exports.createOrder = async (req, res) => {
         if (!orderForSSE.specialInstructions) {
           orderForSSE.specialInstructions = "";
         }
+        if (
+          orderForSSE.serviceFee === undefined ||
+          orderForSSE.serviceFee === null
+        ) {
+          orderForSSE.serviceFee = 0;
+        }
         broadcastNewOrder(restaurantIdStr, orderForSSE);
         logger.info(
           `📡 SSE: New order broadcasted for restaurant ${restaurantIdStr}`,
@@ -684,6 +702,12 @@ exports.createOrder = async (req, res) => {
     // ✅ Ensure specialInstructions is included in response
     if (!responseData.specialInstructions) {
       responseData.specialInstructions = "";
+    }
+    if (
+      responseData.serviceFee === undefined ||
+      responseData.serviceFee === null
+    ) {
+      responseData.serviceFee = 0;
     }
 
     // Add payment client secret for online payments
@@ -786,6 +810,9 @@ exports.updateOrderStatus = async (req, res) => {
     const orderObj = order.toObject ? order.toObject() : order;
     if (!orderObj.specialInstructions) {
       orderObj.specialInstructions = "";
+    }
+    if (orderObj.serviceFee === undefined || orderObj.serviceFee === null) {
+      orderObj.serviceFee = 0;
     }
 
     res.status(HTTP_STATUS.OK).json({

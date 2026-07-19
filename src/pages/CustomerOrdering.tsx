@@ -964,10 +964,11 @@ export default function CustomerOrdering() {
     currentRestaurant?.taxesAndFees?.taxRatePercent !== undefined
       ? currentRestaurant.taxesAndFees.taxRatePercent
       : 8.5;
+  // ✅ FIX: Service fee defaults to 0
   const serviceFee =
     currentRestaurant?.taxesAndFees?.serviceFeeAmount !== undefined
       ? currentRestaurant.taxesAndFees.serviceFeeAmount
-      : 2.5;
+      : 0;
   const taxAmountValue = (cartTotal * taxRate) / 100;
   const finalTotalValue = cartTotal + taxAmountValue + serviceFee;
 
@@ -1048,7 +1049,7 @@ export default function CustomerOrdering() {
         setPlacedOrderReceipt({
           subtotal: cartTotal,
           taxes: taxAmountValue,
-          serviceFee: serviceFee,
+          serviceFee: serviceFee, // ✅ FIX: Use the serviceFee value (defaults to 0)
           total: finalTotalValue,
           specialInstructions: specialInstructions.trim() || undefined,
         });
@@ -1080,7 +1081,7 @@ export default function CustomerOrdering() {
     setPlacedOrderReceipt({
       subtotal: cartTotal,
       taxes: taxAmountValue,
-      serviceFee: serviceFee,
+      serviceFee: serviceFee, // ✅ FIX: Use the serviceFee value (defaults to 0)
       total: finalTotalValue,
       specialInstructions: specialInstructions.trim() || undefined,
     });
@@ -1165,13 +1166,7 @@ export default function CustomerOrdering() {
                   Powered by Hinarok
                 </span>
               </div>
-              <Link
-                to={`/login?restaurant=${currentRestaurant.id}`}
-                className="text-xs text-[#C42348] hover:text-[#E84C6B] font-medium flex items-center gap-1 transition-colors font-['Inter','Segoe UI',system-ui,sans-serif]"
-              >
-                Restaurant Owner?
-                <ChevronRight className="w-3 h-3" />
-              </Link>
+              {/* ✅ REMOVED: "Restaurant Owner?" button - completely removed */}
             </div>
 
             {currentRestaurant.isOrderingPaused && (
@@ -1468,6 +1463,7 @@ export default function CustomerOrdering() {
                           ${taxAmountValue.toFixed(2)}
                         </span>
                       </div>
+                      {/* ✅ FIX: Show service fee (defaults to 0) */}
                       <div className="flex justify-between items-center">
                         <span>Platform Service Fee:</span>
                         <span className="font-medium text-[#33101F]">
@@ -1803,8 +1799,9 @@ export default function CustomerOrdering() {
                       <span>Taxes ({taxRate}%):</span>
                       <span>${taxAmountValue.toFixed(2)}</span>
                     </div>
+                    {/* ✅ FIX: Show service fee (defaults to 0) */}
                     <div className="flex justify-between">
-                      <span>Service Fee:</span>
+                      <span>Platform Service Fee:</span>
                       <span>${serviceFee.toFixed(2)}</span>
                     </div>
                   </div>
@@ -1896,7 +1893,7 @@ export default function CustomerOrdering() {
           </div>
         )}
 
-        {/* 3. Success Receipt Notification - ✅ FIXED Back to Menu button */}
+        {/* 3. Success Receipt Notification */}
         {checkoutStep === "success" && (
           <div className="max-w-md mx-auto text-center py-12 px-6">
             <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center mx-auto mb-4 border border-emerald-100">
@@ -1956,8 +1953,9 @@ export default function CustomerOrdering() {
                   <span>Estimated Taxes ({taxRate}%):</span>
                   <span>${(placedOrderReceipt?.taxes ?? 0).toFixed(2)}</span>
                 </div>
+                {/* ✅ FIX: Show service fee (defaults to 0) */}
                 <div className="flex justify-between text-[11px]">
-                  <span>Processing Flat Service Fee:</span>
+                  <span>Platform Service Fee:</span>
                   <span>
                     ${(placedOrderReceipt?.serviceFee ?? 0).toFixed(2)}
                   </span>
@@ -2158,7 +2156,7 @@ export default function CustomerOrdering() {
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Service Fee:</span>
+                    <span>Platform Service Fee:</span>
                     <span className="font-medium text-[#33101F]">
                       ${serviceFee.toFixed(2)}
                     </span>

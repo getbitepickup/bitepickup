@@ -1,11 +1,15 @@
-const Restaurant = require('../models/Restaurant');
-const Category = require('../models/Category');
-const MenuItem = require('../models/MenuItem');
-const User = require('../models/User');
-const bcrypt = require('bcryptjs');
-const { generateSlug, generateSubdomain } = require('../utils/helpers');
-const { HTTP_STATUS, SUCCESS_MESSAGES, ERROR_MESSAGES } = require('../utils/constants');
-const logger = require('../utils/logger');
+const Restaurant = require("../models/Restaurant");
+const Category = require("../models/Category");
+const MenuItem = require("../models/MenuItem");
+const User = require("../models/User");
+const bcrypt = require("bcryptjs");
+const { generateSlug, generateSubdomain } = require("../utils/helpers");
+const {
+  HTTP_STATUS,
+  SUCCESS_MESSAGES,
+  ERROR_MESSAGES,
+} = require("../utils/constants");
+const logger = require("../utils/logger");
 
 /**
  * @desc    Get all restaurants with optional filtering
@@ -19,7 +23,7 @@ exports.getRestaurants = async (req, res) => {
 
     const filter = {};
     if (active !== undefined) {
-      filter.isActive = active === 'true';
+      filter.isActive = active === "true";
     }
 
     const restaurants = await Restaurant.find(filter)
@@ -43,7 +47,7 @@ exports.getRestaurants = async (req, res) => {
     logger.error(`Get restaurants error: ${error.message}`);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Failed to fetch restaurants',
+      message: "Failed to fetch restaurants",
     });
   }
 };
@@ -56,7 +60,7 @@ exports.getRestaurants = async (req, res) => {
 exports.getActiveRestaurants = async (req, res) => {
   try {
     const restaurants = await Restaurant.find({ isActive: true })
-      .select('name slug subdomain description logo coverImage phone address')
+      .select("name slug subdomain description logo coverImage phone address")
       .sort({ name: 1 });
 
     res.status(HTTP_STATUS.OK).json({
@@ -67,7 +71,7 @@ exports.getActiveRestaurants = async (req, res) => {
     logger.error(`Get active restaurants error: ${error.message}`);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Failed to fetch active restaurants',
+      message: "Failed to fetch active restaurants",
     });
   }
 };
@@ -84,7 +88,7 @@ exports.getRestaurantById = async (req, res) => {
     if (!restaurant) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
-        message: ERROR_MESSAGES.NOT_FOUND('Restaurant'),
+        message: ERROR_MESSAGES.NOT_FOUND("Restaurant"),
       });
     }
 
@@ -96,7 +100,7 @@ exports.getRestaurantById = async (req, res) => {
     logger.error(`Get restaurant by ID error: ${error.message}`);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Failed to fetch restaurant',
+      message: "Failed to fetch restaurant",
     });
   }
 };
@@ -108,14 +112,14 @@ exports.getRestaurantById = async (req, res) => {
  */
 exports.getRestaurantBySubdomain = async (req, res) => {
   try {
-    const restaurant = await Restaurant.findOne({ 
-      subdomain: req.params.subdomain 
+    const restaurant = await Restaurant.findOne({
+      subdomain: req.params.subdomain,
     });
 
     if (!restaurant) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
-        message: ERROR_MESSAGES.NOT_FOUND('Restaurant'),
+        message: ERROR_MESSAGES.NOT_FOUND("Restaurant"),
       });
     }
 
@@ -127,7 +131,7 @@ exports.getRestaurantBySubdomain = async (req, res) => {
     logger.error(`Get restaurant by subdomain error: ${error.message}`);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Failed to fetch restaurant',
+      message: "Failed to fetch restaurant",
     });
   }
 };
@@ -150,23 +154,37 @@ exports.createRestaurant = async (req, res) => {
       ownerPassword,
       ownerFirstName,
       ownerLastName,
-      ownerPhone
+      ownerPhone,
     } = req.body;
 
-    console.log('📝 Creating restaurant with data:', { name, description, phone, address, ownerEmail });
+    console.log("📝 Creating restaurant with data:", {
+      name,
+      description,
+      phone,
+      address,
+      ownerEmail,
+    });
 
     // Validate required fields
     if (!name || !description || !phone || !address) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
-        message: 'Restaurant name, description, phone, and address are required',
+        message:
+          "Restaurant name, description, phone, and address are required",
       });
     }
 
-    if (!ownerEmail || !ownerPassword || !ownerFirstName || !ownerLastName || !ownerPhone) {
+    if (
+      !ownerEmail ||
+      !ownerPassword ||
+      !ownerFirstName ||
+      !ownerLastName ||
+      !ownerPhone
+    ) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
-        message: 'Owner details (email, password, first name, last name, phone) are required',
+        message:
+          "Owner details (email, password, first name, last name, phone) are required",
       });
     }
 
@@ -191,7 +209,7 @@ exports.createRestaurant = async (req, res) => {
     if (existingUser) {
       return res.status(HTTP_STATUS.CONFLICT).json({
         success: false,
-        message: 'Owner email already registered',
+        message: "Owner email already registered",
       });
     }
 
@@ -203,19 +221,27 @@ exports.createRestaurant = async (req, res) => {
       description,
       phone,
       address,
-      logo: logo || 'https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?w=100&auto=format&fit=crop&q=60',
-      coverImage: coverImage || 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=1600&auto=format&fit=crop&q=80',
+      logo:
+        logo ||
+        "https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?w=100&auto=format&fit=crop&q=60",
+      coverImage:
+        coverImage ||
+        "https://images.unsplash.com/photo-1550547660-d9450f859349?w=1600&auto=format&fit=crop&q=80",
       isActive: true,
       isOrderingPaused: false,
       createdBy: req.user ? req.user.id : null,
       businessHours: {
-        Monday: { isOpen: true, openTime: '09:00 AM', closeTime: '10:00 PM' },
-        Tuesday: { isOpen: true, openTime: '09:00 AM', closeTime: '10:00 PM' },
-        Wednesday: { isOpen: true, openTime: '09:00 AM', closeTime: '10:00 PM' },
-        Thursday: { isOpen: true, openTime: '09:00 AM', closeTime: '10:00 PM' },
-        Friday: { isOpen: true, openTime: '09:00 AM', closeTime: '11:00 PM' },
-        Saturday: { isOpen: true, openTime: '10:00 AM', closeTime: '11:00 PM' },
-        Sunday: { isOpen: true, openTime: '10:00 AM', closeTime: '09:00 PM' },
+        Monday: { isOpen: true, openTime: "09:00 AM", closeTime: "10:00 PM" },
+        Tuesday: { isOpen: true, openTime: "09:00 AM", closeTime: "10:00 PM" },
+        Wednesday: {
+          isOpen: true,
+          openTime: "09:00 AM",
+          closeTime: "10:00 PM",
+        },
+        Thursday: { isOpen: true, openTime: "09:00 AM", closeTime: "10:00 PM" },
+        Friday: { isOpen: true, openTime: "09:00 AM", closeTime: "11:00 PM" },
+        Saturday: { isOpen: true, openTime: "10:00 AM", closeTime: "11:00 PM" },
+        Sunday: { isOpen: true, openTime: "10:00 AM", closeTime: "09:00 PM" },
       },
       pickupSettings: {
         allowAsap: true,
@@ -224,13 +250,13 @@ exports.createRestaurant = async (req, res) => {
       },
       taxesAndFees: {
         taxRatePercent: 8.5,
-        serviceFeeAmount: 2.50,
-      }
+        serviceFeeAmount: 0, // ✅ FIX: Changed from 2.50 to 0
+      },
     });
 
     // Save restaurant to database
     await restaurant.save();
-    console.log('✅ Restaurant saved to MongoDB:', restaurant._id);
+    console.log("✅ Restaurant saved to MongoDB:", restaurant._id);
 
     // Create owner user account
     const salt = await bcrypt.genSalt(10);
@@ -242,13 +268,13 @@ exports.createRestaurant = async (req, res) => {
       firstName: ownerFirstName,
       lastName: ownerLastName,
       phone: ownerPhone,
-      role: 'restaurant_owner',
+      role: "restaurant_owner",
       restaurantId: restaurant._id,
       isActive: true,
     });
 
     await owner.save();
-    console.log('✅ Owner user saved to MongoDB:', owner._id);
+    console.log("✅ Owner user saved to MongoDB:", owner._id);
 
     // Remove password from response
     const ownerResponse = owner.toObject();
@@ -257,23 +283,23 @@ exports.createRestaurant = async (req, res) => {
     // Return success with credentials
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
-      message: SUCCESS_MESSAGES.RESOURCE_CREATED('Restaurant'),
+      message: SUCCESS_MESSAGES.RESOURCE_CREATED("Restaurant"),
       data: {
         restaurant: restaurant.toObject(),
         owner: ownerResponse,
         credentials: {
           email: ownerEmail,
           password: ownerPassword,
-          loginUrl: '/login'
-        }
-      }
+          loginUrl: "/login",
+        },
+      },
     });
   } catch (error) {
     logger.error(`Create restaurant error: ${error.message}`);
-    console.error('❌ Create restaurant error details:', error);
+    console.error("❌ Create restaurant error details:", error);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: error.message || 'Failed to create restaurant',
+      message: error.message || "Failed to create restaurant",
     });
   }
 };
@@ -306,7 +332,7 @@ exports.updateRestaurant = async (req, res) => {
     if (!restaurant) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
-        message: ERROR_MESSAGES.NOT_FOUND('Restaurant'),
+        message: ERROR_MESSAGES.NOT_FOUND("Restaurant"),
       });
     }
 
@@ -319,14 +345,15 @@ exports.updateRestaurant = async (req, res) => {
     // Allow manual slug/subdomain override if provided
     if (slug) restaurant.slug = slug;
     if (subdomain) restaurant.subdomain = subdomain;
-    
+
     if (description) restaurant.description = description;
     if (phone) restaurant.phone = phone;
     if (address) restaurant.address = address;
     if (logo) restaurant.logo = logo;
     if (coverImage) restaurant.coverImage = coverImage;
     if (isActive !== undefined) restaurant.isActive = isActive;
-    if (isOrderingPaused !== undefined) restaurant.isOrderingPaused = isOrderingPaused;
+    if (isOrderingPaused !== undefined)
+      restaurant.isOrderingPaused = isOrderingPaused;
     if (businessHours) restaurant.businessHours = businessHours;
     if (pickupSettings) restaurant.pickupSettings = pickupSettings;
     if (taxesAndFees) restaurant.taxesAndFees = taxesAndFees;
@@ -337,14 +364,14 @@ exports.updateRestaurant = async (req, res) => {
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
-      message: SUCCESS_MESSAGES.RESOURCE_UPDATED('Restaurant'),
+      message: SUCCESS_MESSAGES.RESOURCE_UPDATED("Restaurant"),
       data: restaurant,
     });
   } catch (error) {
     logger.error(`Update restaurant error: ${error.message}`);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Failed to update restaurant',
+      message: "Failed to update restaurant",
     });
   }
 };
@@ -361,18 +388,18 @@ exports.deleteRestaurant = async (req, res) => {
     if (!restaurant) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
-        message: ERROR_MESSAGES.NOT_FOUND('Restaurant'),
+        message: ERROR_MESSAGES.NOT_FOUND("Restaurant"),
       });
     }
 
     // Delete associated categories and menu items
     await Category.deleteMany({ restaurantId: restaurant._id });
     await MenuItem.deleteMany({ restaurantId: restaurant._id });
-    
+
     // Delete associated owner user
-    await User.deleteMany({ 
+    await User.deleteMany({
       restaurantId: restaurant._id,
-      role: 'restaurant_owner'
+      role: "restaurant_owner",
     });
 
     // Delete restaurant
@@ -380,13 +407,13 @@ exports.deleteRestaurant = async (req, res) => {
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
-      message: SUCCESS_MESSAGES.RESOURCE_DELETED('Restaurant'),
+      message: SUCCESS_MESSAGES.RESOURCE_DELETED("Restaurant"),
     });
   } catch (error) {
     logger.error(`Delete restaurant error: ${error.message}`);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Failed to delete restaurant',
+      message: "Failed to delete restaurant",
     });
   }
 };
@@ -403,7 +430,7 @@ exports.toggleRestaurantActive = async (req, res) => {
     if (!restaurant) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
-        message: ERROR_MESSAGES.NOT_FOUND('Restaurant'),
+        message: ERROR_MESSAGES.NOT_FOUND("Restaurant"),
       });
     }
 
@@ -413,7 +440,7 @@ exports.toggleRestaurantActive = async (req, res) => {
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
-      message: `Restaurant ${restaurant.isActive ? 'activated' : 'deactivated'} successfully`,
+      message: `Restaurant ${restaurant.isActive ? "activated" : "deactivated"} successfully`,
       data: {
         id: restaurant._id,
         isActive: restaurant.isActive,
@@ -423,7 +450,7 @@ exports.toggleRestaurantActive = async (req, res) => {
     logger.error(`Toggle restaurant active error: ${error.message}`);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Failed to toggle restaurant status',
+      message: "Failed to toggle restaurant status",
     });
   }
 };
