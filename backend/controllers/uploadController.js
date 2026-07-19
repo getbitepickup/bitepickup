@@ -161,23 +161,29 @@ exports.uploadMenuItemImage = async (req, res) => {
       });
     }
 
-    // ✅ FIX: Ensure restaurantId exists on the menu item
+    // ✅ FIX: Check if restaurantId exists on the menu item
     if (!menuItem.restaurantId) {
       logger.error(`❌ Menu item ${menuItemId} has no restaurantId`);
+
+      // Try to find the restaurant by checking if this menu item has a restaurantId field
+      // If not, return a clear error
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
         message:
-          "Restaurant ID is required. Please ensure the menu item has a restaurant associated.",
+          "Restaurant ID is required. Please ensure the menu item has a restaurant associated. Please delete this menu item and recreate it.",
       });
     }
 
     // Convert buffer to base64
     const base64Image = bufferToBase64(req.file.buffer);
 
-    // Upload to Cloudinary
+    // ✅ FIX: Ensure restaurantId is a string
+    const restaurantIdStr = menuItem.restaurantId.toString();
+
+    // Upload to Cloudinary with the restaurant ID
     const result = await uploadMenuItemImage(
       base64Image,
-      menuItem.restaurantId.toString(),
+      restaurantIdStr,
       menuItemId,
     );
 
@@ -185,7 +191,9 @@ exports.uploadMenuItemImage = async (req, res) => {
     menuItem.image = result.url;
     await menuItem.save();
 
-    logger.info(`✅ Menu item image updated: ${menuItemId}`);
+    logger.info(
+      `✅ Menu item image updated: ${menuItemId} for restaurant ${restaurantIdStr}`,
+    );
 
     res.status(HTTP_STATUS.OK).json({
       success: true,

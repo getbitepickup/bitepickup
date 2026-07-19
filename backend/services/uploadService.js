@@ -59,6 +59,11 @@ const uploadRestaurantCover = async (file, restaurantId) => {
  */
 const uploadMenuItemImage = async (file, restaurantId, menuItemId) => {
   try {
+    // ✅ FIX: Validate restaurantId
+    if (!restaurantId) {
+      throw new Error("Restaurant ID is required for menu item image upload");
+    }
+
     const result = await uploadImage(file, {
       folder: `hinarok/restaurants/${restaurantId}/menu-items`,
       public_id: menuItemId || undefined,
