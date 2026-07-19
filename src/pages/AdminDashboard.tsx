@@ -36,6 +36,8 @@ import {
   Mail,
   Lock,
   Key,
+  Upload,
+  Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useNavigate } from "react-router-dom";
@@ -50,6 +52,11 @@ export default function AdminDashboard() {
   >("overview");
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(false);
+
+  // ✅ Image upload states
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -109,6 +116,113 @@ export default function AdminDashboard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isEditingMode, setIsEditingMode] = useState(false);
+
+  // ✅ Image upload handler
+  const handleImageUpload = async (
+    file: File,
+    type: "logo" | "cover",
+    onSuccess: (url: string) => void,
+  ) => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      setUploadError("Please login first");
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      setUploadError("Invalid file type. Only JPEG, PNG, GIF, and WEBP are allowed.");
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError("File is too large. Maximum size is 5MB.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+      const API_URL =
+        import.meta.env.VITE_API_URL ||
+        "https://bitepickup-backend.onrender.com";
+      const cleanApiUrl = API_URL.replace(/\/+$/, "");
+      const baseUrl = cleanApiUrl.endsWith("/api")
+        ? cleanApiUrl
+        : `${cleanApiUrl}/api`;
+
+      // For admin, we need a temporary endpoint or use the restaurant upload with a temp ID
+      // Since we don't have a restaurant ID yet, we'll upload to a temp folder
+      // and then update the restaurant after creation
+      const tempId = "temp_" + Date.now();
+      const endpoint = type === "logo" 
+        ? `/upload/restaurant/${tempId}/logo`
+        : `/upload/restaurant/${tempId}/cover`;
+
+      const response = await fetch(`${baseUrl}${endpoint}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        onSuccess(data.data.url);
+        return data.data.url;
+      } else {
+        setUploadError(data.message || "Upload failed");
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      setUploadError("Failed to upload image. Please try again.");
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingLogo(true);
+    setUploadError(null);
+
+    await handleImageUpload(
+      file,
+      "logo",
+      (url) => {
+        setResForm((prev) => ({ ...prev, logo: url }));
+        alert("✅ Logo uploaded successfully!");
+      }
+    );
+
+    setUploadingLogo(false);
+    e.target.value = "";
+  };
+
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingCover(true);
+    setUploadError(null);
+
+    await handleImageUpload(
+      file,
+      "cover",
+      (url) => {
+        setResForm((prev) => ({ ...prev, coverImage: url }));
+        alert("✅ Cover image uploaded successfully!");
+      }
+    );
+
+    setUploadingCover(false);
+    e.target.value = "";
+  };
 
   // Automatically slugify name for visual subdomain preview
   const slugify = (text: string) => {
@@ -395,7 +509,6 @@ export default function AdminDashboard() {
         }
       } catch (error: any) {
         console.error("Failed to create restaurant:", error);
-        // Show the error message in the UI
         const errorMsg =
           error?.message ||
           error?.toString() ||
@@ -1283,40 +1396,97 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
+                {/* ✅ FIX: Added Image Upload for Logo and Cover Image */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[#33101F] mb-1 font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
-                      Square Logo picture (URL)
+                      Logo
                     </label>
-                    <input
-                      id="res-logo-modal-input"
-                      type="text"
-                      value={resForm.logo}
-                      onChange={(e) =>
-                        setResForm((prev) => ({
-                          ...prev,
-                          logo: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-[#E7C7CF] focus:border-[#C42348] rounded-xl focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif]"
-                    />
+                    <div className="flex items-center gap-2">
+                      <input
+                        id="res-logo-modal-input"
+                        type="text"
+                        value={resForm.logo}
+                        onChange={(e) =>
+                          setResForm((prev) => ({
+                            ...prev,
+                            logo: e.target.value,
+                          }))
+                        }
+                        className="flex-1 px-3 py-2 border border-[#E7C7CF] focus:border-[#C42348] rounded-xl focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif] text-xs"
+                        placeholder="Enter URL or upload"
+                      />
+                      <label className="cursor-pointer flex-shrink-0">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                          className="hidden"
+                          disabled={uploadingLogo}
+                        />
+                        <div className={`bg-[#C42348] hover:bg-[#E84C6B] text-white px-2.5 py-2 rounded-xl text-[10px] font-bold transition-colors flex items-center gap-1 whitespace-nowrap ${uploadingLogo ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                          {uploadingLogo ? (
+                            <>
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                              <span>...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-3 h-3" />
+                              <span>Upload</span>
+                            </>
+                          )}
+                        </div>
+                      </label>
+                    </div>
+                    <p className="text-[9px] text-[#8C6B76] mt-0.5 font-['Inter','Segoe UI',system-ui,sans-serif]">
+                      Max 5MB (JPG, PNG, GIF, WEBP)
+                    </p>
                   </div>
                   <div>
                     <label className="block text-[#33101F] mb-1 font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
-                      Cover Banner (URL)
+                      Cover Image
                     </label>
-                    <input
-                      id="res-cover-modal-input"
-                      type="text"
-                      value={resForm.coverImage}
-                      onChange={(e) =>
-                        setResForm((prev) => ({
-                          ...prev,
-                          coverImage: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-[#E7C7CF] focus:border-[#C42348] rounded-xl focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif]"
-                    />
+                    <div className="flex items-center gap-2">
+                      <input
+                        id="res-cover-modal-input"
+                        type="text"
+                        value={resForm.coverImage}
+                        onChange={(e) =>
+                          setResForm((prev) => ({
+                            ...prev,
+                            coverImage: e.target.value,
+                          }))
+                        }
+                        className="flex-1 px-3 py-2 border border-[#E7C7CF] focus:border-[#C42348] rounded-xl focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif] text-xs"
+                        placeholder="Enter URL or upload"
+                      />
+                      <label className="cursor-pointer flex-shrink-0">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleCoverUpload}
+                          className="hidden"
+                          disabled={uploadingCover}
+                        />
+                        <div className={`bg-[#C42348] hover:bg-[#E84C6B] text-white px-2.5 py-2 rounded-xl text-[10px] font-bold transition-colors flex items-center gap-1 whitespace-nowrap ${uploadingCover ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                          {uploadingCover ? (
+                            <>
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                              <span>...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-3 h-3" />
+                              <span>Upload</span>
+                            </>
+                          )}
+                        </div>
+                      </label>
+                    </div>
+                    <p className="text-[9px] text-[#8C6B76] mt-0.5 font-['Inter','Segoe UI',system-ui,sans-serif]">
+                      Max 5MB (JPG, PNG, GIF, WEBP)
+                    </p>
                   </div>
                 </div>
 

@@ -239,9 +239,19 @@ exports.getOrders = async (req, res) => {
 
     console.log(`📊 Found ${orders.length} orders for user ${req.user?.email}`);
 
+    // ✅ FIX: Ensure specialInstructions is included in response
+    const ordersWithSpecialInstructions = orders.map((order) => {
+      const orderObj = order.toObject ? order.toObject() : order;
+      // Ensure specialInstructions field exists
+      if (!orderObj.specialInstructions) {
+        orderObj.specialInstructions = "";
+      }
+      return orderObj;
+    });
+
     res.status(HTTP_STATUS.OK).json({
       success: true,
-      data: orders,
+      data: ordersWithSpecialInstructions,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -342,9 +352,18 @@ exports.getOrdersByRestaurant = async (req, res) => {
       `📊 Found ${orders.length} orders for restaurant ${restaurantDoc.name}`,
     );
 
+    // ✅ FIX: Ensure specialInstructions is included in response
+    const ordersWithSpecialInstructions = orders.map((order) => {
+      const orderObj = order.toObject ? order.toObject() : order;
+      if (!orderObj.specialInstructions) {
+        orderObj.specialInstructions = "";
+      }
+      return orderObj;
+    });
+
     res.status(HTTP_STATUS.OK).json({
       success: true,
-      data: orders,
+      data: ordersWithSpecialInstructions,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -377,9 +396,15 @@ exports.getOrderById = async (req, res) => {
       });
     }
 
+    // ✅ FIX: Ensure specialInstructions is included
+    const orderObj = order.toObject ? order.toObject() : order;
+    if (!orderObj.specialInstructions) {
+      orderObj.specialInstructions = "";
+    }
+
     res.status(HTTP_STATUS.OK).json({
       success: true,
-      data: order,
+      data: orderObj,
     });
   } catch (error) {
     logger.error(`Get order by ID error: ${error.message}`);
@@ -408,9 +433,15 @@ exports.getOrderByReference = async (req, res) => {
       });
     }
 
+    // ✅ FIX: Ensure specialInstructions is included
+    const orderObj = order.toObject ? order.toObject() : order;
+    if (!orderObj.specialInstructions) {
+      orderObj.specialInstructions = "";
+    }
+
     res.status(HTTP_STATUS.OK).json({
       success: true,
-      data: order,
+      data: orderObj,
     });
   } catch (error) {
     logger.error(`Get order by reference error: ${error.message}`);
@@ -526,6 +557,7 @@ exports.createOrder = async (req, res) => {
       scheduledTime: scheduledTime || null,
       paymentMethod: paymentMethod || "online",
       status: "NEW",
+      // ✅ FIX: Ensure specialInstructions is stored properly
       specialInstructions: specialInstructions || "",
       orderReference,
       // ✅ Payment fields
@@ -634,6 +666,10 @@ exports.createOrder = async (req, res) => {
       try {
         const restaurantIdStr = restaurantDoc._id.toString();
         const orderForSSE = order.toObject ? order.toObject() : order;
+        // ✅ Ensure specialInstructions is included in SSE broadcast
+        if (!orderForSSE.specialInstructions) {
+          orderForSSE.specialInstructions = "";
+        }
         broadcastNewOrder(restaurantIdStr, orderForSSE);
         logger.info(
           `📡 SSE: New order broadcasted for restaurant ${restaurantIdStr}`,
@@ -645,6 +681,10 @@ exports.createOrder = async (req, res) => {
 
     // Prepare response
     const responseData = order.toObject ? order.toObject() : order;
+    // ✅ Ensure specialInstructions is included in response
+    if (!responseData.specialInstructions) {
+      responseData.specialInstructions = "";
+    }
 
     // Add payment client secret for online payments
     if (paymentMethod === "online" && paymentIntentResult) {
@@ -742,10 +782,16 @@ exports.updateOrderStatus = async (req, res) => {
       logger.error(`❌ SSE status broadcast error: ${sseError.message}`);
     }
 
+    // ✅ FIX: Ensure specialInstructions is included in response
+    const orderObj = order.toObject ? order.toObject() : order;
+    if (!orderObj.specialInstructions) {
+      orderObj.specialInstructions = "";
+    }
+
     res.status(HTTP_STATUS.OK).json({
       success: true,
       message: SUCCESS_MESSAGES.ORDER_UPDATED,
-      data: order,
+      data: orderObj,
     });
   } catch (error) {
     logger.error(`Update order status error: ${error.message}`);

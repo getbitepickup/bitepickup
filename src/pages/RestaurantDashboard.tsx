@@ -759,6 +759,7 @@ export default function RestaurantDashboard() {
     e.target.value = "";
   };
 
+  // ✅ FIXED: Menu item image upload - only works for existing items
   const handleMenuItemImageUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
@@ -1478,6 +1479,18 @@ export default function RestaurantDashboard() {
                             </div>
                           </div>
 
+                          {/* ✅ FIX: Special Instructions Display */}
+                          {order.specialInstructions && (
+                            <div className="p-2 bg-[#C42348]/10 border border-[#C42348]/20 text-[#C42348] text-[10px] rounded-lg">
+                              <span className="block font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
+                                Special Instructions:
+                              </span>
+                              <p className="italic mt-0.5">
+                                "{order.specialInstructions}"
+                              </p>
+                            </div>
+                          )}
+
                           <div className="grid grid-cols-2 gap-2 text-[10px] p-2 bg-[#FAF3EA] rounded-lg text-[#8C6B76] border border-[#E7C7CF]">
                             <div>
                               <span className="block font-semibold font-['Inter','Segoe UI',system-ui,sans-serif]">
@@ -1500,17 +1513,6 @@ export default function RestaurantDashboard() {
                               </span>
                             </div>
                           </div>
-
-                          {order.specialInstructions && (
-                            <div className="p-2 bg-[#C42348]/10 border border-[#C42348]/20 text-[#C42348] text-[10px] rounded-lg">
-                              <span className="block font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
-                                Special Instructions:
-                              </span>
-                              <p className="italic mt-0.5">
-                                "{order.specialInstructions}"
-                              </p>
-                            </div>
-                          )}
 
                           <div className="flex gap-2">
                             <button
@@ -1612,6 +1614,18 @@ export default function RestaurantDashboard() {
                             </div>
                           </div>
 
+                          {/* ✅ FIX: Special Instructions Display */}
+                          {order.specialInstructions && (
+                            <div className="p-2 bg-[#E8A13B]/10 border border-[#E8A13B]/20 text-[#E8A13B] text-[10px] rounded-lg">
+                              <span className="block font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
+                                Special Instructions:
+                              </span>
+                              <p className="italic mt-0.5">
+                                "{order.specialInstructions}"
+                              </p>
+                            </div>
+                          )}
+
                           <div className="grid grid-cols-2 gap-2 text-[10px] p-2 bg-[#FAF3EA] rounded-lg text-[#8C6B76] border border-[#E7C7CF]">
                             <div>
                               <span className="block font-semibold font-['Inter','Segoe UI',system-ui,sans-serif]">
@@ -1632,17 +1646,6 @@ export default function RestaurantDashboard() {
                               </span>
                             </div>
                           </div>
-
-                          {order.specialInstructions && (
-                            <div className="p-2 bg-[#E8A13B]/10 border border-[#E8A13B]/20 text-[#E8A13B] text-[10px] rounded-lg">
-                              <span className="block font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
-                                Special Instructions:
-                              </span>
-                              <p className="italic mt-0.5">
-                                "{order.specialInstructions}"
-                              </p>
-                            </div>
-                          )}
 
                           <div className="flex gap-2">
                             <button
@@ -1744,6 +1747,18 @@ export default function RestaurantDashboard() {
                             </div>
                           </div>
 
+                          {/* ✅ FIX: Special Instructions Display */}
+                          {order.specialInstructions && (
+                            <div className="p-2 bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 text-[10px] rounded-lg">
+                              <span className="block font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
+                                Special Instructions:
+                              </span>
+                              <p className="italic mt-0.5">
+                                "{order.specialInstructions}"
+                              </p>
+                            </div>
+                          )}
+
                           <div className="grid grid-cols-2 gap-2 text-[10px] p-2 bg-[#FAF3EA] rounded-lg text-[#8C6B76] border border-[#E7C7CF]">
                             <div>
                               <span className="block font-semibold font-['Inter','Segoe UI',system-ui,sans-serif]">
@@ -1762,17 +1777,6 @@ export default function RestaurantDashboard() {
                               </span>
                             </div>
                           </div>
-
-                          {order.specialInstructions && (
-                            <div className="p-2 bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 text-[10px] rounded-lg">
-                              <span className="block font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
-                                Special Instructions:
-                              </span>
-                              <p className="italic mt-0.5">
-                                "{order.specialInstructions}"
-                              </p>
-                            </div>
-                          )}
 
                           <div className="flex gap-2">
                             <button
@@ -2537,7 +2541,7 @@ export default function RestaurantDashboard() {
                   </div>
                 </div>
 
-                {/* 2. Business Hours Setup Card */}
+                {/* 2. Business Hours Setup Card - ✅ FIXED with full time picker */}
                 <div className="bg-white border border-[#E7C7CF] rounded-2xl p-6 sm:p-8 space-y-6">
                   <div>
                     <h3 className="text-base font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] flex items-center gap-2">
@@ -2605,6 +2609,7 @@ export default function RestaurantDashboard() {
                                   <label className="block text-[10px] uppercase font-bold text-[#8C6B76] mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                                     Opens at
                                   </label>
+                                  {/* ✅ FIX: Full time picker with all hours */}
                                   <select
                                     value={dayHours.openTime}
                                     onChange={(e) => {
@@ -2619,6 +2624,12 @@ export default function RestaurantDashboard() {
                                     className="w-full px-2.5 py-1.5 bg-[#FAF3EA] border border-[#E7C7CF] text-[#33101F] rounded-lg text-xs focus:outline-none focus:border-[#C42348] font-['Inter','Segoe UI',system-ui,sans-serif]"
                                   >
                                     {[
+                                      "12:00 AM",
+                                      "01:00 AM",
+                                      "02:00 AM",
+                                      "03:00 AM",
+                                      "04:00 AM",
+                                      "05:00 AM",
                                       "06:00 AM",
                                       "07:00 AM",
                                       "08:00 AM",
@@ -2629,6 +2640,14 @@ export default function RestaurantDashboard() {
                                       "01:00 PM",
                                       "02:00 PM",
                                       "03:00 PM",
+                                      "04:00 PM",
+                                      "05:00 PM",
+                                      "06:00 PM",
+                                      "07:00 PM",
+                                      "08:00 PM",
+                                      "09:00 PM",
+                                      "10:00 PM",
+                                      "11:00 PM",
                                     ].map((t) => (
                                       <option key={t} value={t}>
                                         {t}
@@ -2643,6 +2662,7 @@ export default function RestaurantDashboard() {
                                   <label className="block text-[10px] uppercase font-bold text-[#8C6B76] mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                                     Closes at
                                   </label>
+                                  {/* ✅ FIX: Full time picker with all hours */}
                                   <select
                                     value={dayHours.closeTime}
                                     onChange={(e) => {
@@ -2657,6 +2677,23 @@ export default function RestaurantDashboard() {
                                     className="w-full px-2.5 py-1.5 bg-[#FAF3EA] border border-[#E7C7CF] text-[#33101F] rounded-lg text-xs focus:outline-none focus:border-[#C42348] font-['Inter','Segoe UI',system-ui,sans-serif]"
                                   >
                                     {[
+                                      "12:00 AM",
+                                      "01:00 AM",
+                                      "02:00 AM",
+                                      "03:00 AM",
+                                      "04:00 AM",
+                                      "05:00 AM",
+                                      "06:00 AM",
+                                      "07:00 AM",
+                                      "08:00 AM",
+                                      "09:00 AM",
+                                      "10:00 AM",
+                                      "11:00 AM",
+                                      "12:00 PM",
+                                      "01:00 PM",
+                                      "02:00 PM",
+                                      "03:00 PM",
+                                      "04:00 PM",
                                       "05:00 PM",
                                       "06:00 PM",
                                       "07:00 PM",
@@ -2664,9 +2701,6 @@ export default function RestaurantDashboard() {
                                       "09:00 PM",
                                       "10:00 PM",
                                       "11:00 PM",
-                                      "11:59 PM",
-                                      "01:00 AM",
-                                      "02:00 AM",
                                     ].map((t) => (
                                       <option key={t} value={t}>
                                         {t}
@@ -3125,6 +3159,7 @@ export default function RestaurantDashboard() {
                   </div>
                 </div>
 
+                {/* ✅ FIX: Special Instructions on Receipt */}
                 {receiptOrder.specialInstructions && (
                   <div className="mt-2 p-2 bg-[#FAF3EA] rounded-lg border border-[#E7C7CF]">
                     <div className="text-[10px] font-bold uppercase tracking-wider text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">

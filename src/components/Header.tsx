@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import logoDark from "../assets/logo-dark.png";
 import { getRestaurants } from "../store/apiStore";
@@ -7,6 +7,7 @@ import { getRestaurants } from "../store/apiStore";
 export default function Header() {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [isLandingPage, setIsLandingPage] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSubdomain, setIsSubdomain] = useState(false);
@@ -16,6 +17,34 @@ export default function Header() {
   const [loading, setLoading] = useState(true);
   const [dashboardId, setDashboardId] = useState<string | null>(null);
   const [fetchAttempted, setFetchAttempted] = useState(false);
+
+  // ✅ FIX: Normalize slug (remove dashes for comparison)
+  const normalizeSlug = (value: string) => {
+    if (!value) return '';
+    return value.toLowerCase().replace(/-/g, '');
+  };
+
+  // ✅ FIX: Check if current URL is a subdomain and redirect dash versions
+  useEffect(() => {
+    const hostname = window.location.hostname;
+    const isMainDomain =
+      hostname === "hinarok.com" ||
+      hostname === "www.hinarok.com" ||
+      hostname === "localhost" ||
+      hostname.includes("vercel.app");
+
+    if (!isMainDomain) {
+      const subdomain = hostname.split(".")[0];
+      // If subdomain contains a dash, redirect to no-dash version
+      if (subdomain && subdomain.includes("-")) {
+        const noDashSubdomain = subdomain.replace(/-/g, "");
+        const newUrl = `https://${noDashSubdomain}.${hostname.split(".").slice(1).join(".")}`;
+        console.log(`🔄 Redirecting dash subdomain: ${subdomain} → ${noDashSubdomain}`);
+        window.location.href = newUrl;
+        return;
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const fetchRestaurantData = async () => {
@@ -61,6 +90,14 @@ export default function Header() {
 
           let foundRestaurant = null;
 
+          // ✅ FIX: Normalize subdomain for comparison
+          const getNormalizedSubdomain = () => {
+            if (isMainDomain) return null;
+            const sub = hostname.split(".")[0];
+            return sub && sub !== "www" ? normalizeSlug(sub) : null;
+          };
+          const normalizedSubdomain = getNormalizedSubdomain();
+
           // PRIORITY 1: If on dashboard with ID
           if (isDashboard && dashboardId) {
             foundRestaurant = activeRestaurants.find(
@@ -80,9 +117,17 @@ export default function Header() {
               .split("/restaurant/")[1]
               ?.split("/")[0];
             if (slug) {
+              // Try exact match first
               foundRestaurant = activeRestaurants.find(
                 (r: any) => r.slug === slug,
               );
+              // If not found, try normalized match
+              if (!foundRestaurant) {
+                const normalizedSlug = normalizeSlug(slug);
+                foundRestaurant = activeRestaurants.find(
+                  (r: any) => normalizeSlug(r.slug || '') === normalizedSlug,
+                );
+              }
               if (foundRestaurant) {
                 console.log(
                   "📌 Header: Found restaurant by slug:",
@@ -93,20 +138,33 @@ export default function Header() {
           }
 
           // PRIORITY 3: If on subdomain
-          if (!foundRestaurant && !isMainDomain) {
-            const subdomain = hostname.split(".")[0];
-            if (subdomain && subdomain !== "www") {
+          if (!foundRestaurant && !isMainDomain && normalizedSubdomain) {
+            // Try exact subdomain match first
+            foundRestaurant = activeRestaurants.find(
+              (r: any) => r.subdomain === normalizedSubdomain,
+            );
+            // If not found, try normalized match
+            if (!foundRestaurant) {
               foundRestaurant = activeRestaurants.find((r: any) => {
-                if (r.subdomain && r.subdomain.includes(subdomain)) return true;
-                if (r.slug === subdomain) return true;
-                return false;
+                const normalizedRSub = normalizeSlug(r.subdomain || '');
+                const normalizedRSlug = normalizeSlug(r.slug || '');
+                return normalizedRSub === normalizedSubdomain ||
+                       normalizedRSlug === normalizedSubdomain;
               });
-              if (foundRestaurant) {
-                console.log(
-                  "📌 Header: Found restaurant by subdomain:",
-                  foundRestaurant.name,
-                );
-              }
+            }
+            // If still not found, try contains match
+            if (!foundRestaurant) {
+              foundRestaurant = activeRestaurants.find((r: any) => {
+                const normalizedRSub = normalizeSlug(r.subdomain || '');
+                return normalizedRSub.includes(normalizedSubdomain) ||
+                       r.subdomain?.includes(normalizedSubdomain);
+              });
+            }
+            if (foundRestaurant) {
+              console.log(
+                "📌 Header: Found restaurant by subdomain:",
+                foundRestaurant.name,
+              );
             }
           }
 
@@ -138,7 +196,7 @@ export default function Header() {
                   const slug = location.pathname
                     .split("/restaurant/")[1]
                     ?.split("/")[0];
-                  if (parsed.slug === slug) {
+                  if (slug && (parsed.slug === slug || normalizeSlug(parsed.slug) === normalizeSlug(slug))) {
                     const verified = activeRestaurants.find(
                       (r: any) => r.id === parsed.id,
                     );
@@ -151,6 +209,25 @@ export default function Header() {
                     }
                   } else {
                     // Stored doesn't match slug, clear it
+                    localStorage.removeItem("currentRestaurant");
+                  }
+                } else if (!isMainDomain && normalizedSubdomain) {
+                  // For subdomain, verify the stored restaurant matches
+                  const normalizedStoredSlug = normalizeSlug(parsed.slug || '');
+                  const normalizedStoredSub = normalizeSlug(parsed.subdomain || '');
+                  if (normalizedStoredSlug === normalizedSubdomain || 
+                      normalizedStoredSub === normalizedSubdomain) {
+                    const verified = activeRestaurants.find(
+                      (r: any) => r.id === parsed.id,
+                    );
+                    if (verified) {
+                      foundRestaurant = verified;
+                      console.log(
+                        "📌 Header: Found restaurant from localStorage (verified for subdomain):",
+                        foundRestaurant.name,
+                      );
+                    }
+                  } else {
                     localStorage.removeItem("currentRestaurant");
                   }
                 } else {
@@ -211,7 +288,12 @@ export default function Header() {
                 const slug = location.pathname
                   .split("/restaurant/")[1]
                   ?.split("/")[0];
-                isValid = parsed.slug === slug;
+                isValid = slug && (parsed.slug === slug || normalizeSlug(parsed.slug) === normalizeSlug(slug));
+              } else if (!isMainDomain && normalizedSubdomain) {
+                const normalizedStoredSlug = normalizeSlug(parsed.slug || '');
+                const normalizedStoredSub = normalizeSlug(parsed.subdomain || '');
+                isValid = normalizedStoredSlug === normalizedSubdomain || 
+                         normalizedStoredSub === normalizedSubdomain;
               } else {
                 isValid = true;
               }
