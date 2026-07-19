@@ -161,13 +161,23 @@ exports.uploadMenuItemImage = async (req, res) => {
       });
     }
 
+    // ✅ FIX: Ensure restaurantId exists on the menu item
+    if (!menuItem.restaurantId) {
+      logger.error(`❌ Menu item ${menuItemId} has no restaurantId`);
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        message:
+          "Restaurant ID is required. Please ensure the menu item has a restaurant associated.",
+      });
+    }
+
     // Convert buffer to base64
     const base64Image = bufferToBase64(req.file.buffer);
 
     // Upload to Cloudinary
     const result = await uploadMenuItemImage(
       base64Image,
-      menuItem.restaurantId,
+      menuItem.restaurantId.toString(),
       menuItemId,
     );
 
