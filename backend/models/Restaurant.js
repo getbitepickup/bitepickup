@@ -93,8 +93,14 @@ const restaurantSchema = new mongoose.Schema({
     },
     serviceFeeAmount: {
       type: Number,
-      default: 0, // ✅ FIX: Changed from 2.5 to 0
+      default: 0,
     },
+  },
+  // ✅ NEW: Category sorting preference
+  categorySortOrder: {
+    type: String,
+    enum: ["created", "alphabetical_asc", "alphabetical_desc"],
+    default: "created",
   },
   subscription: {
     tier: {

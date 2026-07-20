@@ -1,8 +1,13 @@
-const Category = require('../models/Category');
-const MenuItem = require('../models/MenuItem');
-const mongoose = require('mongoose');
-const { HTTP_STATUS, SUCCESS_MESSAGES, ERROR_MESSAGES } = require('../utils/constants');
-const logger = require('../utils/logger');
+const Category = require("../models/Category");
+const MenuItem = require("../models/MenuItem");
+const Restaurant = require("../models/Restaurant");
+const mongoose = require("mongoose");
+const {
+  HTTP_STATUS,
+  SUCCESS_MESSAGES,
+  ERROR_MESSAGES,
+} = require("../utils/constants");
+const logger = require("../utils/logger");
 
 /**
  * @desc    Get all categories
@@ -13,7 +18,7 @@ exports.getCategories = async (req, res) => {
   try {
     const { restaurantId } = req.query;
     const filter = {};
-    
+
     if (restaurantId) {
       // Convert to ObjectId if it's a valid one, otherwise use as is
       if (mongoose.Types.ObjectId.isValid(restaurantId)) {
@@ -24,8 +29,29 @@ exports.getCategories = async (req, res) => {
       }
     }
 
-    const categories = await Category.find(filter)
-      .sort({ displayOrder: 1, name: 1 });
+    // ✅ FIX: Get categories with sorting based on restaurant preference
+    let sortCriteria = { displayOrder: 1, name: 1 };
+
+    // If restaurantId is provided, get the restaurant's sort preference
+    if (restaurantId) {
+      const restaurant = await Restaurant.findById(restaurantId);
+      if (restaurant && restaurant.categorySortOrder) {
+        switch (restaurant.categorySortOrder) {
+          case "alphabetical_asc":
+            sortCriteria = { name: 1 };
+            break;
+          case "alphabetical_desc":
+            sortCriteria = { name: -1 };
+            break;
+          case "created":
+          default:
+            sortCriteria = { displayOrder: 1, createdAt: 1 };
+            break;
+        }
+      }
+    }
+
+    const categories = await Category.find(filter).sort(sortCriteria);
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
@@ -35,7 +61,7 @@ exports.getCategories = async (req, res) => {
     logger.error(`Get categories error: ${error.message}`);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Failed to fetch categories',
+      message: "Failed to fetch categories",
     });
   }
 };
@@ -48,7 +74,7 @@ exports.getCategories = async (req, res) => {
 exports.getCategoriesByRestaurant = async (req, res) => {
   try {
     const { restaurantId } = req.params;
-    
+
     // Validate if it's a valid ObjectId
     let filter = {};
     if (mongoose.Types.ObjectId.isValid(restaurantId)) {
@@ -58,8 +84,27 @@ exports.getCategoriesByRestaurant = async (req, res) => {
       filter = { restaurantId };
     }
 
-    const categories = await Category.find(filter)
-      .sort({ displayOrder: 1, name: 1 });
+    // ✅ FIX: Get categories with sorting based on restaurant preference
+    let sortCriteria = { displayOrder: 1, name: 1 };
+
+    // Get the restaurant's sort preference
+    const restaurant = await Restaurant.findById(restaurantId);
+    if (restaurant && restaurant.categorySortOrder) {
+      switch (restaurant.categorySortOrder) {
+        case "alphabetical_asc":
+          sortCriteria = { name: 1 };
+          break;
+        case "alphabetical_desc":
+          sortCriteria = { name: -1 };
+          break;
+        case "created":
+        default:
+          sortCriteria = { displayOrder: 1, createdAt: 1 };
+          break;
+      }
+    }
+
+    const categories = await Category.find(filter).sort(sortCriteria);
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
@@ -69,7 +114,7 @@ exports.getCategoriesByRestaurant = async (req, res) => {
     logger.error(`Get categories by restaurant error: ${error.message}`);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Failed to fetch categories',
+      message: "Failed to fetch categories",
     });
   }
 };
@@ -86,7 +131,7 @@ exports.getCategoryById = async (req, res) => {
     if (!category) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
-        message: ERROR_MESSAGES.NOT_FOUND('Category'),
+        message: ERROR_MESSAGES.NOT_FOUND("Category"),
       });
     }
 
@@ -98,7 +143,7 @@ exports.getCategoryById = async (req, res) => {
     logger.error(`Get category by ID error: ${error.message}`);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Failed to fetch category',
+      message: "Failed to fetch category",
     });
   }
 };
@@ -115,7 +160,7 @@ exports.createCategory = async (req, res) => {
     if (!restaurantId || !name) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
-        message: 'Restaurant ID and name are required',
+        message: "Restaurant ID and name are required",
       });
     }
 
@@ -123,7 +168,7 @@ exports.createCategory = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(restaurantId)) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
-        message: 'Invalid restaurant ID format',
+        message: "Invalid restaurant ID format",
       });
     }
 
@@ -135,14 +180,14 @@ exports.createCategory = async (req, res) => {
 
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
-      message: SUCCESS_MESSAGES.RESOURCE_CREATED('Category'),
+      message: SUCCESS_MESSAGES.RESOURCE_CREATED("Category"),
       data: category,
     });
   } catch (error) {
     logger.error(`Create category error: ${error.message}`);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Failed to create category',
+      message: "Failed to create category",
     });
   }
 };
@@ -160,7 +205,7 @@ exports.updateCategory = async (req, res) => {
     if (!category) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
-        message: ERROR_MESSAGES.NOT_FOUND('Category'),
+        message: ERROR_MESSAGES.NOT_FOUND("Category"),
       });
     }
 
@@ -172,14 +217,14 @@ exports.updateCategory = async (req, res) => {
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
-      message: SUCCESS_MESSAGES.RESOURCE_UPDATED('Category'),
+      message: SUCCESS_MESSAGES.RESOURCE_UPDATED("Category"),
       data: category,
     });
   } catch (error) {
     logger.error(`Update category error: ${error.message}`);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Failed to update category',
+      message: "Failed to update category",
     });
   }
 };
@@ -196,7 +241,7 @@ exports.deleteCategory = async (req, res) => {
     if (!category) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
-        message: ERROR_MESSAGES.NOT_FOUND('Category'),
+        message: ERROR_MESSAGES.NOT_FOUND("Category"),
       });
     }
 
@@ -208,13 +253,102 @@ exports.deleteCategory = async (req, res) => {
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
-      message: SUCCESS_MESSAGES.RESOURCE_DELETED('Category'),
+      message: SUCCESS_MESSAGES.RESOURCE_DELETED("Category"),
     });
   } catch (error) {
     logger.error(`Delete category error: ${error.message}`);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Failed to delete category',
+      message: "Failed to delete category",
+    });
+  }
+};
+
+/**
+ * @desc    Update category sort order for a restaurant
+ * @route   PUT /api/categories/sort-order/:restaurantId
+ * @access  Restaurant Owner or Admin
+ */
+exports.updateCategorySortOrder = async (req, res) => {
+  try {
+    const { restaurantId } = req.params;
+    const { sortOrder } = req.body;
+
+    // Validate sortOrder value
+    const validSortOrders = [
+      "created",
+      "alphabetical_asc",
+      "alphabetical_desc",
+    ];
+    if (!validSortOrders.includes(sortOrder)) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        message:
+          "Invalid sort order. Must be: created, alphabetical_asc, or alphabetical_desc",
+      });
+    }
+
+    // Find and update restaurant
+    const restaurant = await Restaurant.findById(restaurantId);
+    if (!restaurant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        message: ERROR_MESSAGES.NOT_FOUND("Restaurant"),
+      });
+    }
+
+    restaurant.categorySortOrder = sortOrder;
+    restaurant.updatedAt = new Date();
+    await restaurant.save();
+
+    logger.info(
+      `✅ Category sort order updated for restaurant ${restaurant.name}: ${sortOrder}`,
+    );
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: "Category sort order updated successfully",
+      data: {
+        categorySortOrder: restaurant.categorySortOrder,
+      },
+    });
+  } catch (error) {
+    logger.error(`Update category sort order error: ${error.message}`);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: "Failed to update category sort order",
+    });
+  }
+};
+
+/**
+ * @desc    Get category sort order for a restaurant
+ * @route   GET /api/categories/sort-order/:restaurantId
+ * @access  Public
+ */
+exports.getCategorySortOrder = async (req, res) => {
+  try {
+    const { restaurantId } = req.params;
+
+    const restaurant = await Restaurant.findById(restaurantId);
+    if (!restaurant) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        message: ERROR_MESSAGES.NOT_FOUND("Restaurant"),
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data: {
+        categorySortOrder: restaurant.categorySortOrder || "created",
+      },
+    });
+  } catch (error) {
+    logger.error(`Get category sort order error: ${error.message}`);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: "Failed to get category sort order",
     });
   }
 };

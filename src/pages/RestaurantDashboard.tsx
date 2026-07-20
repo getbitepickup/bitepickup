@@ -939,6 +939,11 @@ export default function RestaurantDashboard() {
     serviceFeeAmount: 0,
   });
 
+  // ✅ NEW: Category sort order state
+  const [categorySortOrder, setCategorySortOrder] = useState<
+    "created" | "alphabetical_asc" | "alphabetical_desc"
+  >("created");
+
   // ✅ Receipt Print State
   const [receiptOrder, setReceiptOrder] = useState<Order | null>(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
@@ -965,6 +970,11 @@ export default function RestaurantDashboard() {
 
       if (currentRestaurant.taxesAndFees) {
         setTaxesAndFees(currentRestaurant.taxesAndFees);
+      }
+
+      // ✅ Load category sort order
+      if (currentRestaurant.categorySortOrder) {
+        setCategorySortOrder(currentRestaurant.categorySortOrder);
       }
     }
   }, [currentRestaurant?.id]);
@@ -1021,6 +1031,7 @@ export default function RestaurantDashboard() {
         businessHours,
         pickupSettings,
         taxesAndFees,
+        categorySortOrder, // ✅ NEW: Include category sort order
       });
       alert("Restaurant settings updated successfully!");
     } catch (error) {
@@ -3033,6 +3044,87 @@ export default function RestaurantDashboard() {
                         className="w-full px-3.5 py-2 bg-[#FAF3EA] border border-[#E7C7CF] focus:border-[#C42348] rounded-xl text-xs text-[#33101F] focus:outline-none font-['Inter','Segoe UI',system-ui,sans-serif]"
                       />
                     </div>
+                  </div>
+                </div>
+
+                {/* 5. Category Sort Order Card - ✅ NEW */}
+                <div className="bg-white border border-[#E7C7CF] rounded-2xl p-6 sm:p-8 space-y-6">
+                  <div>
+                    <h3 className="text-base font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] flex items-center gap-2">
+                      <Layers className="w-5 h-5 text-[#C42348]" />
+                      <span>Category Display Order</span>
+                    </h3>
+                    <p className="text-xs text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
+                      Choose how categories appear on your customer ordering
+                      page.
+                    </p>
+                  </div>
+
+                  <div className="bg-[#FAF3EA] p-4 border border-[#E7C7CF] rounded-xl">
+                    <label className="block text-xs font-bold text-[#33101F] mb-2 font-['Inter','Segoe UI',system-ui,sans-serif]">
+                      Sort Categories By:
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {[
+                        {
+                          value: "created",
+                          label: "Creation Order",
+                          description:
+                            "Categories appear in the order they were added",
+                        },
+                        {
+                          value: "alphabetical_asc",
+                          label: "Alphabetical (A-Z)",
+                          description:
+                            "Categories sorted alphabetically A to Z",
+                        },
+                        {
+                          value: "alphabetical_desc",
+                          label: "Alphabetical (Z-A)",
+                          description:
+                            "Categories sorted alphabetically Z to A",
+                        },
+                      ].map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() =>
+                            setCategorySortOrder(
+                              option.value as typeof categorySortOrder,
+                            )
+                          }
+                          className={`p-4 rounded-xl border-2 text-left transition-all ${
+                            categorySortOrder === option.value
+                              ? "border-[#C42348] bg-[#C42348]/5 ring-1 ring-[#C42348]"
+                              : "border-[#E7C7CF] hover:border-[#C42348] bg-white"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                                categorySortOrder === option.value
+                                  ? "border-[#C42348] bg-[#C42348]"
+                                  : "border-[#8C6B76]"
+                              }`}
+                            >
+                              {categorySortOrder === option.value && (
+                                <Check className="w-2.5 h-2.5 text-white" />
+                              )}
+                            </div>
+                            <span className="text-xs font-bold text-[#33101F]">
+                              {option.label}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-[#8C6B76] mt-1.5 ml-6">
+                            {option.description}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-[#8C6B76] mt-3 font-['Inter','Segoe UI',system-ui,sans-serif]">
+                      💡 Changes will apply immediately to your customer
+                      ordering page.
+                    </p>
                   </div>
                 </div>
 

@@ -1,9 +1,9 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { body, param, query } = require('express-validator');
-const categoryController = require('../controllers/categoryController');
-const { validateRequest } = require('../middleware/validateRequest');
-const { authenticate, isAdmin, ownsRestaurant } = require('../middleware/auth');
+const { body, param, query } = require("express-validator");
+const categoryController = require("../controllers/categoryController");
+const { validateRequest } = require("../middleware/validateRequest");
+const { authenticate, isAdmin, ownsRestaurant } = require("../middleware/auth");
 
 /**
  * @route   GET /api/categories
@@ -11,12 +11,15 @@ const { authenticate, isAdmin, ownsRestaurant } = require('../middleware/auth');
  * @access  Public
  */
 router.get(
-  '/',
+  "/",
   [
-    query('restaurantId').optional().isString().withMessage('Invalid restaurant ID'),
+    query("restaurantId")
+      .optional()
+      .isMongoId()
+      .withMessage("Invalid restaurant ID"),
   ],
   validateRequest,
-  categoryController.getCategories
+  categoryController.getCategories,
 );
 
 /**
@@ -25,12 +28,10 @@ router.get(
  * @access  Public
  */
 router.get(
-  '/restaurant/:restaurantId',
-  [
-    param('restaurantId').isString().withMessage('Invalid restaurant ID'),
-  ],
+  "/restaurant/:restaurantId",
+  [param("restaurantId").notEmpty().withMessage("Restaurant ID is required")],
   validateRequest,
-  categoryController.getCategoriesByRestaurant
+  categoryController.getCategoriesByRestaurant,
 );
 
 /**
@@ -39,12 +40,10 @@ router.get(
  * @access  Public
  */
 router.get(
-  '/:id',
-  [
-    param('id').isMongoId().withMessage('Invalid category ID'),
-  ],
+  "/:id",
+  [param("id").isMongoId().withMessage("Invalid category ID")],
   validateRequest,
-  categoryController.getCategoryById
+  categoryController.getCategoryById,
 );
 
 /**
@@ -53,16 +52,19 @@ router.get(
  * @access  Admin or Restaurant Owner
  */
 router.post(
-  '/',
+  "/",
   authenticate,
   [
-    body('restaurantId').isMongoId().withMessage('Invalid restaurant ID'),
-    body('name').notEmpty().withMessage('Category name is required'),
-    body('displayOrder').optional().isInt().withMessage('Display order must be an integer'),
+    body("restaurantId").isMongoId().withMessage("Invalid restaurant ID"),
+    body("name").notEmpty().withMessage("Category name is required"),
+    body("displayOrder")
+      .optional()
+      .isInt()
+      .withMessage("Display order must be an integer"),
   ],
   validateRequest,
   ownsRestaurant,
-  categoryController.createCategory
+  categoryController.createCategory,
 );
 
 /**
@@ -71,32 +73,61 @@ router.post(
  * @access  Admin or Restaurant Owner
  */
 router.put(
-  '/:id',
+  "/:id",
   authenticate,
   [
-    param('id').isMongoId().withMessage('Invalid category ID'),
-    body('name').optional().notEmpty().withMessage('Category name cannot be empty'),
-    body('displayOrder').optional().isInt().withMessage('Display order must be an integer'),
+    param("id").isMongoId().withMessage("Invalid category ID"),
+    body("name")
+      .optional()
+      .notEmpty()
+      .withMessage("Category name cannot be empty"),
+    body("displayOrder")
+      .optional()
+      .isInt()
+      .withMessage("Display order must be an integer"),
   ],
   validateRequest,
   ownsRestaurant,
-  categoryController.updateCategory
+  categoryController.updateCategory,
 );
 
 /**
  * @route   DELETE /api/categories/:id
- * @desc    Delete a category
+ * @desc    Delete a category (cascades to menu items)
  * @access  Admin or Restaurant Owner
  */
 router.delete(
-  '/:id',
+  "/:id",
+  authenticate,
+  [param("id").isMongoId().withMessage("Invalid category ID")],
+  validateRequest,
+  ownsRestaurant,
+  categoryController.deleteCategory,
+);
+
+// ✅ NEW: Update category sort order for a restaurant
+router.put(
+  "/sort-order/:restaurantId",
   authenticate,
   [
-    param('id').isMongoId().withMessage('Invalid category ID'),
+    param("restaurantId").isMongoId().withMessage("Invalid restaurant ID"),
+    body("sortOrder")
+      .isIn(["created", "alphabetical_asc", "alphabetical_desc"])
+      .withMessage(
+        "Invalid sort order. Must be: created, alphabetical_asc, or alphabetical_desc",
+      ),
   ],
   validateRequest,
   ownsRestaurant,
-  categoryController.deleteCategory
+  categoryController.updateCategorySortOrder,
+);
+
+// ✅ NEW: Get category sort order for a restaurant
+router.get(
+  "/sort-order/:restaurantId",
+  [param("restaurantId").notEmpty().withMessage("Restaurant ID is required")],
+  validateRequest,
+  categoryController.getCategorySortOrder,
 );
 
 module.exports = router;

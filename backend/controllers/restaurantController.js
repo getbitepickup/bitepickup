@@ -230,6 +230,7 @@ exports.createRestaurant = async (req, res) => {
       isActive: true,
       isOrderingPaused: false,
       createdBy: req.user ? req.user.id : null,
+      categorySortOrder: "created", // ✅ NEW: Default category sort order
       businessHours: {
         Monday: { isOpen: true, openTime: "09:00 AM", closeTime: "10:00 PM" },
         Tuesday: { isOpen: true, openTime: "09:00 AM", closeTime: "10:00 PM" },
@@ -250,7 +251,7 @@ exports.createRestaurant = async (req, res) => {
       },
       taxesAndFees: {
         taxRatePercent: 8.5,
-        serviceFeeAmount: 0, // ✅ FIX: Changed from 2.50 to 0
+        serviceFeeAmount: 0,
       },
     });
 
@@ -325,6 +326,7 @@ exports.updateRestaurant = async (req, res) => {
       taxesAndFees,
       slug,
       subdomain,
+      categorySortOrder, // ✅ NEW
     } = req.body;
 
     const restaurant = await Restaurant.findById(req.params.id);
@@ -357,6 +359,7 @@ exports.updateRestaurant = async (req, res) => {
     if (businessHours) restaurant.businessHours = businessHours;
     if (pickupSettings) restaurant.pickupSettings = pickupSettings;
     if (taxesAndFees) restaurant.taxesAndFees = taxesAndFees;
+    if (categorySortOrder) restaurant.categorySortOrder = categorySortOrder; // ✅ NEW
 
     restaurant.updatedAt = new Date();
 
