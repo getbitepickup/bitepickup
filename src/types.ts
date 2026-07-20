@@ -70,6 +70,8 @@ export interface OrderItem {
   name: string;
   price: number;
   quantity: number;
+  // ✅ NEW: Item-specific special instructions
+  specialInstructions?: string;
 }
 
 export interface Order {
@@ -88,7 +90,7 @@ export interface Order {
   timestamp: string;
 
   // Custom Settings
-  specialInstructions?: string;
+  specialInstructions?: string; // ✅ Global order-level special instructions
   taxAmount?: number;
   serviceFee?: number;
   finalTotal?: number;
@@ -109,6 +111,7 @@ export interface CartItem {
   price: number;
   quantity: number;
   image?: string;
+  // ✅ NEW: Item-specific special instructions for cart
   specialInstructions?: string;
 }
 

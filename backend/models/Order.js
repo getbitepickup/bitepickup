@@ -20,6 +20,12 @@ const orderItemSchema = new mongoose.Schema({
     required: true,
     min: 1,
   },
+  // ✅ NEW: Item-specific special instructions (for individual menu items)
+  specialInstructions: {
+    type: String,
+    trim: true,
+    default: "",
+  },
 });
 
 const orderSchema = new mongoose.Schema({
@@ -76,6 +82,12 @@ const orderSchema = new mongoose.Schema({
     enum: ["online", "pickup"],
     required: true,
   },
+  // ✅ Global order-level special instructions
+  specialInstructions: {
+    type: String,
+    trim: true,
+    default: "",
+  },
   // ✅ Stripe Connect Payment Fields
   paymentStatus: {
     type: String,
@@ -120,10 +132,6 @@ const orderSchema = new mongoose.Schema({
     type: String,
     enum: ["NEW", "PREPARING", "READY", "COMPLETED"],
     default: "NEW",
-  },
-  specialInstructions: {
-    type: String,
-    trim: true,
   },
   orderReference: {
     type: String,

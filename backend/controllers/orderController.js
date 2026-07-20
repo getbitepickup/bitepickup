@@ -242,13 +242,20 @@ exports.getOrders = async (req, res) => {
     // ✅ FIX: Ensure specialInstructions is included in response
     const ordersWithSpecialInstructions = orders.map((order) => {
       const orderObj = order.toObject ? order.toObject() : order;
-      // Ensure specialInstructions field exists
+      // Ensure global specialInstructions field exists
       if (!orderObj.specialInstructions) {
         orderObj.specialInstructions = "";
       }
       // Ensure serviceFee is included and properly set
       if (orderObj.serviceFee === undefined || orderObj.serviceFee === null) {
         orderObj.serviceFee = 0;
+      }
+      // ✅ Ensure each item has specialInstructions field
+      if (orderObj.items && Array.isArray(orderObj.items)) {
+        orderObj.items = orderObj.items.map((item) => ({
+          ...item,
+          specialInstructions: item.specialInstructions || "",
+        }));
       }
       return orderObj;
     });
@@ -365,6 +372,13 @@ exports.getOrdersByRestaurant = async (req, res) => {
       if (orderObj.serviceFee === undefined || orderObj.serviceFee === null) {
         orderObj.serviceFee = 0;
       }
+      // ✅ Ensure each item has specialInstructions field
+      if (orderObj.items && Array.isArray(orderObj.items)) {
+        orderObj.items = orderObj.items.map((item) => ({
+          ...item,
+          specialInstructions: item.specialInstructions || "",
+        }));
+      }
       return orderObj;
     });
 
@@ -411,6 +425,13 @@ exports.getOrderById = async (req, res) => {
     if (orderObj.serviceFee === undefined || orderObj.serviceFee === null) {
       orderObj.serviceFee = 0;
     }
+    // ✅ Ensure each item has specialInstructions field
+    if (orderObj.items && Array.isArray(orderObj.items)) {
+      orderObj.items = orderObj.items.map((item) => ({
+        ...item,
+        specialInstructions: item.specialInstructions || "",
+      }));
+    }
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
@@ -451,6 +472,13 @@ exports.getOrderByReference = async (req, res) => {
     if (orderObj.serviceFee === undefined || orderObj.serviceFee === null) {
       orderObj.serviceFee = 0;
     }
+    // ✅ Ensure each item has specialInstructions field
+    if (orderObj.items && Array.isArray(orderObj.items)) {
+      orderObj.items = orderObj.items.map((item) => ({
+        ...item,
+        specialInstructions: item.specialInstructions || "",
+      }));
+    }
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
@@ -482,7 +510,7 @@ exports.createOrder = async (req, res) => {
       pickupTimeOption,
       scheduledTime,
       paymentMethod,
-      specialInstructions,
+      specialInstructions, // ✅ Global order-level special instructions
     } = req.body;
 
     console.log("📝 Creating order with restaurantId:", restaurantId);
@@ -540,9 +568,9 @@ exports.createOrder = async (req, res) => {
       });
     }
 
-    // ✅ FIX: Calculate totals with serviceFee set to 0 by default
+    // ✅ Calculate totals with serviceFee set to 0 by default
     const taxRate = restaurantDoc.taxesAndFees?.taxRatePercent || 8.5;
-    const serviceFee = restaurantDoc.taxesAndFees?.serviceFeeAmount || 0; // ✅ Changed from 2.5 to 0
+    const serviceFee = restaurantDoc.taxesAndFees?.serviceFeeAmount || 0;
 
     const subtotal = items.reduce(
       (sum, item) => sum + item.price * item.quantity,
@@ -554,6 +582,15 @@ exports.createOrder = async (req, res) => {
     // Generate order reference
     const orderReference = generateOrderReference();
 
+    // ✅ FIX: Create order items with specialInstructions (item-level)
+    const orderItems = items.map((item) => ({
+      menuItemId: item.menuItemId,
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+      specialInstructions: item.specialInstructions || "", // ✅ Item-specific instructions
+    }));
+
     // Create order with the restaurant's ObjectId
     const orderData = {
       restaurantId: restaurantDoc._id,
@@ -561,15 +598,16 @@ exports.createOrder = async (req, res) => {
       customerName,
       customerPhone,
       customerEmail: customerEmail || "",
-      items,
+      items: orderItems, // ✅ Items now include specialInstructions
       subtotal,
       taxAmount,
-      serviceFee, // ✅ This will be 0 by default
+      serviceFee,
       totalPrice: Math.round(totalPrice * 100) / 100,
       pickupTimeOption: pickupTimeOption || "ASAP",
       scheduledTime: scheduledTime || null,
       paymentMethod: paymentMethod || "online",
       status: "NEW",
+      // ✅ Global order-level special instructions (different from item-level)
       specialInstructions: specialInstructions || "",
       orderReference,
       // ✅ Payment fields
@@ -688,6 +726,13 @@ exports.createOrder = async (req, res) => {
         ) {
           orderForSSE.serviceFee = 0;
         }
+        // ✅ Ensure each item has specialInstructions
+        if (orderForSSE.items && Array.isArray(orderForSSE.items)) {
+          orderForSSE.items = orderForSSE.items.map((item) => ({
+            ...item,
+            specialInstructions: item.specialInstructions || "",
+          }));
+        }
         broadcastNewOrder(restaurantIdStr, orderForSSE);
         logger.info(
           `📡 SSE: New order broadcasted for restaurant ${restaurantIdStr}`,
@@ -699,7 +744,7 @@ exports.createOrder = async (req, res) => {
 
     // Prepare response
     const responseData = order.toObject ? order.toObject() : order;
-    // ✅ Ensure specialInstructions is included in response
+    // ✅ Ensure global specialInstructions is included in response
     if (!responseData.specialInstructions) {
       responseData.specialInstructions = "";
     }
@@ -708,6 +753,13 @@ exports.createOrder = async (req, res) => {
       responseData.serviceFee === null
     ) {
       responseData.serviceFee = 0;
+    }
+    // ✅ Ensure each item has specialInstructions
+    if (responseData.items && Array.isArray(responseData.items)) {
+      responseData.items = responseData.items.map((item) => ({
+        ...item,
+        specialInstructions: item.specialInstructions || "",
+      }));
     }
 
     // Add payment client secret for online payments
@@ -813,6 +865,13 @@ exports.updateOrderStatus = async (req, res) => {
     }
     if (orderObj.serviceFee === undefined || orderObj.serviceFee === null) {
       orderObj.serviceFee = 0;
+    }
+    // ✅ Ensure each item has specialInstructions
+    if (orderObj.items && Array.isArray(orderObj.items)) {
+      orderObj.items = orderObj.items.map((item) => ({
+        ...item,
+        specialInstructions: item.specialInstructions || "",
+      }));
     }
 
     res.status(HTTP_STATUS.OK).json({

@@ -931,7 +931,7 @@ export default function CustomerOrdering() {
           price: item.price,
           quantity: quantity,
           image: item.image,
-          specialInstructions: instructions || undefined,
+          specialInstructions: instructions || undefined, // ✅ Item-specific instructions
         },
       ];
     });
@@ -998,6 +998,15 @@ export default function CustomerOrdering() {
       return;
     }
 
+    // ✅ FIX: Prepare order items with item-specific special instructions
+    const orderItems = cart.map((item) => ({
+      menuItemId: item.menuItemId,
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+      specialInstructions: item.specialInstructions || "", // ✅ Item-specific instructions
+    }));
+
     // Prepare order data with proper restaurant ID
     const orderData = {
       restaurantId: currentRestaurant.id,
@@ -1005,16 +1014,11 @@ export default function CustomerOrdering() {
       customerName: customerName.trim(),
       customerPhone: customerPhone.trim(),
       customerEmail: customerEmail.trim() || undefined,
-      items: cart.map((item) => ({
-        menuItemId: item.menuItemId,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        specialInstructions: item.specialInstructions,
-      })),
+      items: orderItems, // ✅ Items now include specialInstructions
       pickupTimeOption: pickupOption,
       scheduledTime: pickupOption === "scheduled" ? scheduledTime : undefined,
       paymentMethod: paymentChoice,
+      // ✅ Global order-level special instructions (separate from item-level)
       specialInstructions: specialInstructions.trim() || undefined,
     };
 
@@ -1049,7 +1053,7 @@ export default function CustomerOrdering() {
         setPlacedOrderReceipt({
           subtotal: cartTotal,
           taxes: taxAmountValue,
-          serviceFee: serviceFee, // ✅ FIX: Use the serviceFee value (defaults to 0)
+          serviceFee: serviceFee,
           total: finalTotalValue,
           specialInstructions: specialInstructions.trim() || undefined,
         });
@@ -1081,7 +1085,7 @@ export default function CustomerOrdering() {
     setPlacedOrderReceipt({
       subtotal: cartTotal,
       taxes: taxAmountValue,
-      serviceFee: serviceFee, // ✅ FIX: Use the serviceFee value (defaults to 0)
+      serviceFee: serviceFee,
       total: finalTotalValue,
       specialInstructions: specialInstructions.trim() || undefined,
     });
@@ -1748,13 +1752,13 @@ export default function CustomerOrdering() {
                   </div>
                 </div>
 
-                {/* Special Instructions */}
+                {/* ✅ Global Special Instructions (order-level) */}
                 <div className="space-y-3 pt-4 border-t border-[#E7C7CF]">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-[#8C6B76] flex items-center gap-2 font-['Inter','Segoe UI',system-ui,sans-serif]">
                     <span className="w-4 h-4 rounded-full bg-[#FAF3EA] text-[#8C6B76] flex items-center justify-center text-[10px]">
                       4
                     </span>
-                    Special Instructions (optional)
+                    Order Special Instructions (optional)
                   </h3>
                   <div>
                     <textarea
@@ -1767,7 +1771,8 @@ export default function CustomerOrdering() {
                     />
                   </div>
                   <p className="text-[10px] text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">
-                    No substitutes. Additions may be charged extra.
+                    Note: You can also add special instructions for each item
+                    individually.
                   </p>
                 </div>
 
@@ -1969,7 +1974,7 @@ export default function CustomerOrdering() {
               {placedOrderReceipt?.specialInstructions && (
                 <div className="p-2 bg-[#C42348]/5 border border-[#C42348]/10 text-[#33101F] text-[10px] rounded-lg">
                   <span className="block font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
-                    Special Instructions:
+                    Order Special Instructions:
                   </span>
                   <p className="italic mt-0.5">
                     "{placedOrderReceipt.specialInstructions}"
@@ -2247,20 +2252,20 @@ export default function CustomerOrdering() {
                   {selectedItem.description}
                 </p>
 
-                {/* Special Instructions */}
+                {/* ✅ Item-specific Special Instructions (mobile sheet) */}
                 <div className="mb-3">
                   <label className="block text-xs font-semibold text-[#33101F] mb-1.5 font-['Inter','Segoe UI',system-ui,sans-serif]">
-                    Special Instructions
+                    Special Instructions for this item
                   </label>
                   <textarea
                     value={itemSpecialInstructions}
                     onChange={(e) => setItemSpecialInstructions(e.target.value)}
-                    placeholder="Add a note (e.g. no nuts, no onions)"
+                    placeholder="Add a note for this item (e.g. no nuts, no onions, extra sauce)"
                     rows={2}
                     className="w-full px-3.5 py-2 border border-[#E7C7CF] rounded-xl text-xs text-[#33101F] focus:outline-none focus:ring-2 focus:ring-[#C42348] font-['Inter','Segoe UI',system-ui,sans-serif] text-base md:text-xs"
                   />
                   <p className="text-[10px] text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
-                    No substitutes. Additions may be charged extra.
+                    These instructions will be sent to the restaurant kitchen.
                   </p>
                 </div>
 

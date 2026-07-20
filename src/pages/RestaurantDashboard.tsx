@@ -936,7 +936,7 @@ export default function RestaurantDashboard() {
 
   const [taxesAndFees, setTaxesAndFees] = useState({
     taxRatePercent: 8.5,
-    serviceFeeAmount: 0, // ✅ FIX: Changed from 2.5 to 0
+    serviceFeeAmount: 0,
   });
 
   // ✅ Receipt Print State
@@ -1537,11 +1537,11 @@ export default function RestaurantDashboard() {
                             </div>
                           </div>
 
-                          {/* ✅ FIX: Special Instructions Display */}
+                          {/* ✅ FIX: Global Special Instructions Display */}
                           {order.specialInstructions && (
-                            <div className="p-2 bg-[#C42348]/10 border border-[#C42348]/20 text-[#C42348] text-[10px] rounded-lg">
+                            <div className="p-2 bg-[#C42348]/10 border border-[#C42348]/20 text-[#C42348] text-[10px] rounded-lg mb-2">
                               <span className="block font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
-                                Special Instructions:
+                                Order Special Instructions:
                               </span>
                               <p className="italic mt-0.5">
                                 "{order.specialInstructions}"
@@ -1549,7 +1549,32 @@ export default function RestaurantDashboard() {
                             </div>
                           )}
 
-                          {/* ✅ FIX: Show service fee breakdown */}
+                          {/* ✅ FIX: Item-specific Special Instructions Display */}
+                          {order.items &&
+                            order.items.some(
+                              (item: any) => item.specialInstructions,
+                            ) && (
+                              <div className="p-2 bg-[#E8A13B]/10 border border-[#E8A13B]/20 text-[#E8A13B] text-[10px] rounded-lg mb-2">
+                                <span className="block font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
+                                  Item Special Instructions:
+                                </span>
+                                {order.items.map(
+                                  (item: any) =>
+                                    item.specialInstructions && (
+                                      <p
+                                        key={item.id || item._id}
+                                        className="text-[10px] mt-0.5"
+                                      >
+                                        <span className="font-semibold">
+                                          • {item.name}:
+                                        </span>{" "}
+                                        "{item.specialInstructions}"
+                                      </p>
+                                    ),
+                                )}
+                              </div>
+                            )}
+
                           <div className="grid grid-cols-2 gap-2 text-[10px] p-2 bg-[#FAF3EA] rounded-lg text-[#8C6B76] border border-[#E7C7CF]">
                             <div>
                               <span className="block font-semibold font-['Inter','Segoe UI',system-ui,sans-serif]">
@@ -1681,11 +1706,11 @@ export default function RestaurantDashboard() {
                             </div>
                           </div>
 
-                          {/* ✅ FIX: Special Instructions Display */}
+                          {/* ✅ FIX: Global Special Instructions Display */}
                           {order.specialInstructions && (
-                            <div className="p-2 bg-[#E8A13B]/10 border border-[#E8A13B]/20 text-[#E8A13B] text-[10px] rounded-lg">
+                            <div className="p-2 bg-[#E8A13B]/10 border border-[#E8A13B]/20 text-[#E8A13B] text-[10px] rounded-lg mb-2">
                               <span className="block font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
-                                Special Instructions:
+                                Order Special Instructions:
                               </span>
                               <p className="italic mt-0.5">
                                 "{order.specialInstructions}"
@@ -1693,7 +1718,32 @@ export default function RestaurantDashboard() {
                             </div>
                           )}
 
-                          {/* ✅ FIX: Show service fee breakdown */}
+                          {/* ✅ FIX: Item-specific Special Instructions Display */}
+                          {order.items &&
+                            order.items.some(
+                              (item: any) => item.specialInstructions,
+                            ) && (
+                              <div className="p-2 bg-[#C42348]/10 border border-[#C42348]/20 text-[#C42348] text-[10px] rounded-lg mb-2">
+                                <span className="block font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
+                                  Item Special Instructions:
+                                </span>
+                                {order.items.map(
+                                  (item: any) =>
+                                    item.specialInstructions && (
+                                      <p
+                                        key={item.id || item._id}
+                                        className="text-[10px] mt-0.5"
+                                      >
+                                        <span className="font-semibold">
+                                          • {item.name}:
+                                        </span>{" "}
+                                        "{item.specialInstructions}"
+                                      </p>
+                                    ),
+                                )}
+                              </div>
+                            )}
+
                           <div className="grid grid-cols-2 gap-2 text-[10px] p-2 bg-[#FAF3EA] rounded-lg text-[#8C6B76] border border-[#E7C7CF]">
                             <div>
                               <span className="block font-semibold font-['Inter','Segoe UI',system-ui,sans-serif]">
@@ -1823,11 +1873,11 @@ export default function RestaurantDashboard() {
                             </div>
                           </div>
 
-                          {/* ✅ FIX: Special Instructions Display */}
+                          {/* ✅ FIX: Global Special Instructions Display */}
                           {order.specialInstructions && (
-                            <div className="p-2 bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 text-[10px] rounded-lg">
+                            <div className="p-2 bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 text-[10px] rounded-lg mb-2">
                               <span className="block font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
-                                Special Instructions:
+                                Order Special Instructions:
                               </span>
                               <p className="italic mt-0.5">
                                 "{order.specialInstructions}"
@@ -1835,7 +1885,32 @@ export default function RestaurantDashboard() {
                             </div>
                           )}
 
-                          {/* ✅ FIX: Show service fee breakdown */}
+                          {/* ✅ FIX: Item-specific Special Instructions Display */}
+                          {order.items &&
+                            order.items.some(
+                              (item: any) => item.specialInstructions,
+                            ) && (
+                              <div className="p-2 bg-[#E8A13B]/10 border border-[#E8A13B]/20 text-[#E8A13B] text-[10px] rounded-lg mb-2">
+                                <span className="block font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
+                                  Item Special Instructions:
+                                </span>
+                                {order.items.map(
+                                  (item: any) =>
+                                    item.specialInstructions && (
+                                      <p
+                                        key={item.id || item._id}
+                                        className="text-[10px] mt-0.5"
+                                      >
+                                        <span className="font-semibold">
+                                          • {item.name}:
+                                        </span>{" "}
+                                        "{item.specialInstructions}"
+                                      </p>
+                                    ),
+                                )}
+                              </div>
+                            )}
+
                           <div className="grid grid-cols-2 gap-2 text-[10px] p-2 bg-[#FAF3EA] rounded-lg text-[#8C6B76] border border-[#E7C7CF]">
                             <div>
                               <span className="block font-semibold font-['Inter','Segoe UI',system-ui,sans-serif]">
@@ -2012,6 +2087,11 @@ export default function RestaurantDashboard() {
                                   .map((item: any, idx: number) => (
                                     <div key={idx} className="text-[#8C6B76]">
                                       {item.quantity}x {item.name}
+                                      {item.specialInstructions && (
+                                        <span className="text-[10px] text-[#E8A13B] block italic">
+                                          Note: {item.specialInstructions}
+                                        </span>
+                                      )}
                                     </div>
                                   ))}
                                 {order.items?.length > 2 && (
@@ -2155,7 +2235,6 @@ export default function RestaurantDashboard() {
                       </div>
 
                       <div className="border-t border-[#E7C7CF] p-3 bg-white/40 flex justify-between gap-2">
-                        {/* ✅ FIX: Out of Stock toggle with proper isAvailable sync */}
                         <div className="flex-1 flex gap-1 justify-between bg-[#FAF3EA] p-1 rounded-xl border border-[#E7C7CF]">
                           {[
                             {
@@ -2184,7 +2263,6 @@ export default function RestaurantDashboard() {
                               <button
                                 key={state.value}
                                 onClick={async () => {
-                                  // ✅ FIX: Properly update both availability and isAvailable
                                   const newAvailability = state.value as any;
                                   const newIsAvailable =
                                     state.value === "available";
@@ -2577,7 +2655,6 @@ export default function RestaurantDashboard() {
               exit={{ opacity: 0, y: -10 }}
               className="max-w-4xl mx-auto space-y-8"
             >
-              {/* ✅ FIX 3: Stripe Connect card moved OUTSIDE the form */}
               <form onSubmit={handleSaveSettings} className="space-y-6">
                 {/* 1. Pause Ordering Settings Card */}
                 <div className="bg-white border border-[#E7C7CF] rounded-2xl p-6 sm:p-8 space-y-4">
@@ -2631,7 +2708,7 @@ export default function RestaurantDashboard() {
                   </div>
                 </div>
 
-                {/* 2. Business Hours Setup Card - ✅ FIXED with full time picker */}
+                {/* 2. Business Hours Setup Card */}
                 <div className="bg-white border border-[#E7C7CF] rounded-2xl p-6 sm:p-8 space-y-6">
                   <div>
                     <h3 className="text-base font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] flex items-center gap-2">
@@ -2699,7 +2776,6 @@ export default function RestaurantDashboard() {
                                   <label className="block text-[10px] uppercase font-bold text-[#8C6B76] mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                                     Opens at
                                   </label>
-                                  {/* ✅ FIX: Full time picker with all hours */}
                                   <select
                                     value={dayHours.openTime}
                                     onChange={(e) => {
@@ -2752,7 +2828,6 @@ export default function RestaurantDashboard() {
                                   <label className="block text-[10px] uppercase font-bold text-[#8C6B76] mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                                     Closes at
                                   </label>
-                                  {/* ✅ FIX: Full time picker with all hours */}
                                   <select
                                     value={dayHours.closeTime}
                                     onChange={(e) => {
@@ -2907,7 +2982,7 @@ export default function RestaurantDashboard() {
                   </div>
                 </div>
 
-                {/* 4. Taxes & Fees Card - ✅ FIXED with serviceFee default 0 */}
+                {/* 4. Taxes & Fees Card */}
                 <div className="bg-white border border-[#E7C7CF] rounded-2xl p-6 sm:p-8 space-y-6">
                   <div>
                     <h3 className="text-base font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] flex items-center gap-2">
@@ -2973,7 +3048,7 @@ export default function RestaurantDashboard() {
                 </div>
               </form>
 
-              {/* ✅ FIX 3: STRIPE CONNECT CARD - MOVED OUTSIDE THE FORM */}
+              {/* STRIPE CONNECT CARD */}
               <div className="bg-white border border-[#E7C7CF] rounded-2xl p-6 sm:p-8 space-y-6">
                 <div>
                   <h3 className="text-base font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] flex items-center gap-2">
@@ -3199,29 +3274,33 @@ export default function RestaurantDashboard() {
 
                 <div className="border-t border-[#E7C7CF] my-2"></div>
 
-                {/* Items */}
+                {/* ✅ Items with Item-specific Special Instructions */}
                 <div className="space-y-2">
                   <div className="text-[10px] font-bold uppercase tracking-wider text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">
                     Items
                   </div>
                   {receiptOrder.items.map((item: any, idx: number) => (
-                    <div
-                      key={idx}
-                      className="flex justify-between text-xs font-['Inter','Segoe UI',system-ui,sans-serif]"
-                    >
-                      <span>
-                        {item.quantity}x {item.name}
-                      </span>
-                      <span className="font-bold text-[#33101F]">
-                        ${(item.price * item.quantity).toFixed(2)}
-                      </span>
+                    <div key={idx} className="space-y-0.5">
+                      <div className="flex justify-between text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
+                        <span>
+                          {item.quantity}x {item.name}
+                        </span>
+                        <span className="font-bold text-[#33101F]">
+                          ${(item.price * item.quantity).toFixed(2)}
+                        </span>
+                      </div>
+                      {item.specialInstructions && (
+                        <div className="text-[10px] text-[#E8A13B] italic pl-2 border-l-2 border-[#E8A13B]">
+                          Note: {item.specialInstructions}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
 
                 <div className="border-t border-[#E7C7CF] my-2"></div>
 
-                {/* Totals - ✅ FIXED with service fee */}
+                {/* Totals */}
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
                     <span className="text-[#8C6B76]">Subtotal</span>
@@ -3245,11 +3324,11 @@ export default function RestaurantDashboard() {
                   </div>
                 </div>
 
-                {/* ✅ FIX: Special Instructions on Receipt */}
+                {/* ✅ Global Special Instructions on Receipt */}
                 {receiptOrder.specialInstructions && (
                   <div className="mt-2 p-2 bg-[#FAF3EA] rounded-lg border border-[#E7C7CF]">
                     <div className="text-[10px] font-bold uppercase tracking-wider text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">
-                      Special Instructions
+                      Order Special Instructions
                     </div>
                     <p className="text-xs text-[#33101F] mt-0.5">
                       {receiptOrder.specialInstructions}
