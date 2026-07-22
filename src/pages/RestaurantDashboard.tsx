@@ -926,20 +926,18 @@ export default function RestaurantDashboard() {
     Sunday: { isOpen: true, openTime: "10:00 AM", closeTime: "09:00 PM" },
   };
 
+  // ✅ FIX: All state declarations - THESE WERE MISSING CAUSING THE BLANK SCREEN
+  const [isOrderingPaused, setIsOrderingPaused] = useState(false);
   const [businessHours, setBusinessHours] = useState(defaultBusinessHours);
-
   const [pickupSettings, setPickupSettings] = useState({
     allowAsap: true,
     allowScheduled: true,
     prepTimeMinutes: 15,
   });
-
   const [taxesAndFees, setTaxesAndFees] = useState({
     taxRatePercent: 8.5,
     serviceFeeAmount: 0,
   });
-
-  // ✅ NEW: Category sort order state
   const [categorySortOrder, setCategorySortOrder] = useState<
     "created" | "alphabetical_asc" | "alphabetical_desc"
   >("created");
