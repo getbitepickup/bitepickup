@@ -622,6 +622,7 @@ export default function CustomerOrdering() {
   const [formErrors, setFormErrors] = useState<{
     name?: string;
     phone?: string;
+    email?: string;
   }>({});
 
   // Filter items & categories for this restaurant - only if currentRestaurant exists
@@ -1036,12 +1037,19 @@ export default function CustomerOrdering() {
 
   // Checkout submission
   const validateForm = () => {
-    const errors: { name?: string; phone?: string } = {};
+    const errors: { name?: string; phone?: string; email?: string } = {};
     if (!customerName.trim()) errors.name = "Please enter your full name";
     if (!customerPhone.trim())
       errors.phone = "Please enter a contact phone number";
     else if (customerPhone.replace(/\D/g, "").length < 8)
       errors.phone = "Please enter a valid phone number";
+
+    // ✅ FIX: Make email mandatory
+    if (!customerEmail.trim()) {
+      errors.email = "Please enter your email address";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
+      errors.email = "Please enter a valid email address";
+    }
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -1075,7 +1083,7 @@ export default function CustomerOrdering() {
       restaurantName: currentRestaurant.name,
       customerName: customerName.trim(),
       customerPhone: customerPhone.trim(),
-      customerEmail: customerEmail.trim() || undefined,
+      customerEmail: customerEmail.trim(), // ✅ Now required
       items: orderItems,
       pickupTimeOption: pickupOption,
       scheduledTime: pickupOption === "scheduled" ? scheduledTime : undefined,
@@ -1231,7 +1239,6 @@ export default function CustomerOrdering() {
                   Powered by Hinarok
                 </span>
               </div>
-              {/* ✅ REMOVED: "Restaurant Owner?" button - completely removed */}
             </div>
 
             {currentRestaurant.isOrderingPaused && (
@@ -1259,7 +1266,6 @@ export default function CustomerOrdering() {
                   />
                 </div>
                 <div className="pb-1">
-                  {/* ✅ FIX: Show correct status based on business hours */}
                   {currentRestaurant.isOrderingPaused ? (
                     <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-[#E8A13B]/20 text-[#E8A13B] border border-[#E8A13B]/30 mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#E8A13B] animate-pulse"></span>
@@ -1545,7 +1551,6 @@ export default function CustomerOrdering() {
                       <span>${finalTotalValue.toFixed(2)}</span>
                     </div>
 
-                    {/* ✅ FIX: Check both ordering paused AND business hours */}
                     {currentRestaurant.isOrderingPaused ? (
                       <div className="p-3 bg-[#E8A13B]/10 text-[#E8A13B] font-bold text-[10px] text-center uppercase rounded-lg border border-[#E8A13B]/20 leading-normal font-['Inter','Segoe UI',system-ui,sans-serif]">
                         Ordering currently paused by {currentRestaurant.name}.
@@ -1672,19 +1677,32 @@ export default function CustomerOrdering() {
 
                     <div className="sm:col-span-2">
                       <label className="block text-xs font-semibold text-[#33101F] mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
-                        Email Address{" "}
-                        <span className="text-[#8C6B76]">
-                          (optional, for order updates)
-                        </span>
+                        Email Address <span className="text-[#C42348]">*</span>
                       </label>
                       <input
                         id="customer-email-input"
                         type="email"
                         value={customerEmail}
-                        onChange={(e) => setCustomerEmail(e.target.value)}
+                        onChange={(e) => {
+                          setCustomerEmail(e.target.value);
+                          if (e.target.value.trim())
+                            setFormErrors((prev) => ({
+                              ...prev,
+                              email: undefined,
+                            }));
+                        }}
                         placeholder="you@example.com"
-                        className="w-full px-3.5 py-2 border border-[#E7C7CF] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#C42348] font-['Inter','Segoe UI',system-ui,sans-serif]"
+                        className={`w-full px-3.5 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#C42348] font-['Inter','Segoe UI',system-ui,sans-serif] ${
+                          formErrors.email
+                            ? "border-[#C42348] bg-[#C42348]/5"
+                            : "border-[#E7C7CF]"
+                        }`}
                       />
+                      {formErrors.email && (
+                        <p className="text-[#C42348] text-[11px] mt-1 font-medium font-['Inter','Segoe UI',system-ui,sans-serif]">
+                          {formErrors.email}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -2012,6 +2030,11 @@ export default function CustomerOrdering() {
                 <div>Phone:</div>
                 <div className="text-right font-medium text-[#33101F]">
                   {customerPhone}
+                </div>
+
+                <div>Email:</div>
+                <div className="text-right font-medium text-[#33101F]">
+                  {customerEmail}
                 </div>
 
                 <div>Pickup Timing:</div>

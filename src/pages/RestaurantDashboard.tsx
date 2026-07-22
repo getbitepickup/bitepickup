@@ -917,6 +917,7 @@ export default function RestaurantDashboard() {
   });
 
   // Restaurant settings custom forms
+  // ✅ FIX: Initialize with default values, but they will be overwritten by useEffect
   const [isOrderingPaused, setIsOrderingPaused] = useState(false);
   const [businessHours, setBusinessHours] = useState({
     Monday: { isOpen: true, openTime: "09:00 AM", closeTime: "10:00 PM" },
@@ -948,6 +949,7 @@ export default function RestaurantDashboard() {
   const [receiptOrder, setReceiptOrder] = useState<Order | null>(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
 
+  // ✅ FIX: Properly load business hours from currentRestaurant
   useEffect(() => {
     if (currentRestaurant) {
       setProfileForm({
@@ -960,8 +962,31 @@ export default function RestaurantDashboard() {
 
       setIsOrderingPaused(currentRestaurant.isOrderingPaused || false);
 
+      // ✅ FIX: Load business hours from currentRestaurant
       if (currentRestaurant.businessHours) {
-        setBusinessHours(currentRestaurant.businessHours);
+        // Ensure all days have proper structure
+        const days = [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+          "Sunday",
+        ];
+        const loadedHours = { ...businessHours };
+        days.forEach((day) => {
+          if (currentRestaurant.businessHours[day]) {
+            loadedHours[day] = {
+              isOpen: currentRestaurant.businessHours[day].isOpen !== false,
+              openTime:
+                currentRestaurant.businessHours[day].openTime || "09:00 AM",
+              closeTime:
+                currentRestaurant.businessHours[day].closeTime || "10:00 PM",
+            };
+          }
+        });
+        setBusinessHours(loadedHours);
       }
 
       if (currentRestaurant.pickupSettings) {
@@ -1031,7 +1056,7 @@ export default function RestaurantDashboard() {
         businessHours,
         pickupSettings,
         taxesAndFees,
-        categorySortOrder, // ✅ NEW: Include category sort order
+        categorySortOrder,
       });
       alert("Restaurant settings updated successfully!");
     } catch (error) {
@@ -3047,7 +3072,7 @@ export default function RestaurantDashboard() {
                   </div>
                 </div>
 
-                {/* 5. Category Sort Order Card - ✅ NEW */}
+                {/* 5. Category Sort Order Card */}
                 <div className="bg-white border border-[#E7C7CF] rounded-2xl p-6 sm:p-8 space-y-6">
                   <div>
                     <h3 className="text-base font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] flex items-center gap-2">
@@ -3366,7 +3391,7 @@ export default function RestaurantDashboard() {
 
                 <div className="border-t border-[#E7C7CF] my-2"></div>
 
-                {/* ✅ Items with Item-specific Special Instructions */}
+                {/* Items with Item-specific Special Instructions */}
                 <div className="space-y-2">
                   <div className="text-[10px] font-bold uppercase tracking-wider text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">
                     Items
@@ -3416,7 +3441,7 @@ export default function RestaurantDashboard() {
                   </div>
                 </div>
 
-                {/* ✅ Global Special Instructions on Receipt */}
+                {/* Global Special Instructions on Receipt */}
                 {receiptOrder.specialInstructions && (
                   <div className="mt-2 p-2 bg-[#FAF3EA] rounded-lg border border-[#E7C7CF]">
                     <div className="text-[10px] font-bold uppercase tracking-wider text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">

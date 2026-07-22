@@ -57,4 +57,21 @@ const userSchema = new mongoose.Schema({
   }
 });
 
+// ✅ FIX: Add toJSON transform to properly serialize restaurantId
+userSchema.set('toJSON', {
+  transform: function(doc, ret) {
+    // Ensure restaurantId is properly serialized
+    if (ret.restaurantId) {
+      if (typeof ret.restaurantId === 'object' && ret.restaurantId._id) {
+        ret.restaurantId = ret.restaurantId._id.toString();
+      } else if (typeof ret.restaurantId === 'object' && ret.restaurantId.id) {
+        ret.restaurantId = ret.restaurantId.id.toString();
+      } else if (typeof ret.restaurantId === 'object') {
+        ret.restaurantId = ret.restaurantId.toString();
+      }
+    }
+    return ret;
+  }
+});
+
 module.exports = mongoose.model('User', userSchema);

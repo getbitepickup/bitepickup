@@ -90,7 +90,7 @@ exports.getOrders = async (req, res) => {
       // Try to get restaurantId from user object
       userRestaurantId = resolveRestaurantId(req.user);
 
-      // If still null and user is restaurant_owner, fetch from database
+      // If still null and user is restaurant_owner, fetch from database with populate
       if (!userRestaurantId && req.user.role === "restaurant_owner") {
         try {
           const userDoc = await User.findById(req.user._id).populate(
@@ -110,6 +110,26 @@ exports.getOrders = async (req, res) => {
         } catch (err) {
           console.log(
             "⚠️ Could not fetch restaurantId from database:",
+            err.message,
+          );
+        }
+      }
+
+      // ✅ FIX: If still null, try to find restaurant by owner's email
+      if (!userRestaurantId && req.user.role === "restaurant_owner") {
+        try {
+          // Find the restaurant where this user is the owner
+          const restaurant = await Restaurant.findOne({
+            createdBy: req.user._id,
+          });
+          if (restaurant) {
+            userRestaurantId = restaurant._id.toString();
+            req.user.restaurantId = userRestaurantId;
+            console.log("🔄 Found restaurant by createdBy:", userRestaurantId);
+          }
+        } catch (err) {
+          console.log(
+            "⚠️ Could not find restaurant by createdBy:",
             err.message,
           );
         }
@@ -181,6 +201,28 @@ exports.getOrders = async (req, res) => {
             }
           } catch (err) {
             console.log("⚠️ Could not fetch restaurantId:", err.message);
+          }
+        }
+
+        // ✅ FIX: If still null, try to find restaurant by owner's email
+        if (!userRestaurantId) {
+          try {
+            const restaurant = await Restaurant.findOne({
+              createdBy: req.user._id,
+            });
+            if (restaurant) {
+              userRestaurantId = restaurant._id.toString();
+              req.user.restaurantId = userRestaurantId;
+              console.log(
+                "🔄 Found restaurant by createdBy in getOrders:",
+                userRestaurantId,
+              );
+            }
+          } catch (err) {
+            console.log(
+              "⚠️ Could not find restaurant by createdBy:",
+              err.message,
+            );
           }
         }
 
@@ -363,6 +405,28 @@ exports.getOrdersByRestaurant = async (req, res) => {
           }
         } catch (err) {
           console.log("⚠️ Could not fetch restaurantId:", err.message);
+        }
+      }
+
+      // ✅ FIX: If still null, try to find restaurant by owner's email
+      if (!userRestaurantId && req.user.role === "restaurant_owner") {
+        try {
+          const restaurant = await Restaurant.findOne({
+            createdBy: req.user._id,
+          });
+          if (restaurant) {
+            userRestaurantId = restaurant._id.toString();
+            req.user.restaurantId = userRestaurantId;
+            console.log(
+              "🔄 Found restaurant by createdBy in getOrdersByRestaurant:",
+              userRestaurantId,
+            );
+          }
+        } catch (err) {
+          console.log(
+            "⚠️ Could not find restaurant by createdBy:",
+            err.message,
+          );
         }
       }
 
@@ -553,17 +617,19 @@ exports.createOrder = async (req, res) => {
 
     console.log("📝 Creating order with restaurantId:", restaurantId);
 
-    // Validate required fields
+    // ✅ FIX: Validate required fields including email
     if (
       !restaurantId ||
       !customerName ||
       !customerPhone ||
+      !customerEmail ||
       !items ||
       items.length === 0
     ) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
-        message: "Missing required order information",
+        message:
+          "Missing required order information. Name, phone, and email are required.",
       });
     }
 
@@ -649,13 +715,30 @@ exports.createOrder = async (req, res) => {
         const openTime = parseTime(dayHours.openTime);
         const closeTime = parseTime(dayHours.closeTime);
 
-        const isOpenNow =
-          (currentHour > openTime.hour ||
+        // Handle cases where close time is past midnight
+        let isOpenNow = false;
+        if (
+          closeTime.hour < openTime.hour ||
+          (closeTime.hour === openTime.hour &&
+            closeTime.minute < openTime.minute)
+        ) {
+          // Closing time is past midnight
+          isOpenNow =
+            currentHour > openTime.hour ||
             (currentHour === openTime.hour &&
-              currentMinute >= openTime.minute)) &&
-          (currentHour < closeTime.hour ||
+              currentMinute >= openTime.minute) ||
+            currentHour < closeTime.hour ||
             (currentHour === closeTime.hour &&
-              currentMinute < closeTime.minute));
+              currentMinute < closeTime.minute);
+        } else {
+          isOpenNow =
+            (currentHour > openTime.hour ||
+              (currentHour === openTime.hour &&
+                currentMinute >= openTime.minute)) &&
+            (currentHour < closeTime.hour ||
+              (currentHour === closeTime.hour &&
+                currentMinute < closeTime.minute));
+        }
 
         if (!isOpenNow) {
           console.log(
@@ -908,6 +991,28 @@ exports.updateOrderStatus = async (req, res) => {
         }
       }
 
+      // ✅ FIX: If still null, try to find restaurant by owner's email
+      if (!userRestaurantId && req.user.role === "restaurant_owner") {
+        try {
+          const restaurant = await Restaurant.findOne({
+            createdBy: req.user._id,
+          });
+          if (restaurant) {
+            userRestaurantId = restaurant._id.toString();
+            req.user.restaurantId = userRestaurantId;
+            console.log(
+              "🔄 Found restaurant by createdBy in updateOrderStatus:",
+              userRestaurantId,
+            );
+          }
+        } catch (err) {
+          console.log(
+            "⚠️ Could not find restaurant by createdBy:",
+            err.message,
+          );
+        }
+      }
+
       if (!userRestaurantId) {
         return res.status(HTTP_STATUS.FORBIDDEN).json({
           success: false,
@@ -1044,6 +1149,28 @@ exports.getOrderStatistics = async (req, res) => {
           }
         } catch (err) {
           console.log("⚠️ Could not fetch restaurantId:", err.message);
+        }
+      }
+
+      // ✅ FIX: If still null, try to find restaurant by owner's email
+      if (!userRestaurantId && req.user.role === "restaurant_owner") {
+        try {
+          const restaurant = await Restaurant.findOne({
+            createdBy: req.user._id,
+          });
+          if (restaurant) {
+            userRestaurantId = restaurant._id.toString();
+            req.user.restaurantId = userRestaurantId;
+            console.log(
+              "🔄 Found restaurant by createdBy in getOrderStatistics:",
+              userRestaurantId,
+            );
+          }
+        } catch (err) {
+          console.log(
+            "⚠️ Could not find restaurant by createdBy:",
+            err.message,
+          );
         }
       }
 
