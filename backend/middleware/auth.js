@@ -4,6 +4,38 @@ const { HTTP_STATUS, ERROR_MESSAGES } = require("../utils/constants");
 const logger = require("../utils/logger");
 
 /**
+ * Helper function to resolve restaurantId from user object
+ * Handles all possible formats: string, ObjectId, object with _id/id
+ */
+const resolveRestaurantId = (user) => {
+  if (!user) return null;
+
+  // If user has restaurantId directly as string
+  if (typeof user.restaurantId === "string") {
+    return user.restaurantId;
+  }
+
+  // If user has restaurantId as object with _id or id
+  if (user.restaurantId && typeof user.restaurantId === "object") {
+    if (user.restaurantId._id) {
+      return user.restaurantId._id.toString();
+    }
+    if (user.restaurantId.id) {
+      return user.restaurantId.id.toString();
+    }
+    // Try to convert whole object to string
+    if (
+      user.restaurantId.toString &&
+      user.restaurantId.toString() !== "[object Object]"
+    ) {
+      return user.restaurantId.toString();
+    }
+  }
+
+  return null;
+};
+
+/**
  * Middleware to authenticate JWT token
  */
 const authenticate = async (req, res, next) => {
@@ -49,25 +81,7 @@ const authenticate = async (req, res, next) => {
     const userObj = user.toObject ? user.toObject() : { ...user };
 
     // ✅ Ensure restaurantId is properly resolved to a string
-    let restaurantId = null;
-    if (userObj.restaurantId) {
-      if (typeof userObj.restaurantId === "string") {
-        restaurantId = userObj.restaurantId;
-      } else if (
-        typeof userObj.restaurantId === "object" &&
-        userObj.restaurantId._id
-      ) {
-        restaurantId = userObj.restaurantId._id.toString();
-      } else if (
-        typeof userObj.restaurantId === "object" &&
-        userObj.restaurantId.id
-      ) {
-        restaurantId = userObj.restaurantId.id.toString();
-      } else if (typeof userObj.restaurantId === "object") {
-        restaurantId = userObj.restaurantId.toString();
-      }
-    }
-
+    const restaurantId = resolveRestaurantId(userObj);
     userObj.restaurantId = restaurantId;
 
     // ✅ Log authentication success
@@ -76,6 +90,7 @@ const authenticate = async (req, res, next) => {
       email: userObj.email,
       role: userObj.role,
       restaurantId: restaurantId,
+      userId: userObj._id,
     });
 
     // Attach user to request
@@ -132,10 +147,23 @@ const isRestaurantOwner = (req, res, next) => {
 
 /**
  * Middleware to check if user owns the specified restaurant
+ * Handles various formats: id in params, restaurantId in params, or restaurantId in body
  */
 const ownsRestaurant = (req, res, next) => {
-  const restaurantId =
+  // Get restaurantId from various sources
+  let restaurantId =
     req.params.id || req.params.restaurantId || req.body.restaurantId;
+
+  // If not found, check if it's in the URL path
+  if (!restaurantId && req.params && req.params.id) {
+    restaurantId = req.params.id;
+  }
+
+  console.log("🔑 ownsRestaurant middleware - Checking ownership:", {
+    restaurantId: restaurantId,
+    userRole: req.user?.role,
+    userRestaurantId: req.user?.restaurantId,
+  });
 
   if (!restaurantId) {
     return res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -144,14 +172,32 @@ const ownsRestaurant = (req, res, next) => {
     });
   }
 
+  // Admin can access any restaurant
   if (req.user.role === "admin") {
+    console.log("👑 Admin access granted for restaurant:", restaurantId);
     return next();
   }
 
-  if (
-    req.user.restaurantId &&
-    req.user.restaurantId.toString() === restaurantId
-  ) {
+  // Check if user has a restaurantId assigned
+  if (!req.user.restaurantId) {
+    console.log("❌ User has no restaurantId assigned");
+    return res.status(HTTP_STATUS.FORBIDDEN).json({
+      success: false,
+      message: "You do not have a restaurant assigned to your account",
+    });
+  }
+
+  // Convert both to strings for comparison
+  const userRestaurantIdStr = req.user.restaurantId.toString();
+  const requestedRestaurantIdStr = restaurantId.toString();
+
+  console.log("🔑 Comparing restaurant IDs:", {
+    userRestaurantId: userRestaurantIdStr,
+    requestedRestaurantId: requestedRestaurantIdStr,
+    match: userRestaurantIdStr === requestedRestaurantIdStr,
+  });
+
+  if (userRestaurantIdStr === requestedRestaurantIdStr) {
     return next();
   }
 

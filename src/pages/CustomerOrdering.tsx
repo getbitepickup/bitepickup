@@ -31,28 +31,38 @@ import {
   setCurrentRestaurantId,
 } from "../store/apiStore";
 import { Restaurant, Category, MenuItem, CartItem, Order } from "../types";
-import { Elements, PaymentElement, useStripe, useElements, CardElement, PaymentRequestButtonElement } from "@stripe/react-stripe-js";
+import {
+  Elements,
+  PaymentElement,
+  useStripe,
+  useElements,
+  CardElement,
+  PaymentRequestButtonElement,
+} from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 
 // Load Stripe with publishable key
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_51TtmeRCut5206diIEYVMUx93Qc5b2v1LLSJRUe2rfWEzcqnm1LzPg7l189eAkr3hgKVnYbxcqBRGbOmttygrK0gG00XSNo3T6C');
+const stripePromise = loadStripe(
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ||
+    "pk_test_51TtmeRCut5206diIEYVMUx93Qc5b2v1LLSJRUe2rfWEzcqnm1LzPg7l189eAkr3hgKVnYbxcqBRGbOmttygrK0gG00XSNo3T6C",
+);
 
 // ============================================
 // STRIPE PAYMENT FORM COMPONENT
 // ============================================
-const StripePaymentForm = ({ 
-  clientSecret, 
-  orderId, 
+const StripePaymentForm = ({
+  clientSecret,
+  orderId,
   orderReference,
-  onSuccess, 
+  onSuccess,
   onError,
   onCancel,
-  amount 
-}: { 
-  clientSecret: string; 
+  amount,
+}: {
+  clientSecret: string;
   orderId: string;
   orderReference: string;
-  onSuccess: () => void; 
+  onSuccess: () => void;
   onError: (error: string) => void;
   onCancel: () => void;
   amount: number;
@@ -65,7 +75,7 @@ const StripePaymentForm = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!stripe || !elements) {
       setPaymentError("Stripe is not initialized. Please try again.");
       return;
@@ -79,38 +89,42 @@ const StripePaymentForm = ({
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: window.location.origin + `/restaurant/${window.location.pathname.split('/')[2] || ''}`,
-          receipt_email: document.querySelector<HTMLInputElement>('#customer-email-input')?.value || undefined,
+          return_url:
+            window.location.origin +
+            `/restaurant/${window.location.pathname.split("/")[2] || ""}`,
+          receipt_email:
+            document.querySelector<HTMLInputElement>("#customer-email-input")
+              ?.value || undefined,
         },
-        redirect: 'if_required',
+        redirect: "if_required",
       });
 
       if (error) {
-        console.error('Payment error:', error);
-        setPaymentError(error.message || 'Payment failed. Please try again.');
-        onError(error.message || 'Payment failed');
+        console.error("Payment error:", error);
+        setPaymentError(error.message || "Payment failed. Please try again.");
+        onError(error.message || "Payment failed");
         setIsLoading(false);
         return;
       }
 
-      if (paymentIntent && paymentIntent.status === 'succeeded') {
+      if (paymentIntent && paymentIntent.status === "succeeded") {
         setPaymentSuccess(true);
         onSuccess();
         setIsLoading(false);
-      } else if (paymentIntent && paymentIntent.status === 'requires_action') {
+      } else if (paymentIntent && paymentIntent.status === "requires_action") {
         // Payment requires 3D Secure or other action
         // The confirmPayment will handle this automatically with return_url
-        console.log('Payment requires action:', paymentIntent);
+        console.log("Payment requires action:", paymentIntent);
         setIsLoading(false);
       } else {
-        setPaymentError('Payment was not completed. Please try again.');
-        onError('Payment was not completed');
+        setPaymentError("Payment was not completed. Please try again.");
+        onError("Payment was not completed");
         setIsLoading(false);
       }
     } catch (err: any) {
-      console.error('Payment submission error:', err);
-      setPaymentError(err.message || 'An unexpected error occurred.');
-      onError(err.message || 'An unexpected error occurred');
+      console.error("Payment submission error:", err);
+      setPaymentError(err.message || "An unexpected error occurred.");
+      onError(err.message || "An unexpected error occurred");
       setIsLoading(false);
     }
   };
@@ -119,7 +133,9 @@ const StripePaymentForm = ({
     <div className="space-y-4">
       <div className="bg-[#FAF3EA] p-4 rounded-xl border border-[#E7C7CF]">
         <div className="flex justify-between items-center mb-4">
-          <span className="text-sm font-semibold text-[#33101F]">Order Total</span>
+          <span className="text-sm font-semibold text-[#33101F]">
+            Order Total
+          </span>
           <span className="text-xl font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#C42348]">
             ${amount.toFixed(2)}
           </span>
@@ -131,10 +147,10 @@ const StripePaymentForm = ({
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="bg-white rounded-xl border border-[#E7C7CF] p-4">
-          <PaymentElement 
+          <PaymentElement
             options={{
-              layout: 'tabs',
-              business: { name: 'Hinarok' },
+              layout: "tabs",
+              business: { name: "Hinarok" },
             }}
           />
         </div>
@@ -170,9 +186,9 @@ const StripePaymentForm = ({
                 Processing...
               </>
             ) : paymentSuccess ? (
-              '✅ Paid'
+              "✅ Paid"
             ) : (
-              'Pay Now'
+              "Pay Now"
             )}
           </button>
         </div>
@@ -184,19 +200,19 @@ const StripePaymentForm = ({
 // ============================================
 // STRIPE PAYMENT WRAPPER
 // ============================================
-const StripePaymentWrapper = ({ 
-  clientSecret, 
+const StripePaymentWrapper = ({
+  clientSecret,
   orderId,
   orderReference,
-  onSuccess, 
+  onSuccess,
   onError,
   onCancel,
-  amount 
-}: { 
-  clientSecret: string; 
+  amount,
+}: {
+  clientSecret: string;
   orderId: string;
   orderReference: string;
-  onSuccess: () => void; 
+  onSuccess: () => void;
   onError: (error: string) => void;
   onCancel: () => void;
   amount: number;
@@ -204,20 +220,20 @@ const StripePaymentWrapper = ({
   const options = {
     clientSecret,
     appearance: {
-      theme: 'stripe',
+      theme: "stripe",
       variables: {
-        colorPrimary: '#C42348',
-        colorBackground: '#ffffff',
-        colorText: '#33101F',
-        fontFamily: 'Inter, Segoe UI, system-ui, sans-serif',
-        borderRadius: '12px',
+        colorPrimary: "#C42348",
+        colorBackground: "#ffffff",
+        colorText: "#33101F",
+        fontFamily: "Inter, Segoe UI, system-ui, sans-serif",
+        borderRadius: "12px",
       },
     },
   };
 
   return (
     <Elements stripe={stripePromise} options={options}>
-      <StripePaymentForm 
+      <StripePaymentForm
         clientSecret={clientSecret}
         orderId={orderId}
         orderReference={orderReference}
@@ -260,7 +276,9 @@ export default function CustomerOrdering() {
       if (subdomain && subdomain.includes("-")) {
         const noDashSubdomain = subdomain.replace(/-/g, "");
         const newUrl = `https://${noDashSubdomain}.${hostname.split(".").slice(1).join(".")}`;
-        console.log(`🔄 Redirecting dash subdomain: ${subdomain} → ${noDashSubdomain}`);
+        console.log(
+          `🔄 Redirecting dash subdomain: ${subdomain} → ${noDashSubdomain}`,
+        );
         window.location.href = newUrl;
         return;
       }
@@ -286,15 +304,17 @@ export default function CustomerOrdering() {
   const [pendingOrderRef, setPendingOrderRef] = useState<string | null>(null);
   const [pendingOrderTotal, setPendingOrderTotal] = useState<number>(0);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-  const [orderPlacementError, setOrderPlacementError] = useState<string | null>(null);
+  const [orderPlacementError, setOrderPlacementError] = useState<string | null>(
+    null,
+  );
 
   // Refs for cleanup
   const fetchAbortControllerRef = useRef<AbortController | null>(null);
 
   // ✅ FIX: Normalize slug (remove dashes for comparison)
   const normalizeSlug = (value: string) => {
-    if (!value) return '';
-    return value.toLowerCase().replace(/-/g, '');
+    if (!value) return "";
+    return value.toLowerCase().replace(/-/g, "");
   };
 
   // Detect if we're on a subdomain
@@ -360,42 +380,47 @@ export default function CustomerOrdering() {
         if (lookupKey) {
           const normalizedLookup = normalizeSlug(lookupKey);
           console.log("🔍 Normalized lookup key:", normalizedLookup);
-          
+
           // Strategy 1: Exact match on slug
           found = activeRestaurants.find((r) => r.slug === lookupKey);
-          
+
           // Strategy 2: Exact match on subdomain
           if (!found) {
             found = activeRestaurants.find((r) => r.subdomain === lookupKey);
           }
-          
+
           // Strategy 3: Case-insensitive match
           if (!found) {
             const lowerLookup = lookupKey.toLowerCase();
             found = activeRestaurants.find(
-              (r) => r.slug?.toLowerCase() === lowerLookup || 
-                     r.subdomain?.toLowerCase() === lowerLookup
+              (r) =>
+                r.slug?.toLowerCase() === lowerLookup ||
+                r.subdomain?.toLowerCase() === lowerLookup,
             );
           }
-          
+
           // Strategy 4: Normalized match (remove dashes for comparison)
           if (!found) {
             found = activeRestaurants.find((r) => {
-              const normalizedSlug = normalizeSlug(r.slug || '');
-              const normalizedSubdomain = normalizeSlug(r.subdomain || '');
-              return normalizedSlug === normalizedLookup || 
-                     normalizedSubdomain === normalizedLookup;
+              const normalizedSlug = normalizeSlug(r.slug || "");
+              const normalizedSubdomain = normalizeSlug(r.subdomain || "");
+              return (
+                normalizedSlug === normalizedLookup ||
+                normalizedSubdomain === normalizedLookup
+              );
             });
           }
-          
+
           // Strategy 5: Partial match (contains the lookup key)
           if (!found) {
             found = activeRestaurants.find((r) => {
-              const slugLower = (r.slug || '').toLowerCase();
-              const subdomainLower = (r.subdomain || '').toLowerCase();
+              const slugLower = (r.slug || "").toLowerCase();
+              const subdomainLower = (r.subdomain || "").toLowerCase();
               const lookupLower = lookupKey.toLowerCase();
-              return slugLower.includes(lookupLower) || 
-                     subdomainLower.includes(lookupLower);
+              return (
+                slugLower.includes(lookupLower) ||
+                subdomainLower.includes(lookupLower)
+              );
             });
           }
 
@@ -403,16 +428,19 @@ export default function CustomerOrdering() {
             console.log("🔍 Found ACTIVE restaurant:", found.name);
           } else {
             // Check if the restaurant exists but is inactive
-            const existsButInactive = resData.find(
-              (r) => {
-                const normalizedR = normalizeSlug(r.slug || '');
-                const normalizedRSub = normalizeSlug(r.subdomain || '');
-                return normalizedR === normalizedLookup || 
-                       normalizedRSub === normalizedLookup;
-              }
-            );
+            const existsButInactive = resData.find((r) => {
+              const normalizedR = normalizeSlug(r.slug || "");
+              const normalizedRSub = normalizeSlug(r.subdomain || "");
+              return (
+                normalizedR === normalizedLookup ||
+                normalizedRSub === normalizedLookup
+              );
+            });
             if (existsButInactive) {
-              console.log("⚠️ Restaurant exists but is INACTIVE:", existsButInactive.name);
+              console.log(
+                "⚠️ Restaurant exists but is INACTIVE:",
+                existsButInactive.name,
+              );
               setCurrentRestaurant(null);
               setDataLoaded(true);
               setLoading(false);
@@ -424,16 +452,20 @@ export default function CustomerOrdering() {
 
         // If no restaurant found by lookup key, and we're on a subdomain, try ALL active restaurants
         if (!found && subdomain) {
-          console.log("🔍 Trying fallback: check all active restaurants by subdomain contains");
+          console.log(
+            "🔍 Trying fallback: check all active restaurants by subdomain contains",
+          );
           const normalizedSubdomain = normalizeSlug(subdomain);
-          
+
           found = activeRestaurants.find((r) => {
-            const normalizedRSub = normalizeSlug(r.subdomain || '');
-            const normalizedRSlug = normalizeSlug(r.slug || '');
-            return normalizedRSub.includes(normalizedSubdomain) || 
-                   normalizedRSlug.includes(normalizedSubdomain);
+            const normalizedRSub = normalizeSlug(r.subdomain || "");
+            const normalizedRSlug = normalizeSlug(r.slug || "");
+            return (
+              normalizedRSub.includes(normalizedSubdomain) ||
+              normalizedRSlug.includes(normalizedSubdomain)
+            );
           });
-          
+
           if (found) {
             console.log("🔍 Found by fallback:", found.name);
           }
@@ -449,16 +481,22 @@ export default function CustomerOrdering() {
               let matchesLookup = false;
               if (lookupKey) {
                 const normalizedLookup = normalizeSlug(lookupKey);
-                const normalizedParsedSlug = normalizeSlug(parsed.slug || '');
-                const normalizedParsedSub = normalizeSlug(parsed.subdomain || '');
-                matchesLookup = normalizedParsedSlug === normalizedLookup || 
-                               normalizedParsedSub === normalizedLookup;
+                const normalizedParsedSlug = normalizeSlug(parsed.slug || "");
+                const normalizedParsedSub = normalizeSlug(
+                  parsed.subdomain || "",
+                );
+                matchesLookup =
+                  normalizedParsedSlug === normalizedLookup ||
+                  normalizedParsedSub === normalizedLookup;
               } else if (subdomain) {
                 const normalizedSubdomain = normalizeSlug(subdomain);
-                const normalizedParsedSlug = normalizeSlug(parsed.slug || '');
-                const normalizedParsedSub = normalizeSlug(parsed.subdomain || '');
-                matchesLookup = normalizedParsedSlug === normalizedSubdomain || 
-                               normalizedParsedSub === normalizedSubdomain;
+                const normalizedParsedSlug = normalizeSlug(parsed.slug || "");
+                const normalizedParsedSub = normalizeSlug(
+                  parsed.subdomain || "",
+                );
+                matchesLookup =
+                  normalizedParsedSlug === normalizedSubdomain ||
+                  normalizedParsedSub === normalizedSubdomain;
               }
 
               if (matchesLookup) {
@@ -467,7 +505,10 @@ export default function CustomerOrdering() {
                 );
                 if (verified) {
                   found = verified;
-                  console.log("🔍 Found restaurant from localStorage (verified):", found.name);
+                  console.log(
+                    "🔍 Found restaurant from localStorage (verified):",
+                    found.name,
+                  );
                 } else {
                   localStorage.removeItem("currentRestaurant");
                   localStorage.removeItem("currentRestaurantId");
@@ -583,15 +624,10 @@ export default function CustomerOrdering() {
     phone?: string;
   }>({});
 
-  // ✅ FIX: Filter items & categories for this restaurant - only if currentRestaurant exists
-  // The API now handles sorting based on restaurant's preference
+  // Filter items & categories for this restaurant - only if currentRestaurant exists
   const filteredCategories = currentRestaurant
     ? categories.filter((c) => c.restaurantId === currentRestaurant.id)
     : [];
-
-  // ✅ FIX: Ensure categories maintain the order from the API (no additional sorting)
-  // The categories are already sorted by the backend based on the restaurant's preference
-  // We should NOT re-sort them alphabetically on the frontend
 
   // ✅ FIX: Filter out ONLY 'hidden' items, keep 'out_of_stock' items visible
   const filteredMenuItems = currentRestaurant
@@ -602,6 +638,69 @@ export default function CustomerOrdering() {
         return i.availability !== "hidden";
       })
     : [];
+
+  // ✅ NEW: Function to check if restaurant is currently open based on business hours
+  const isRestaurantOpen = () => {
+    if (!currentRestaurant || !currentRestaurant.businessHours) return true;
+
+    const now = new Date();
+    const dayNames = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
+    const currentDay = dayNames[now.getDay()];
+    const dayHours =
+      currentRestaurant.businessHours[
+        currentDay as keyof typeof currentRestaurant.businessHours
+      ];
+
+    if (!dayHours || !dayHours.isOpen) return false;
+
+    const parseTime = (timeStr: string) => {
+      const [time, modifier] = timeStr.split(" ");
+      const [hours, minutes] = time.split(":");
+      let hour = parseInt(hours);
+      if (modifier === "PM" && hour !== 12) hour += 12;
+      if (modifier === "AM" && hour === 12) hour = 0;
+      return { hour, minute: parseInt(minutes) };
+    };
+
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+
+    const openTime = parseTime(dayHours.openTime);
+    const closeTime = parseTime(dayHours.closeTime);
+
+    // Handle cases where close time is past midnight
+    let isOpen = false;
+    if (
+      closeTime.hour < openTime.hour ||
+      (closeTime.hour === openTime.hour && closeTime.minute < openTime.minute)
+    ) {
+      // Closing time is past midnight
+      isOpen =
+        currentHour > openTime.hour ||
+        (currentHour === openTime.hour && currentMinute >= openTime.minute) ||
+        currentHour < closeTime.hour ||
+        (currentHour === closeTime.hour && currentMinute < closeTime.minute);
+    } else {
+      isOpen =
+        (currentHour > openTime.hour ||
+          (currentHour === openTime.hour &&
+            currentMinute >= openTime.minute)) &&
+        (currentHour < closeTime.hour ||
+          (currentHour === closeTime.hour && currentMinute < closeTime.minute));
+    }
+
+    return isOpen;
+  };
+
+  const isOpen = isRestaurantOpen();
 
   // Set default pickup option based on allowed parameters
   useEffect(() => {
@@ -811,7 +910,7 @@ export default function CustomerOrdering() {
   // ✅ FIX: Don't open sheet for out of stock items
   const handleItemClick = (item: MenuItem) => {
     if (item.availability === "out_of_stock") return;
-    
+
     if (window.innerWidth < 768) {
       setSelectedItem(item);
       const existingInCart = cart.find((i) => i.menuItemId === item.id);
@@ -928,7 +1027,6 @@ export default function CustomerOrdering() {
     currentRestaurant?.taxesAndFees?.taxRatePercent !== undefined
       ? currentRestaurant.taxesAndFees.taxRatePercent
       : 8.5;
-  // ✅ FIX: Service fee defaults to 0
   const serviceFee =
     currentRestaurant?.taxesAndFees?.serviceFeeAmount !== undefined
       ? currentRestaurant.taxesAndFees.serviceFeeAmount
@@ -962,7 +1060,7 @@ export default function CustomerOrdering() {
       return;
     }
 
-    // ✅ FIX: Prepare order items with item-specific special instructions
+    // Prepare order items with item-specific special instructions
     const orderItems = cart.map((item) => ({
       menuItemId: item.menuItemId,
       name: item.name,
@@ -1029,7 +1127,9 @@ export default function CustomerOrdering() {
       }
     } catch (error: any) {
       console.error("❌ Failed to place order:", error);
-      setOrderPlacementError(error.message || "Failed to place order. Please try again.");
+      setOrderPlacementError(
+        error.message || "Failed to place order. Please try again.",
+      );
       setIsPlacingOrder(false);
     }
   };
@@ -1041,7 +1141,7 @@ export default function CustomerOrdering() {
     setShowStripePayment(false);
     setCheckoutStep("success");
     setClientSecret(null);
-    
+
     // Set receipt data
     setPlacedOrderReceipt({
       subtotal: cartTotal,
@@ -1050,7 +1150,7 @@ export default function CustomerOrdering() {
       total: finalTotalValue,
       specialInstructions: specialInstructions.trim() || undefined,
     });
-    
+
     setRecentOrderId(pendingOrderRef || pendingOrderId || "");
     setCart([]);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1159,10 +1259,16 @@ export default function CustomerOrdering() {
                   />
                 </div>
                 <div className="pb-1">
+                  {/* ✅ FIX: Show correct status based on business hours */}
                   {currentRestaurant.isOrderingPaused ? (
                     <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-[#E8A13B]/20 text-[#E8A13B] border border-[#E8A13B]/30 mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#E8A13B] animate-pulse"></span>
                       Ordering Paused
+                    </span>
+                  ) : !isOpen ? (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-[#C42348]/20 text-[#C42348] border border-[#C42348]/30 mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#C42348] animate-pulse"></span>
+                      Currently Closed
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100 mb-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
@@ -1258,7 +1364,6 @@ export default function CustomerOrdering() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-1 gap-4">
                         {categoryItems.map((item) => (
-                          // ✅ FIX: Show out of stock items with disabled state
                           <div
                             id={`menu-card-${item.id}`}
                             key={item.id}
@@ -1292,7 +1397,6 @@ export default function CustomerOrdering() {
                                 alt={item.name}
                                 className="w-full h-full object-cover"
                               />
-                              {/* ✅ FIX: Show "Out of Stock" label on the image */}
                               {item.availability === "out_of_stock" && (
                                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                                   <span className="bg-[#E8A13B] text-[#33101F] text-[10px] font-bold px-2 py-1 rounded-full rotate-[-15deg] shadow-md uppercase tracking-wider">
@@ -1441,9 +1545,18 @@ export default function CustomerOrdering() {
                       <span>${finalTotalValue.toFixed(2)}</span>
                     </div>
 
+                    {/* ✅ FIX: Check both ordering paused AND business hours */}
                     {currentRestaurant.isOrderingPaused ? (
                       <div className="p-3 bg-[#E8A13B]/10 text-[#E8A13B] font-bold text-[10px] text-center uppercase rounded-lg border border-[#E8A13B]/20 leading-normal font-['Inter','Segoe UI',system-ui,sans-serif]">
                         Ordering currently paused by {currentRestaurant.name}.
+                      </div>
+                    ) : !isOpen ? (
+                      <div className="p-3 bg-[#C42348]/10 text-[#C42348] font-bold text-[10px] text-center uppercase rounded-lg border border-[#C42348]/20 leading-normal font-['Inter','Segoe UI',system-ui,sans-serif]">
+                        {currentRestaurant.name} is currently closed.
+                        <br />
+                        <span className="font-normal text-[11px]">
+                          Please check back during business hours.
+                        </span>
                       </div>
                     ) : (
                       <button
@@ -1712,7 +1825,7 @@ export default function CustomerOrdering() {
                   </div>
                 </div>
 
-                {/* ✅ Global Special Instructions (order-level) */}
+                {/* Global Special Instructions (order-level) */}
                 <div className="space-y-3 pt-4 border-t border-[#E7C7CF]">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-[#8C6B76] flex items-center gap-2 font-['Inter','Segoe UI',system-ui,sans-serif]">
                     <span className="w-4 h-4 rounded-full bg-[#FAF3EA] text-[#8C6B76] flex items-center justify-center text-[10px]">
@@ -1731,7 +1844,8 @@ export default function CustomerOrdering() {
                     />
                   </div>
                   <p className="text-[10px] text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">
-                    Note: You can also add special instructions for each item individually.
+                    Note: You can also add special instructions for each item
+                    individually.
                   </p>
                 </div>
 
@@ -1786,6 +1900,14 @@ export default function CustomerOrdering() {
                     <div className="p-3 bg-[#E8A13B]/10 text-[#E8A13B] font-bold text-[10px] text-center uppercase rounded-lg border border-[#E8A13B]/20 leading-normal font-['Inter','Segoe UI',system-ui,sans-serif]">
                       Checkout disabled - Ordering paused by{" "}
                       {currentRestaurant.name}
+                    </div>
+                  ) : !isOpen ? (
+                    <div className="p-3 bg-[#C42348]/10 text-[#C42348] font-bold text-[10px] text-center uppercase rounded-lg border border-[#C42348]/20 leading-normal font-['Inter','Segoe UI',system-ui,sans-serif]">
+                      {currentRestaurant.name} is currently closed.
+                      <br />
+                      <span className="font-normal text-[11px]">
+                        Please check back during business hours.
+                      </span>
                     </div>
                   ) : (
                     <button
@@ -1867,7 +1989,9 @@ export default function CustomerOrdering() {
               id="receipt-success-heading"
               className="text-2xl font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F]"
             >
-              {paymentChoice === "online" ? "Payment Successful! ✅" : "Order Placed Successfully!"}
+              {paymentChoice === "online"
+                ? "Payment Successful! ✅"
+                : "Order Placed Successfully!"}
             </h2>
             <p className="text-[#8C6B76] text-xs mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
               Ticket Reference:{" "}
@@ -1916,7 +2040,9 @@ export default function CustomerOrdering() {
                 </div>
                 <div className="flex justify-between text-[11px]">
                   <span>Platform Service Fee:</span>
-                  <span>${(placedOrderReceipt?.serviceFee ?? 0).toFixed(2)}</span>
+                  <span>
+                    ${(placedOrderReceipt?.serviceFee ?? 0).toFixed(2)}
+                  </span>
                 </div>
                 <div className="flex justify-between text-[11px] font-['Baloo_2','Trebuchet_MS',sans-serif] font-bold text-[#33101F] border-t border-[#E7C7CF] pt-1">
                   <span>Final Charged Total:</span>
@@ -1937,7 +2063,7 @@ export default function CustomerOrdering() {
 
               <div className="border-t border-dashed border-[#E7C7CF] pt-2.5">
                 <p className="text-[11px] leading-relaxed text-[#8C6B76] text-center font-['Inter','Segoe UI',system-ui,sans-serif]">
-                  {paymentChoice === "online" 
+                  {paymentChoice === "online"
                     ? "Your payment has been confirmed and your order is being prepared."
                     : "Your order has been received and is being prepared."}
                   <br />
@@ -1949,7 +2075,6 @@ export default function CustomerOrdering() {
             </div>
 
             <div className="flex gap-3 justify-center flex-wrap">
-              {/* ✅ FIX: "Order More Food" - stays on same restaurant page */}
               <button
                 type="button"
                 onClick={() => {
@@ -1962,7 +2087,6 @@ export default function CustomerOrdering() {
                 Order More Food
               </button>
 
-              {/* ✅ FIX: "Back to Menu" - goes to the restaurant menu page */}
               <Link
                 to={`/restaurant/${currentRestaurant.slug}`}
                 className="px-6 py-2.5 bg-[#C42348] hover:bg-[#E84C6B] text-white rounded-xl font-['Inter','Segoe UI',system-ui,sans-serif] font-semibold text-xs tracking-wide uppercase transition-all cursor-pointer flex items-center gap-1.5"
@@ -2129,6 +2253,10 @@ export default function CustomerOrdering() {
                   <div className="p-3 bg-[#E8A13B]/10 text-[#E8A13B] font-bold text-[10px] text-center uppercase rounded-lg border border-[#E8A13B]/20">
                     Ordering paused by {currentRestaurant.name}
                   </div>
+                ) : !isOpen ? (
+                  <div className="p-3 bg-[#C42348]/10 text-[#C42348] font-bold text-[10px] text-center uppercase rounded-lg border border-[#C42348]/20">
+                    {currentRestaurant.name} is currently closed.
+                  </div>
                 ) : (
                   <button
                     onClick={() => {
@@ -2205,7 +2333,7 @@ export default function CustomerOrdering() {
                   {selectedItem.description}
                 </p>
 
-                {/* ✅ Item-specific Special Instructions (mobile sheet) */}
+                {/* Item-specific Special Instructions (mobile sheet) */}
                 <div className="mb-3">
                   <label className="block text-xs font-semibold text-[#33101F] mb-1.5 font-['Inter','Segoe UI',system-ui,sans-serif]">
                     Special Instructions for this item

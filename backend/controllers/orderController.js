@@ -163,6 +163,27 @@ exports.getOrders = async (req, res) => {
       else if (req.user.role === "restaurant_owner") {
         console.log("🔒 Restaurant owner, applying restriction...");
 
+        // ✅ FIX: If userRestaurantId is null, try to fetch it from database
+        if (!userRestaurantId) {
+          try {
+            const userDoc = await User.findById(req.user._id).populate(
+              "restaurantId",
+            );
+            if (userDoc) {
+              userRestaurantId = resolveRestaurantId(userDoc);
+              if (userRestaurantId) {
+                req.user.restaurantId = userRestaurantId;
+                console.log(
+                  "🔄 Fetched restaurantId from database in getOrders:",
+                  userRestaurantId,
+                );
+              }
+            }
+          } catch (err) {
+            console.log("⚠️ Could not fetch restaurantId:", err.message);
+          }
+        }
+
         if (!userRestaurantId) {
           console.log("❌ User has no restaurantId assigned");
           return res.status(HTTP_STATUS.FORBIDDEN).json({
@@ -327,6 +348,23 @@ exports.getOrdersByRestaurant = async (req, res) => {
     // ✅ PERMISSION CHECK
     if (req.user && req.user.role !== "admin") {
       const userRestaurantId = resolveRestaurantId(req.user);
+
+      // ✅ FIX: If userRestaurantId is null, try to fetch from database
+      if (!userRestaurantId && req.user.role === "restaurant_owner") {
+        try {
+          const userDoc = await User.findById(req.user._id).populate(
+            "restaurantId",
+          );
+          if (userDoc) {
+            userRestaurantId = resolveRestaurantId(userDoc);
+            if (userRestaurantId) {
+              req.user.restaurantId = userRestaurantId;
+            }
+          }
+        } catch (err) {
+          console.log("⚠️ Could not fetch restaurantId:", err.message);
+        }
+      }
 
       if (!userRestaurantId) {
         return res.status(HTTP_STATUS.FORBIDDEN).json({
@@ -510,7 +548,7 @@ exports.createOrder = async (req, res) => {
       pickupTimeOption,
       scheduledTime,
       paymentMethod,
-      specialInstructions, // ✅ Global order-level special instructions
+      specialInstructions,
     } = req.body;
 
     console.log("📝 Creating order with restaurantId:", restaurantId);
@@ -568,6 +606,69 @@ exports.createOrder = async (req, res) => {
       });
     }
 
+    // ✅ FIX: Check business hours before allowing order
+    if (restaurantDoc.businessHours) {
+      const now = new Date();
+      const dayNames = [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+      ];
+      const currentDay = dayNames[now.getDay()];
+      const dayHours = restaurantDoc.businessHours[currentDay];
+
+      if (dayHours && !dayHours.isOpen) {
+        console.log(
+          `❌ Restaurant ${restaurantDoc.name} is closed on ${currentDay}`,
+        );
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: `Sorry, ${restaurantDoc.name} is closed on ${currentDay}. Please check our business hours.`,
+        });
+      }
+
+      if (dayHours && dayHours.isOpen) {
+        // Parse current time and business hours
+        const parseTime = (timeStr) => {
+          const [time, modifier] = timeStr.split(" ");
+          let [hours, minutes] = time.split(":");
+          let hour = parseInt(hours);
+          if (modifier === "PM" && hour !== 12) hour += 12;
+          if (modifier === "AM" && hour === 12) hour = 0;
+          return { hour, minute: parseInt(minutes) };
+        };
+
+        const now = new Date();
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+
+        const openTime = parseTime(dayHours.openTime);
+        const closeTime = parseTime(dayHours.closeTime);
+
+        const isOpenNow =
+          (currentHour > openTime.hour ||
+            (currentHour === openTime.hour &&
+              currentMinute >= openTime.minute)) &&
+          (currentHour < closeTime.hour ||
+            (currentHour === closeTime.hour &&
+              currentMinute < closeTime.minute));
+
+        if (!isOpenNow) {
+          console.log(
+            `❌ Restaurant ${restaurantDoc.name} is currently closed`,
+          );
+          return res.status(HTTP_STATUS.BAD_REQUEST).json({
+            success: false,
+            message: `Sorry, ${restaurantDoc.name} is currently closed. We are open from ${dayHours.openTime} to ${dayHours.closeTime} on ${currentDay}.`,
+          });
+        }
+      }
+    }
+
     // ✅ Calculate totals with serviceFee set to 0 by default
     const taxRate = restaurantDoc.taxesAndFees?.taxRatePercent || 8.5;
     const serviceFee = restaurantDoc.taxesAndFees?.serviceFeeAmount || 0;
@@ -582,13 +683,13 @@ exports.createOrder = async (req, res) => {
     // Generate order reference
     const orderReference = generateOrderReference();
 
-    // ✅ FIX: Create order items with specialInstructions (item-level)
+    // Create order items with specialInstructions (item-level)
     const orderItems = items.map((item) => ({
       menuItemId: item.menuItemId,
       name: item.name,
       price: item.price,
       quantity: item.quantity,
-      specialInstructions: item.specialInstructions || "", // ✅ Item-specific instructions
+      specialInstructions: item.specialInstructions || "",
     }));
 
     // Create order with the restaurant's ObjectId
@@ -598,7 +699,7 @@ exports.createOrder = async (req, res) => {
       customerName,
       customerPhone,
       customerEmail: customerEmail || "",
-      items: orderItems, // ✅ Items now include specialInstructions
+      items: orderItems,
       subtotal,
       taxAmount,
       serviceFee,
@@ -607,10 +708,8 @@ exports.createOrder = async (req, res) => {
       scheduledTime: scheduledTime || null,
       paymentMethod: paymentMethod || "online",
       status: "NEW",
-      // ✅ Global order-level special instructions (different from item-level)
       specialInstructions: specialInstructions || "",
       orderReference,
-      // ✅ Payment fields
       paymentStatus: paymentMethod === "online" ? "pending" : "pending",
       paymentAmount: Math.round(totalPrice * 100) / 100,
       paymentCurrency: "usd",
@@ -626,11 +725,9 @@ exports.createOrder = async (req, res) => {
     // ✅ If payment method is online, create a Stripe payment intent for the restaurant
     let paymentIntentResult = null;
     if (paymentMethod === "online") {
-      // Get the restaurant's Stripe account ID
       const restaurantStripeAccountId = restaurantDoc.stripeConnect?.accountId;
 
       if (!restaurantStripeAccountId) {
-        // Delete the order since payment can't be processed
         await Order.findByIdAndDelete(order._id);
 
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -640,13 +737,11 @@ exports.createOrder = async (req, res) => {
         });
       }
 
-      // Check if the Stripe account is fully set up
       const isAccountReady =
         restaurantDoc.stripeConnect?.accountStatus === "connected" &&
         restaurantDoc.stripeConnect?.chargesEnabled;
 
       if (!isAccountReady) {
-        // Delete the order
         await Order.findByIdAndDelete(order._id);
 
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -657,7 +752,6 @@ exports.createOrder = async (req, res) => {
       }
 
       try {
-        // Create payment intent for the restaurant
         paymentIntentResult = await createPaymentIntentForRestaurant(
           totalPrice,
           "usd",
@@ -675,7 +769,6 @@ exports.createOrder = async (req, res) => {
           restaurantDoc.name,
         );
 
-        // Update order with payment intent details
         order.stripePaymentIntentId = paymentIntentResult.paymentIntentId;
         order.stripeClientSecret = paymentIntentResult.clientSecret;
         order.stripePaymentStatus = paymentIntentResult.status;
@@ -687,7 +780,6 @@ exports.createOrder = async (req, res) => {
           `   → Amount: $${totalPrice} → Restaurant: ${restaurantDoc.name}`,
         );
       } catch (stripeError) {
-        // Delete the order if Stripe fails
         await Order.findByIdAndDelete(order._id);
 
         logger.error(`❌ Stripe payment intent error: ${stripeError.message}`);
@@ -705,18 +797,15 @@ exports.createOrder = async (req, res) => {
 
     // ✅ For pickup payments, send email and broadcast immediately
     if (paymentMethod === "pickup") {
-      // Send order confirmation email to customer
       if (order.customerEmail) {
         sendOrderConfirmationEmail(order).catch((err) => {
           logger.error(`❌ Failed to send confirmation email: ${err.message}`);
         });
       }
 
-      // Broadcast new order via SSE
       try {
         const restaurantIdStr = restaurantDoc._id.toString();
         const orderForSSE = order.toObject ? order.toObject() : order;
-        // ✅ Ensure specialInstructions is included in SSE broadcast
         if (!orderForSSE.specialInstructions) {
           orderForSSE.specialInstructions = "";
         }
@@ -726,7 +815,6 @@ exports.createOrder = async (req, res) => {
         ) {
           orderForSSE.serviceFee = 0;
         }
-        // ✅ Ensure each item has specialInstructions
         if (orderForSSE.items && Array.isArray(orderForSSE.items)) {
           orderForSSE.items = orderForSSE.items.map((item) => ({
             ...item,
@@ -744,7 +832,6 @@ exports.createOrder = async (req, res) => {
 
     // Prepare response
     const responseData = order.toObject ? order.toObject() : order;
-    // ✅ Ensure global specialInstructions is included in response
     if (!responseData.specialInstructions) {
       responseData.specialInstructions = "";
     }
@@ -754,7 +841,6 @@ exports.createOrder = async (req, res) => {
     ) {
       responseData.serviceFee = 0;
     }
-    // ✅ Ensure each item has specialInstructions
     if (responseData.items && Array.isArray(responseData.items)) {
       responseData.items = responseData.items.map((item) => ({
         ...item,
@@ -762,7 +848,6 @@ exports.createOrder = async (req, res) => {
       }));
     }
 
-    // Add payment client secret for online payments
     if (paymentMethod === "online" && paymentIntentResult) {
       responseData.clientSecret = paymentIntentResult.clientSecret;
       responseData.paymentIntentId = paymentIntentResult.paymentIntentId;
@@ -806,6 +891,22 @@ exports.updateOrderStatus = async (req, res) => {
     // ✅ Check if user has permission to update this order
     if (req.user && req.user.role !== "admin") {
       const userRestaurantId = resolveRestaurantId(req.user);
+
+      if (!userRestaurantId && req.user.role === "restaurant_owner") {
+        try {
+          const userDoc = await User.findById(req.user._id).populate(
+            "restaurantId",
+          );
+          if (userDoc) {
+            userRestaurantId = resolveRestaurantId(userDoc);
+            if (userRestaurantId) {
+              req.user.restaurantId = userRestaurantId;
+            }
+          }
+        } catch (err) {
+          console.log("⚠️ Could not fetch restaurantId:", err.message);
+        }
+      }
 
       if (!userRestaurantId) {
         return res.status(HTTP_STATUS.FORBIDDEN).json({
@@ -866,7 +967,6 @@ exports.updateOrderStatus = async (req, res) => {
     if (orderObj.serviceFee === undefined || orderObj.serviceFee === null) {
       orderObj.serviceFee = 0;
     }
-    // ✅ Ensure each item has specialInstructions
     if (orderObj.items && Array.isArray(orderObj.items)) {
       orderObj.items = orderObj.items.map((item) => ({
         ...item,
@@ -897,7 +997,6 @@ exports.getOrderStatistics = async (req, res) => {
   try {
     const { restaurantId } = req.params;
 
-    // Find the actual restaurant
     let restaurantDoc = null;
 
     if (mongoose.Types.ObjectId.isValid(restaurantId)) {
@@ -932,6 +1031,22 @@ exports.getOrderStatistics = async (req, res) => {
     if (req.user && req.user.role !== "admin") {
       const userRestaurantId = resolveRestaurantId(req.user);
 
+      if (!userRestaurantId && req.user.role === "restaurant_owner") {
+        try {
+          const userDoc = await User.findById(req.user._id).populate(
+            "restaurantId",
+          );
+          if (userDoc) {
+            userRestaurantId = resolveRestaurantId(userDoc);
+            if (userRestaurantId) {
+              req.user.restaurantId = userRestaurantId;
+            }
+          }
+        } catch (err) {
+          console.log("⚠️ Could not fetch restaurantId:", err.message);
+        }
+      }
+
       if (!userRestaurantId) {
         return res.status(HTTP_STATUS.FORBIDDEN).json({
           success: false,
@@ -961,31 +1076,26 @@ exports.getOrderStatistics = async (req, res) => {
     const monthAgo = new Date(today);
     monthAgo.setDate(monthAgo.getDate() - 30);
 
-    // Get counts by status
     const statusCounts = await Order.aggregate([
       { $match: { restaurantId: actualRestaurantId } },
       { $group: { _id: "$status", count: { $sum: 1 } } },
     ]);
 
-    // Get today's orders
     const todayOrders = await Order.find({
       restaurantId: actualRestaurantId,
       createdAt: { $gte: today },
     });
 
-    // Get week's orders
     const weekOrders = await Order.find({
       restaurantId: actualRestaurantId,
       createdAt: { $gte: weekAgo },
     });
 
-    // Get month's orders
     const monthOrders = await Order.find({
       restaurantId: actualRestaurantId,
       createdAt: { $gte: monthAgo },
     });
 
-    // Calculate sales
     const calculateSales = (orders) => {
       return orders.reduce((sum, order) => sum + order.totalPrice, 0);
     };
