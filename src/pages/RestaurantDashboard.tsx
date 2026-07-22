@@ -842,9 +842,7 @@ export default function RestaurantDashboard() {
         // Update the menu item in the list
         setMenuItems((prev) =>
           prev.map((item) =>
-            item.id === editingItemId
-              ? { ...item, image: data.data.url }
-              : item,
+            item.id === editingItemId ? { ...item, image: data.data.url } : item,
           ),
         );
         alert("✅ Menu item image uploaded successfully!");
@@ -886,7 +884,8 @@ export default function RestaurantDashboard() {
     return (
       order.customerName?.toLowerCase().includes(query) ||
       order.id?.toLowerCase().includes(query) ||
-      order.orderReference?.toLowerCase().includes(query)
+      order.orderReference?.toLowerCase().includes(query) ||
+      order.customerEmail?.toLowerCase().includes(query)
     );
   });
 
@@ -916,10 +915,8 @@ export default function RestaurantDashboard() {
     coverImage: "",
   });
 
-  // Restaurant settings custom forms
-  // ✅ FIX: Initialize with default values, but they will be overwritten by useEffect
-  const [isOrderingPaused, setIsOrderingPaused] = useState(false);
-  const [businessHours, setBusinessHours] = useState({
+  // ✅ FIX: Initialize business hours with default values, but will be overwritten by useEffect
+  const defaultBusinessHours = {
     Monday: { isOpen: true, openTime: "09:00 AM", closeTime: "10:00 PM" },
     Tuesday: { isOpen: true, openTime: "09:00 AM", closeTime: "10:00 PM" },
     Wednesday: { isOpen: true, openTime: "09:00 AM", closeTime: "10:00 PM" },
@@ -927,7 +924,9 @@ export default function RestaurantDashboard() {
     Friday: { isOpen: true, openTime: "09:00 AM", closeTime: "11:00 PM" },
     Saturday: { isOpen: true, openTime: "10:00 AM", closeTime: "11:00 PM" },
     Sunday: { isOpen: true, openTime: "10:00 AM", closeTime: "09:00 PM" },
-  });
+  };
+
+  const [businessHours, setBusinessHours] = useState(defaultBusinessHours);
 
   const [pickupSettings, setPickupSettings] = useState({
     allowAsap: true,
@@ -949,55 +948,51 @@ export default function RestaurantDashboard() {
   const [receiptOrder, setReceiptOrder] = useState<Order | null>(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
 
-  // ✅ FIX: Properly load business hours from currentRestaurant
+  // ✅ FIX: Properly load ALL settings from currentRestaurant
   useEffect(() => {
     if (currentRestaurant) {
+      console.log("📋 Loading restaurant settings:", currentRestaurant);
+
+      // Profile form
       setProfileForm({
-        description: currentRestaurant.description,
-        phone: currentRestaurant.phone,
-        address: currentRestaurant.address,
-        logo: currentRestaurant.logo,
-        coverImage: currentRestaurant.coverImage,
+        description: currentRestaurant.description || "",
+        phone: currentRestaurant.phone || "",
+        address: currentRestaurant.address || "",
+        logo: currentRestaurant.logo || "",
+        coverImage: currentRestaurant.coverImage || "",
       });
 
+      // Ordering pause
       setIsOrderingPaused(currentRestaurant.isOrderingPaused || false);
 
-      // ✅ FIX: Load business hours from currentRestaurant
+      // ✅ FIX: Load business hours - preserve all days even if some are undefined
       if (currentRestaurant.businessHours) {
-        // Ensure all days have proper structure
-        const days = [
-          "Monday",
-          "Tuesday",
-          "Wednesday",
-          "Thursday",
-          "Friday",
-          "Saturday",
-          "Sunday",
-        ];
-        const loadedHours = { ...businessHours };
-        days.forEach((day) => {
+        const loadedHours = { ...defaultBusinessHours };
+        const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+        days.forEach(day => {
           if (currentRestaurant.businessHours[day]) {
             loadedHours[day] = {
               isOpen: currentRestaurant.businessHours[day].isOpen !== false,
-              openTime:
-                currentRestaurant.businessHours[day].openTime || "09:00 AM",
-              closeTime:
-                currentRestaurant.businessHours[day].closeTime || "10:00 PM",
+              openTime: currentRestaurant.businessHours[day].openTime || "09:00 AM",
+              closeTime: currentRestaurant.businessHours[day].closeTime || "10:00 PM",
             };
           }
         });
         setBusinessHours(loadedHours);
+        console.log("✅ Loaded business hours:", loadedHours);
       }
 
+      // Pickup settings
       if (currentRestaurant.pickupSettings) {
         setPickupSettings(currentRestaurant.pickupSettings);
       }
 
+      // Taxes & fees
       if (currentRestaurant.taxesAndFees) {
         setTaxesAndFees(currentRestaurant.taxesAndFees);
       }
 
-      // ✅ Load category sort order
+      // Category sort order
       if (currentRestaurant.categorySortOrder) {
         setCategorySortOrder(currentRestaurant.categorySortOrder);
       }
@@ -1050,6 +1045,7 @@ export default function RestaurantDashboard() {
     if (!currentRestaurant) return;
 
     try {
+      console.log("💾 Saving business hours:", businessHours);
       await updateRestaurant(currentRestaurant.id, {
         ...currentRestaurant,
         isOrderingPaused,
@@ -1586,30 +1582,20 @@ export default function RestaurantDashboard() {
                           )}
 
                           {/* ✅ FIX: Item-specific Special Instructions Display */}
-                          {order.items &&
-                            order.items.some(
-                              (item: any) => item.specialInstructions,
-                            ) && (
-                              <div className="p-2 bg-[#E8A13B]/10 border border-[#E8A13B]/20 text-[#E8A13B] text-[10px] rounded-lg mb-2">
-                                <span className="block font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
-                                  Item Special Instructions:
-                                </span>
-                                {order.items.map(
-                                  (item: any) =>
-                                    item.specialInstructions && (
-                                      <p
-                                        key={item.id || item._id}
-                                        className="text-[10px] mt-0.5"
-                                      >
-                                        <span className="font-semibold">
-                                          • {item.name}:
-                                        </span>{" "}
-                                        "{item.specialInstructions}"
-                                      </p>
-                                    ),
-                                )}
-                              </div>
-                            )}
+                          {order.items && order.items.some((item: any) => item.specialInstructions) && (
+                            <div className="p-2 bg-[#E8A13B]/10 border border-[#E8A13B]/20 text-[#E8A13B] text-[10px] rounded-lg mb-2">
+                              <span className="block font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
+                                Item Special Instructions:
+                              </span>
+                              {order.items.map((item: any) => (
+                                item.specialInstructions && (
+                                  <p key={item.id || item._id} className="text-[10px] mt-0.5">
+                                    <span className="font-semibold">• {item.name}:</span> "{item.specialInstructions}"
+                                  </p>
+                                )
+                              ))}
+                            </div>
+                          )}
 
                           <div className="grid grid-cols-2 gap-2 text-[10px] p-2 bg-[#FAF3EA] rounded-lg text-[#8C6B76] border border-[#E7C7CF]">
                             <div>
@@ -1640,6 +1626,16 @@ export default function RestaurantDashboard() {
                                 ${(order.serviceFee || 0).toFixed(2)}
                               </span>
                             </div>
+                          </div>
+
+                          {/* ✅ FIX: Show Email in order card */}
+                          <div className="text-[10px] p-2 bg-[#FAF3EA] rounded-lg text-[#8C6B76] border border-[#E7C7CF]">
+                            <span className="block font-semibold font-['Inter','Segoe UI',system-ui,sans-serif]">
+                              Email:
+                            </span>
+                            <span className="text-[#33101F] font-medium">
+                              {order.customerEmail || "N/A"}
+                            </span>
                           </div>
 
                           <div className="flex gap-2">
@@ -1755,30 +1751,20 @@ export default function RestaurantDashboard() {
                           )}
 
                           {/* ✅ FIX: Item-specific Special Instructions Display */}
-                          {order.items &&
-                            order.items.some(
-                              (item: any) => item.specialInstructions,
-                            ) && (
-                              <div className="p-2 bg-[#C42348]/10 border border-[#C42348]/20 text-[#C42348] text-[10px] rounded-lg mb-2">
-                                <span className="block font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
-                                  Item Special Instructions:
-                                </span>
-                                {order.items.map(
-                                  (item: any) =>
-                                    item.specialInstructions && (
-                                      <p
-                                        key={item.id || item._id}
-                                        className="text-[10px] mt-0.5"
-                                      >
-                                        <span className="font-semibold">
-                                          • {item.name}:
-                                        </span>{" "}
-                                        "{item.specialInstructions}"
-                                      </p>
-                                    ),
-                                )}
-                              </div>
-                            )}
+                          {order.items && order.items.some((item: any) => item.specialInstructions) && (
+                            <div className="p-2 bg-[#C42348]/10 border border-[#C42348]/20 text-[#C42348] text-[10px] rounded-lg mb-2">
+                              <span className="block font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
+                                Item Special Instructions:
+                              </span>
+                              {order.items.map((item: any) => (
+                                item.specialInstructions && (
+                                  <p key={item.id || item._id} className="text-[10px] mt-0.5">
+                                    <span className="font-semibold">• {item.name}:</span> "{item.specialInstructions}"
+                                  </p>
+                                )
+                              ))}
+                            </div>
+                          )}
 
                           <div className="grid grid-cols-2 gap-2 text-[10px] p-2 bg-[#FAF3EA] rounded-lg text-[#8C6B76] border border-[#E7C7CF]">
                             <div>
@@ -1807,6 +1793,16 @@ export default function RestaurantDashboard() {
                                 ${(order.serviceFee || 0).toFixed(2)}
                               </span>
                             </div>
+                          </div>
+
+                          {/* ✅ FIX: Show Email in order card */}
+                          <div className="text-[10px] p-2 bg-[#FAF3EA] rounded-lg text-[#8C6B76] border border-[#E7C7CF]">
+                            <span className="block font-semibold font-['Inter','Segoe UI',system-ui,sans-serif]">
+                              Email:
+                            </span>
+                            <span className="text-[#33101F] font-medium">
+                              {order.customerEmail || "N/A"}
+                            </span>
                           </div>
 
                           <div className="flex gap-2">
@@ -1922,30 +1918,20 @@ export default function RestaurantDashboard() {
                           )}
 
                           {/* ✅ FIX: Item-specific Special Instructions Display */}
-                          {order.items &&
-                            order.items.some(
-                              (item: any) => item.specialInstructions,
-                            ) && (
-                              <div className="p-2 bg-[#E8A13B]/10 border border-[#E8A13B]/20 text-[#E8A13B] text-[10px] rounded-lg mb-2">
-                                <span className="block font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
-                                  Item Special Instructions:
-                                </span>
-                                {order.items.map(
-                                  (item: any) =>
-                                    item.specialInstructions && (
-                                      <p
-                                        key={item.id || item._id}
-                                        className="text-[10px] mt-0.5"
-                                      >
-                                        <span className="font-semibold">
-                                          • {item.name}:
-                                        </span>{" "}
-                                        "{item.specialInstructions}"
-                                      </p>
-                                    ),
-                                )}
-                              </div>
-                            )}
+                          {order.items && order.items.some((item: any) => item.specialInstructions) && (
+                            <div className="p-2 bg-[#E8A13B]/10 border border-[#E8A13B]/20 text-[#E8A13B] text-[10px] rounded-lg mb-2">
+                              <span className="block font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
+                                Item Special Instructions:
+                              </span>
+                              {order.items.map((item: any) => (
+                                item.specialInstructions && (
+                                  <p key={item.id || item._id} className="text-[10px] mt-0.5">
+                                    <span className="font-semibold">• {item.name}:</span> "{item.specialInstructions}"
+                                  </p>
+                                )
+                              ))}
+                            </div>
+                          )}
 
                           <div className="grid grid-cols-2 gap-2 text-[10px] p-2 bg-[#FAF3EA] rounded-lg text-[#8C6B76] border border-[#E7C7CF]">
                             <div>
@@ -1972,6 +1958,16 @@ export default function RestaurantDashboard() {
                                 ${(order.serviceFee || 0).toFixed(2)}
                               </span>
                             </div>
+                          </div>
+
+                          {/* ✅ FIX: Show Email in order card */}
+                          <div className="text-[10px] p-2 bg-[#FAF3EA] rounded-lg text-[#8C6B76] border border-[#E7C7CF]">
+                            <span className="block font-semibold font-['Inter','Segoe UI',system-ui,sans-serif]">
+                              Email:
+                            </span>
+                            <span className="text-[#33101F] font-medium">
+                              {order.customerEmail || "N/A"}
+                            </span>
                           </div>
 
                           <div className="flex gap-2">
@@ -2073,7 +2069,7 @@ export default function RestaurantDashboard() {
                 </span>
               </div>
 
-              {/* Orders Table */}
+              {/* Orders Table - ✅ FIX: Added Email column */}
               <div className="bg-white rounded-2xl border border-[#E7C7CF] overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs text-[#8C6B76] font-['Inter','Segoe UI',system-ui,sans-serif]">
@@ -2081,6 +2077,7 @@ export default function RestaurantDashboard() {
                       <tr>
                         <th className="px-6 py-4">Order ID</th>
                         <th className="px-6 py-4">Customer</th>
+                        <th className="px-6 py-4">Email</th>
                         <th className="px-6 py-4">Items</th>
                         <th className="px-6 py-4">Total</th>
                         <th className="px-6 py-4">Status</th>
@@ -2092,7 +2089,7 @@ export default function RestaurantDashboard() {
                       {filteredCompletedOrders.length === 0 ? (
                         <tr>
                           <td
-                            colSpan={7}
+                            colSpan={8}
                             className="text-center py-12 text-[#8C6B76]"
                           >
                             {searchQuery
@@ -2115,6 +2112,9 @@ export default function RestaurantDashboard() {
                                   {order.customerPhone}
                                 </div>
                               </div>
+                            </td>
+                            <td className="px-6 py-4 text-[#33101F] text-[11px]">
+                              {order.customerEmail || "N/A"}
                             </td>
                             <td className="px-6 py-4">
                               <div className="space-y-0.5">
@@ -2300,8 +2300,7 @@ export default function RestaurantDashboard() {
                                 key={state.value}
                                 onClick={async () => {
                                   const newAvailability = state.value as any;
-                                  const newIsAvailable =
-                                    state.value === "available";
+                                  const newIsAvailable = state.value === "available";
                                   await updateMenuItem(item.id, {
                                     ...item,
                                     availability: newAvailability,
@@ -3080,8 +3079,7 @@ export default function RestaurantDashboard() {
                       <span>Category Display Order</span>
                     </h3>
                     <p className="text-xs text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
-                      Choose how categories appear on your customer ordering
-                      page.
+                      Choose how categories appear on your customer ordering page.
                     </p>
                   </div>
 
@@ -3094,30 +3092,23 @@ export default function RestaurantDashboard() {
                         {
                           value: "created",
                           label: "Creation Order",
-                          description:
-                            "Categories appear in the order they were added",
+                          description: "Categories appear in the order they were added",
                         },
                         {
                           value: "alphabetical_asc",
                           label: "Alphabetical (A-Z)",
-                          description:
-                            "Categories sorted alphabetically A to Z",
+                          description: "Categories sorted alphabetically A to Z",
                         },
                         {
                           value: "alphabetical_desc",
                           label: "Alphabetical (Z-A)",
-                          description:
-                            "Categories sorted alphabetically Z to A",
+                          description: "Categories sorted alphabetically Z to A",
                         },
                       ].map((option) => (
                         <button
                           key={option.value}
                           type="button"
-                          onClick={() =>
-                            setCategorySortOrder(
-                              option.value as typeof categorySortOrder,
-                            )
-                          }
+                          onClick={() => setCategorySortOrder(option.value as typeof categorySortOrder)}
                           className={`p-4 rounded-xl border-2 text-left transition-all ${
                             categorySortOrder === option.value
                               ? "border-[#C42348] bg-[#C42348]/5 ring-1 ring-[#C42348]"
@@ -3147,8 +3138,7 @@ export default function RestaurantDashboard() {
                       ))}
                     </div>
                     <p className="text-[10px] text-[#8C6B76] mt-3 font-['Inter','Segoe UI',system-ui,sans-serif]">
-                      💡 Changes will apply immediately to your customer
-                      ordering page.
+                      💡 Changes will apply immediately to your customer ordering page.
                     </p>
                   </div>
                 </div>
@@ -3332,7 +3322,7 @@ export default function RestaurantDashboard() {
         </AnimatePresence>
       </div>
 
-      {/* ✅ RECEIPT MODAL */}
+      {/* ✅ RECEIPT MODAL - ✅ FIXED: Added Email */}
       {showReceiptModal && receiptOrder && (
         <div className="fixed inset-0 z-50 bg-[#33101F]/75 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl">
@@ -3370,6 +3360,19 @@ export default function RestaurantDashboard() {
                   <span className="text-[#8C6B76]">Customer</span>
                   <span className="font-bold text-[#33101F]">
                     {receiptOrder.customerName}
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
+                  <span className="text-[#8C6B76]">Phone</span>
+                  <span className="font-bold text-[#33101F]">
+                    {receiptOrder.customerPhone}
+                  </span>
+                </div>
+                {/* ✅ FIX: Added Email to receipt */}
+                <div className="flex justify-between text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
+                  <span className="text-[#8C6B76]">Email</span>
+                  <span className="font-bold text-[#33101F]">
+                    {receiptOrder.customerEmail || "N/A"}
                   </span>
                 </div>
                 <div className="flex justify-between text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
@@ -3421,7 +3424,9 @@ export default function RestaurantDashboard() {
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
                     <span className="text-[#8C6B76]">Subtotal</span>
-                    <span>${receiptOrder.subtotal?.toFixed(2) || "0.00"}</span>
+                    <span>
+                      ${receiptOrder.subtotal?.toFixed(2) || "0.00"}
+                    </span>
                   </div>
                   {receiptOrder.taxAmount && receiptOrder.taxAmount > 0 && (
                     <div className="flex justify-between text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">

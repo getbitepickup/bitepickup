@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const Restaurant = require("../models/Restaurant");
 const { HTTP_STATUS, ERROR_MESSAGES } = require("../utils/constants");
 const logger = require("../utils/logger");
 
@@ -15,7 +16,7 @@ const resolveRestaurantId = (user) => {
     return user.restaurantId;
   }
 
-  // If user has restaurantId as object with _id or id
+  // If user has restaurantId as object with _id
   if (user.restaurantId && typeof user.restaurantId === "object") {
     if (user.restaurantId._id) {
       return user.restaurantId._id.toString();
@@ -81,7 +82,52 @@ const authenticate = async (req, res, next) => {
     const userObj = user.toObject ? user.toObject() : { ...user };
 
     // ✅ Ensure restaurantId is properly resolved to a string
-    const restaurantId = resolveRestaurantId(userObj);
+    let restaurantId = resolveRestaurantId(userObj);
+
+    // ✅ FIX: If still null and user is restaurant_owner, try to find restaurant by createdBy
+    if (!restaurantId && userObj.role === "restaurant_owner") {
+      try {
+        const restaurant = await Restaurant.findOne({
+          createdBy: userObj._id,
+        });
+        if (restaurant) {
+          restaurantId = restaurant._id.toString();
+          console.log("🔄 Auth: Found restaurant by createdBy:", restaurantId);
+        }
+      } catch (err) {
+        console.log(
+          "⚠️ Auth: Could not find restaurant by createdBy:",
+          err.message,
+        );
+      }
+    }
+
+    // ✅ FIX: If still null and user is restaurant_owner, try email match
+    if (!restaurantId && userObj.role === "restaurant_owner") {
+      try {
+        const restaurants = await Restaurant.find({});
+        for (const restaurant of restaurants) {
+          const owner = await User.findOne({
+            restaurantId: restaurant._id,
+            role: "restaurant_owner",
+          });
+          if (owner && owner.email === userObj.email) {
+            restaurantId = restaurant._id.toString();
+            console.log(
+              "🔄 Auth: Found restaurant by email match:",
+              restaurantId,
+            );
+            break;
+          }
+        }
+      } catch (err) {
+        console.log(
+          "⚠️ Auth: Could not find restaurant by email:",
+          err.message,
+        );
+      }
+    }
+
     userObj.restaurantId = restaurantId;
 
     // ✅ Log authentication success
@@ -149,7 +195,7 @@ const isRestaurantOwner = (req, res, next) => {
  * Middleware to check if user owns the specified restaurant
  * Handles various formats: id in params, restaurantId in params, or restaurantId in body
  */
-const ownsRestaurant = (req, res, next) => {
+const ownsRestaurant = async (req, res, next) => {
   // Get restaurantId from various sources
   let restaurantId =
     req.params.id || req.params.restaurantId || req.body.restaurantId;

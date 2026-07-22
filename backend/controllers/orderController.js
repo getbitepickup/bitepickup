@@ -102,7 +102,7 @@ exports.getOrders = async (req, res) => {
             if (userRestaurantId) {
               req.user.restaurantId = userRestaurantId;
               console.log(
-                "🔄 Fetched restaurantId from database:",
+                "🔄 Fetched restaurantId from database (populated):",
                 userRestaurantId,
               );
             }
@@ -118,7 +118,7 @@ exports.getOrders = async (req, res) => {
       // ✅ FIX: If still null, try to find restaurant by owner's email
       if (!userRestaurantId && req.user.role === "restaurant_owner") {
         try {
-          // Find the restaurant where this user is the owner
+          // Find the restaurant where this user is the owner (createdBy)
           const restaurant = await Restaurant.findOne({
             createdBy: req.user._id,
           });
@@ -134,9 +134,36 @@ exports.getOrders = async (req, res) => {
           );
         }
       }
+
+      // ✅ FIX: If still null, try to find restaurant by matching email
+      if (!userRestaurantId && req.user.role === "restaurant_owner") {
+        try {
+          // Find the restaurant by looking through all restaurants
+          // This is a fallback for legacy data where createdBy might not be set
+          const restaurants = await Restaurant.find({});
+          for (const restaurant of restaurants) {
+            // Check if this restaurant has an owner with matching email
+            const owner = await User.findOne({
+              restaurantId: restaurant._id,
+              role: "restaurant_owner",
+            });
+            if (owner && owner.email === req.user.email) {
+              userRestaurantId = restaurant._id.toString();
+              req.user.restaurantId = userRestaurantId;
+              console.log(
+                "🔄 Found restaurant by owner email match:",
+                userRestaurantId,
+              );
+              break;
+            }
+          }
+        } catch (err) {
+          console.log("⚠️ Could not find restaurant by email:", err.message);
+        }
+      }
     }
 
-    console.log("🔑 Resolved userRestaurantId:", userRestaurantId);
+    console.log("🔑 Final resolved userRestaurantId:", userRestaurantId);
 
     // ============================================
     // STEP 2: BUILD FILTER
@@ -183,7 +210,7 @@ exports.getOrders = async (req, res) => {
       else if (req.user.role === "restaurant_owner") {
         console.log("🔒 Restaurant owner, applying restriction...");
 
-        // ✅ FIX: If userRestaurantId is null, try to fetch it from database
+        // ✅ FIX: If userRestaurantId is null, try to fetch it from database again
         if (!userRestaurantId) {
           try {
             const userDoc = await User.findById(req.user._id).populate(
@@ -194,7 +221,7 @@ exports.getOrders = async (req, res) => {
               if (userRestaurantId) {
                 req.user.restaurantId = userRestaurantId;
                 console.log(
-                  "🔄 Fetched restaurantId from database in getOrders:",
+                  "🔄 Fetched restaurantId from database in getOrders (retry):",
                   userRestaurantId,
                 );
               }
@@ -204,7 +231,7 @@ exports.getOrders = async (req, res) => {
           }
         }
 
-        // ✅ FIX: If still null, try to find restaurant by owner's email
+        // ✅ FIX: If still null, try to find restaurant by createdBy
         if (!userRestaurantId) {
           try {
             const restaurant = await Restaurant.findOne({
@@ -226,8 +253,34 @@ exports.getOrders = async (req, res) => {
           }
         }
 
+        // ✅ FIX: If still null, try to find restaurant by email match
         if (!userRestaurantId) {
-          console.log("❌ User has no restaurantId assigned");
+          try {
+            const restaurants = await Restaurant.find({});
+            for (const restaurant of restaurants) {
+              const owner = await User.findOne({
+                restaurantId: restaurant._id,
+                role: "restaurant_owner",
+              });
+              if (owner && owner.email === req.user.email) {
+                userRestaurantId = restaurant._id.toString();
+                req.user.restaurantId = userRestaurantId;
+                console.log(
+                  "🔄 Found restaurant by email match in getOrders:",
+                  userRestaurantId,
+                );
+                break;
+              }
+            }
+          } catch (err) {
+            console.log("⚠️ Could not find restaurant by email:", err.message);
+          }
+        }
+
+        if (!userRestaurantId) {
+          console.log(
+            "❌ User has no restaurantId assigned after all attempts",
+          );
           return res.status(HTTP_STATUS.FORBIDDEN).json({
             success: false,
             message:
@@ -302,8 +355,8 @@ exports.getOrders = async (req, res) => {
 
     console.log(`📊 Found ${orders.length} orders for user ${req.user?.email}`);
 
-    // ✅ FIX: Ensure specialInstructions is included in response
-    const ordersWithSpecialInstructions = orders.map((order) => {
+    // ✅ FIX: Ensure specialInstructions and email are included in response
+    const ordersWithDetails = orders.map((order) => {
       const orderObj = order.toObject ? order.toObject() : order;
       // Ensure global specialInstructions field exists
       if (!orderObj.specialInstructions) {
@@ -312,6 +365,13 @@ exports.getOrders = async (req, res) => {
       // Ensure serviceFee is included and properly set
       if (orderObj.serviceFee === undefined || orderObj.serviceFee === null) {
         orderObj.serviceFee = 0;
+      }
+      // Ensure customerEmail is included
+      if (
+        orderObj.customerEmail === undefined ||
+        orderObj.customerEmail === null
+      ) {
+        orderObj.customerEmail = "";
       }
       // ✅ Ensure each item has specialInstructions field
       if (orderObj.items && Array.isArray(orderObj.items)) {
@@ -325,7 +385,7 @@ exports.getOrders = async (req, res) => {
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
-      data: ordersWithSpecialInstructions,
+      data: ordersWithDetails,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -389,7 +449,7 @@ exports.getOrdersByRestaurant = async (req, res) => {
 
     // ✅ PERMISSION CHECK
     if (req.user && req.user.role !== "admin") {
-      const userRestaurantId = resolveRestaurantId(req.user);
+      let userRestaurantId = resolveRestaurantId(req.user);
 
       // ✅ FIX: If userRestaurantId is null, try to fetch from database
       if (!userRestaurantId && req.user.role === "restaurant_owner") {
@@ -408,7 +468,7 @@ exports.getOrdersByRestaurant = async (req, res) => {
         }
       }
 
-      // ✅ FIX: If still null, try to find restaurant by owner's email
+      // ✅ FIX: If still null, try to find restaurant by createdBy
       if (!userRestaurantId && req.user.role === "restaurant_owner") {
         try {
           const restaurant = await Restaurant.findOne({
@@ -427,6 +487,30 @@ exports.getOrdersByRestaurant = async (req, res) => {
             "⚠️ Could not find restaurant by createdBy:",
             err.message,
           );
+        }
+      }
+
+      // ✅ FIX: If still null, try email match
+      if (!userRestaurantId && req.user.role === "restaurant_owner") {
+        try {
+          const restaurants = await Restaurant.find({});
+          for (const restaurant of restaurants) {
+            const owner = await User.findOne({
+              restaurantId: restaurant._id,
+              role: "restaurant_owner",
+            });
+            if (owner && owner.email === req.user.email) {
+              userRestaurantId = restaurant._id.toString();
+              req.user.restaurantId = userRestaurantId;
+              console.log(
+                "🔄 Found restaurant by email match in getOrdersByRestaurant:",
+                userRestaurantId,
+              );
+              break;
+            }
+          }
+        } catch (err) {
+          console.log("⚠️ Could not find restaurant by email:", err.message);
         }
       }
 
@@ -465,8 +549,8 @@ exports.getOrdersByRestaurant = async (req, res) => {
       `📊 Found ${orders.length} orders for restaurant ${restaurantDoc.name}`,
     );
 
-    // ✅ FIX: Ensure specialInstructions is included in response
-    const ordersWithSpecialInstructions = orders.map((order) => {
+    // ✅ FIX: Ensure specialInstructions and email are included in response
+    const ordersWithDetails = orders.map((order) => {
       const orderObj = order.toObject ? order.toObject() : order;
       if (!orderObj.specialInstructions) {
         orderObj.specialInstructions = "";
@@ -474,7 +558,12 @@ exports.getOrdersByRestaurant = async (req, res) => {
       if (orderObj.serviceFee === undefined || orderObj.serviceFee === null) {
         orderObj.serviceFee = 0;
       }
-      // ✅ Ensure each item has specialInstructions field
+      if (
+        orderObj.customerEmail === undefined ||
+        orderObj.customerEmail === null
+      ) {
+        orderObj.customerEmail = "";
+      }
       if (orderObj.items && Array.isArray(orderObj.items)) {
         orderObj.items = orderObj.items.map((item) => ({
           ...item,
@@ -486,7 +575,7 @@ exports.getOrdersByRestaurant = async (req, res) => {
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
-      data: ordersWithSpecialInstructions,
+      data: ordersWithDetails,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -519,7 +608,7 @@ exports.getOrderById = async (req, res) => {
       });
     }
 
-    // ✅ FIX: Ensure specialInstructions is included
+    // ✅ FIX: Ensure specialInstructions and email are included
     const orderObj = order.toObject ? order.toObject() : order;
     if (!orderObj.specialInstructions) {
       orderObj.specialInstructions = "";
@@ -527,7 +616,12 @@ exports.getOrderById = async (req, res) => {
     if (orderObj.serviceFee === undefined || orderObj.serviceFee === null) {
       orderObj.serviceFee = 0;
     }
-    // ✅ Ensure each item has specialInstructions field
+    if (
+      orderObj.customerEmail === undefined ||
+      orderObj.customerEmail === null
+    ) {
+      orderObj.customerEmail = "";
+    }
     if (orderObj.items && Array.isArray(orderObj.items)) {
       orderObj.items = orderObj.items.map((item) => ({
         ...item,
@@ -566,7 +660,7 @@ exports.getOrderByReference = async (req, res) => {
       });
     }
 
-    // ✅ FIX: Ensure specialInstructions is included
+    // ✅ FIX: Ensure specialInstructions and email are included
     const orderObj = order.toObject ? order.toObject() : order;
     if (!orderObj.specialInstructions) {
       orderObj.specialInstructions = "";
@@ -574,7 +668,12 @@ exports.getOrderByReference = async (req, res) => {
     if (orderObj.serviceFee === undefined || orderObj.serviceFee === null) {
       orderObj.serviceFee = 0;
     }
-    // ✅ Ensure each item has specialInstructions field
+    if (
+      orderObj.customerEmail === undefined ||
+      orderObj.customerEmail === null
+    ) {
+      orderObj.customerEmail = "";
+    }
     if (orderObj.items && Array.isArray(orderObj.items)) {
       orderObj.items = orderObj.items.map((item) => ({
         ...item,
@@ -898,6 +997,12 @@ exports.createOrder = async (req, res) => {
         ) {
           orderForSSE.serviceFee = 0;
         }
+        if (
+          orderForSSE.customerEmail === undefined ||
+          orderForSSE.customerEmail === null
+        ) {
+          orderForSSE.customerEmail = "";
+        }
         if (orderForSSE.items && Array.isArray(orderForSSE.items)) {
           orderForSSE.items = orderForSSE.items.map((item) => ({
             ...item,
@@ -923,6 +1028,12 @@ exports.createOrder = async (req, res) => {
       responseData.serviceFee === null
     ) {
       responseData.serviceFee = 0;
+    }
+    if (
+      responseData.customerEmail === undefined ||
+      responseData.customerEmail === null
+    ) {
+      responseData.customerEmail = "";
     }
     if (responseData.items && Array.isArray(responseData.items)) {
       responseData.items = responseData.items.map((item) => ({
@@ -973,7 +1084,7 @@ exports.updateOrderStatus = async (req, res) => {
 
     // ✅ Check if user has permission to update this order
     if (req.user && req.user.role !== "admin") {
-      const userRestaurantId = resolveRestaurantId(req.user);
+      let userRestaurantId = resolveRestaurantId(req.user);
 
       if (!userRestaurantId && req.user.role === "restaurant_owner") {
         try {
@@ -991,7 +1102,7 @@ exports.updateOrderStatus = async (req, res) => {
         }
       }
 
-      // ✅ FIX: If still null, try to find restaurant by owner's email
+      // ✅ FIX: If still null, try to find restaurant by createdBy
       if (!userRestaurantId && req.user.role === "restaurant_owner") {
         try {
           const restaurant = await Restaurant.findOne({
@@ -1010,6 +1121,30 @@ exports.updateOrderStatus = async (req, res) => {
             "⚠️ Could not find restaurant by createdBy:",
             err.message,
           );
+        }
+      }
+
+      // ✅ FIX: If still null, try email match
+      if (!userRestaurantId && req.user.role === "restaurant_owner") {
+        try {
+          const restaurants = await Restaurant.find({});
+          for (const restaurant of restaurants) {
+            const owner = await User.findOne({
+              restaurantId: restaurant._id,
+              role: "restaurant_owner",
+            });
+            if (owner && owner.email === req.user.email) {
+              userRestaurantId = restaurant._id.toString();
+              req.user.restaurantId = userRestaurantId;
+              console.log(
+                "🔄 Found restaurant by email match in updateOrderStatus:",
+                userRestaurantId,
+              );
+              break;
+            }
+          }
+        } catch (err) {
+          console.log("⚠️ Could not find restaurant by email:", err.message);
         }
       }
 
@@ -1064,13 +1199,19 @@ exports.updateOrderStatus = async (req, res) => {
       logger.error(`❌ SSE status broadcast error: ${sseError.message}`);
     }
 
-    // ✅ FIX: Ensure specialInstructions is included in response
+    // ✅ FIX: Ensure specialInstructions and email are included in response
     const orderObj = order.toObject ? order.toObject() : order;
     if (!orderObj.specialInstructions) {
       orderObj.specialInstructions = "";
     }
     if (orderObj.serviceFee === undefined || orderObj.serviceFee === null) {
       orderObj.serviceFee = 0;
+    }
+    if (
+      orderObj.customerEmail === undefined ||
+      orderObj.customerEmail === null
+    ) {
+      orderObj.customerEmail = "";
     }
     if (orderObj.items && Array.isArray(orderObj.items)) {
       orderObj.items = orderObj.items.map((item) => ({
@@ -1134,7 +1275,7 @@ exports.getOrderStatistics = async (req, res) => {
 
     // ✅ Check if user has permission to view this restaurant's statistics
     if (req.user && req.user.role !== "admin") {
-      const userRestaurantId = resolveRestaurantId(req.user);
+      let userRestaurantId = resolveRestaurantId(req.user);
 
       if (!userRestaurantId && req.user.role === "restaurant_owner") {
         try {
@@ -1152,7 +1293,7 @@ exports.getOrderStatistics = async (req, res) => {
         }
       }
 
-      // ✅ FIX: If still null, try to find restaurant by owner's email
+      // ✅ FIX: If still null, try to find restaurant by createdBy
       if (!userRestaurantId && req.user.role === "restaurant_owner") {
         try {
           const restaurant = await Restaurant.findOne({
@@ -1171,6 +1312,30 @@ exports.getOrderStatistics = async (req, res) => {
             "⚠️ Could not find restaurant by createdBy:",
             err.message,
           );
+        }
+      }
+
+      // ✅ FIX: If still null, try email match
+      if (!userRestaurantId && req.user.role === "restaurant_owner") {
+        try {
+          const restaurants = await Restaurant.find({});
+          for (const restaurant of restaurants) {
+            const owner = await User.findOne({
+              restaurantId: restaurant._id,
+              role: "restaurant_owner",
+            });
+            if (owner && owner.email === req.user.email) {
+              userRestaurantId = restaurant._id.toString();
+              req.user.restaurantId = userRestaurantId;
+              console.log(
+                "🔄 Found restaurant by email match in getOrderStatistics:",
+                userRestaurantId,
+              );
+              break;
+            }
+          }
+        } catch (err) {
+          console.log("⚠️ Could not find restaurant by email:", err.message);
         }
       }
 

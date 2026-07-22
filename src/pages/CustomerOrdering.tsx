@@ -1239,6 +1239,7 @@ export default function CustomerOrdering() {
                   Powered by Hinarok
                 </span>
               </div>
+              {/* ✅ REMOVED: "Restaurant Owner?" button - completely removed */}
             </div>
 
             {currentRestaurant.isOrderingPaused && (

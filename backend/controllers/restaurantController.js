@@ -230,7 +230,7 @@ exports.createRestaurant = async (req, res) => {
       isActive: true,
       isOrderingPaused: false,
       createdBy: req.user ? req.user.id : null,
-      categorySortOrder: "created", // ✅ NEW: Default category sort order
+      categorySortOrder: "created",
       businessHours: {
         Monday: { isOpen: true, openTime: "09:00 AM", closeTime: "10:00 PM" },
         Tuesday: { isOpen: true, openTime: "09:00 AM", closeTime: "10:00 PM" },
@@ -326,8 +326,11 @@ exports.updateRestaurant = async (req, res) => {
       taxesAndFees,
       slug,
       subdomain,
-      categorySortOrder, // ✅ NEW
+      categorySortOrder,
     } = req.body;
+
+    console.log("📝 Updating restaurant:", req.params.id);
+    console.log("📝 Business hours received:", businessHours);
 
     const restaurant = await Restaurant.findById(req.params.id);
 
@@ -356,14 +359,20 @@ exports.updateRestaurant = async (req, res) => {
     if (isActive !== undefined) restaurant.isActive = isActive;
     if (isOrderingPaused !== undefined)
       restaurant.isOrderingPaused = isOrderingPaused;
-    if (businessHours) restaurant.businessHours = businessHours;
+    if (businessHours) {
+      // ✅ FIX: Properly update business hours
+      restaurant.businessHours = businessHours;
+      console.log("✅ Updated business hours:", businessHours);
+    }
     if (pickupSettings) restaurant.pickupSettings = pickupSettings;
     if (taxesAndFees) restaurant.taxesAndFees = taxesAndFees;
-    if (categorySortOrder) restaurant.categorySortOrder = categorySortOrder; // ✅ NEW
+    if (categorySortOrder) restaurant.categorySortOrder = categorySortOrder;
 
     restaurant.updatedAt = new Date();
 
     await restaurant.save();
+
+    console.log("✅ Restaurant updated successfully");
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
@@ -372,6 +381,7 @@ exports.updateRestaurant = async (req, res) => {
     });
   } catch (error) {
     logger.error(`Update restaurant error: ${error.message}`);
+    console.error("❌ Update restaurant error:", error);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
       message: "Failed to update restaurant",
