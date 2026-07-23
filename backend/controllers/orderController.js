@@ -34,28 +34,69 @@ const {
 const resolveRestaurantId = (user) => {
   if (!user) return null;
 
+  console.log("🔍 resolveRestaurantId called with:", {
+    hasRestaurantId: !!user.restaurantId,
+    restaurantIdType: typeof user.restaurantId,
+    restaurantIdValue: user.restaurantId,
+    userId: user._id,
+    userEmail: user.email,
+    userRole: user.role,
+  });
+
   // If user has restaurantId directly as string
   if (typeof user.restaurantId === "string") {
-    return user.restaurantId;
+    if (
+      user.restaurantId &&
+      user.restaurantId !== "null" &&
+      user.restaurantId !== "undefined"
+    ) {
+      console.log("✅ Found restaurantId as string:", user.restaurantId);
+      return user.restaurantId;
+    }
   }
 
   // If user has restaurantId as object with _id
   if (user.restaurantId && typeof user.restaurantId === "object") {
     if (user.restaurantId._id) {
+      console.log(
+        "✅ Found restaurantId from _id:",
+        user.restaurantId._id.toString(),
+      );
       return user.restaurantId._id.toString();
     }
     if (user.restaurantId.id) {
+      console.log(
+        "✅ Found restaurantId from id:",
+        user.restaurantId.id.toString(),
+      );
       return user.restaurantId.id.toString();
     }
-    // Try to convert whole object to string
     if (
       user.restaurantId.toString &&
       user.restaurantId.toString() !== "[object Object]"
     ) {
+      console.log(
+        "✅ Found restaurantId from toString:",
+        user.restaurantId.toString(),
+      );
       return user.restaurantId.toString();
     }
   }
 
+  // If user has restaurantId as a number or other type
+  if (
+    user.restaurantId &&
+    user.restaurantId !== "null" &&
+    user.restaurantId !== "undefined"
+  ) {
+    console.log(
+      "✅ Found restaurantId as other type:",
+      String(user.restaurantId),
+    );
+    return String(user.restaurantId);
+  }
+
+  console.log("❌ No restaurantId found in user object");
   return null;
 };
 
@@ -77,6 +118,7 @@ exports.getOrders = async (req, res) => {
       userRole: req.user?.role,
       userRestaurantId: req.user?.restaurantId,
       userRestaurantIdType: typeof req.user?.restaurantId,
+      userId: req.user?._id,
     });
 
     const filter = {};
@@ -89,14 +131,26 @@ exports.getOrders = async (req, res) => {
     if (req.user) {
       // Try to get restaurantId from user object
       userRestaurantId = resolveRestaurantId(req.user);
+      console.log(
+        "🔑 Initial resolved userRestaurantId from user object:",
+        userRestaurantId,
+      );
 
       // If still null and user is restaurant_owner, fetch from database with populate
       if (!userRestaurantId && req.user.role === "restaurant_owner") {
+        console.log("🔍 Fetching user from database with populate...");
         try {
           const userDoc = await User.findById(req.user._id).populate(
             "restaurantId",
           );
           if (userDoc) {
+            console.log("📋 UserDoc from database:", {
+              id: userDoc._id,
+              email: userDoc.email,
+              role: userDoc.role,
+              restaurantId: userDoc.restaurantId,
+              restaurantIdType: typeof userDoc.restaurantId,
+            });
             userRestaurantId = resolveRestaurantId(userDoc);
             // Update req.user for future use
             if (userRestaurantId) {
@@ -105,7 +159,11 @@ exports.getOrders = async (req, res) => {
                 "🔄 Fetched restaurantId from database (populated):",
                 userRestaurantId,
               );
+            } else {
+              console.log("❌ No restaurantId found in populated user");
             }
+          } else {
+            console.log("❌ User not found in database");
           }
         } catch (err) {
           console.log(
@@ -117,6 +175,7 @@ exports.getOrders = async (req, res) => {
 
       // ✅ FIX: If still null, try to find restaurant by owner's email
       if (!userRestaurantId && req.user.role === "restaurant_owner") {
+        console.log("🔍 Looking for restaurant by createdBy:", req.user._id);
         try {
           // Find the restaurant where this user is the owner (createdBy)
           const restaurant = await Restaurant.findOne({
@@ -126,6 +185,8 @@ exports.getOrders = async (req, res) => {
             userRestaurantId = restaurant._id.toString();
             req.user.restaurantId = userRestaurantId;
             console.log("🔄 Found restaurant by createdBy:", userRestaurantId);
+          } else {
+            console.log("❌ No restaurant found by createdBy");
           }
         } catch (err) {
           console.log(
@@ -137,10 +198,14 @@ exports.getOrders = async (req, res) => {
 
       // ✅ FIX: If still null, try to find restaurant by matching email
       if (!userRestaurantId && req.user.role === "restaurant_owner") {
+        console.log(
+          "🔍 Looking for restaurant by email match:",
+          req.user.email,
+        );
         try {
           // Find the restaurant by looking through all restaurants
-          // This is a fallback for legacy data where createdBy might not be set
           const restaurants = await Restaurant.find({});
+          console.log(`📋 Found ${restaurants.length} restaurants to check`);
           for (const restaurant of restaurants) {
             // Check if this restaurant has an owner with matching email
             const owner = await User.findOne({
@@ -154,8 +219,22 @@ exports.getOrders = async (req, res) => {
                 "🔄 Found restaurant by owner email match:",
                 userRestaurantId,
               );
+              // Update the user's restaurantId in the database
+              if (req.user._id) {
+                try {
+                  await User.findByIdAndUpdate(req.user._id, {
+                    restaurantId: restaurant._id,
+                  });
+                  console.log("✅ Updated user's restaurantId in database");
+                } catch (updateErr) {
+                  console.log("⚠️ Could not update user:", updateErr.message);
+                }
+              }
               break;
             }
+          }
+          if (!userRestaurantId) {
+            console.log("❌ No restaurant found by email match");
           }
         } catch (err) {
           console.log("⚠️ Could not find restaurant by email:", err.message);
@@ -164,6 +243,9 @@ exports.getOrders = async (req, res) => {
 
       // ✅ FIX: If still null, try to find restaurant by owner match (last resort)
       if (!userRestaurantId && req.user.role === "restaurant_owner") {
+        console.log(
+          "🔍 Looking for any restaurant where user is owner (last resort)",
+        );
         try {
           const restaurants = await Restaurant.find({});
           for (const restaurant of restaurants) {
@@ -184,8 +266,22 @@ exports.getOrders = async (req, res) => {
                 "🔄 Found restaurant by owner match (last resort):",
                 userRestaurantId,
               );
+              // Update the user's restaurantId in the database
+              if (req.user._id) {
+                try {
+                  await User.findByIdAndUpdate(req.user._id, {
+                    restaurantId: restaurant._id,
+                  });
+                  console.log("✅ Updated user's restaurantId in database");
+                } catch (updateErr) {
+                  console.log("⚠️ Could not update user:", updateErr.message);
+                }
+              }
               break;
             }
+          }
+          if (!userRestaurantId) {
+            console.log("❌ No restaurant found by owner match");
           }
         } catch (err) {
           console.log(
@@ -204,6 +300,7 @@ exports.getOrders = async (req, res) => {
 
     // If restaurantId is provided in query params, use it
     if (restaurantId) {
+      console.log("📍 Using restaurantId from query param:", restaurantId);
       // Try to find the restaurant by various identifiers
       let restaurantDoc = null;
 
@@ -245,6 +342,7 @@ exports.getOrders = async (req, res) => {
 
         // ✅ FIX: If userRestaurantId is null, try to fetch it from database again
         if (!userRestaurantId) {
+          console.log("🔍 Retrying restaurantId fetch...");
           try {
             const userDoc = await User.findById(req.user._id).populate(
               "restaurantId",
@@ -266,6 +364,7 @@ exports.getOrders = async (req, res) => {
 
         // ✅ FIX: If still null, try to find restaurant by createdBy
         if (!userRestaurantId) {
+          console.log("🔍 Retrying createdBy search...");
           try {
             const restaurant = await Restaurant.findOne({
               createdBy: req.user._id,
@@ -288,6 +387,7 @@ exports.getOrders = async (req, res) => {
 
         // ✅ FIX: If still null, try to find restaurant by email match
         if (!userRestaurantId) {
+          console.log("🔍 Retrying email match...");
           try {
             const restaurants = await Restaurant.find({});
             for (const restaurant of restaurants) {
