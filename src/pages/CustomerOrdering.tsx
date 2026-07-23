@@ -29,6 +29,7 @@ import {
   subscribeToStore,
   getCurrentRestaurantId,
   setCurrentRestaurantId,
+  getRestaurantById,
 } from "../store/apiStore";
 import { Restaurant, Category, MenuItem, CartItem, Order } from "../types";
 import {
@@ -703,6 +704,148 @@ export default function CustomerOrdering() {
 
   const isOpen = isRestaurantOpen();
 
+  // ✅ FIX: Refresh restaurant data before checkout to ensure latest business hours
+  const refreshRestaurantData = async () => {
+    if (!currentRestaurant) return;
+    try {
+      console.log(
+        "🔄 Refreshing restaurant data for ID:",
+        currentRestaurant.id,
+      );
+      const freshRestaurant = await getRestaurantById(currentRestaurant.id);
+      if (freshRestaurant) {
+        setCurrentRestaurant(freshRestaurant);
+        // Also update localStorage
+        const restaurantData = {
+          name: freshRestaurant.name,
+          logo: freshRestaurant.logo || "",
+          id: freshRestaurant.id,
+          slug: freshRestaurant.slug,
+          subdomain: freshRestaurant.subdomain,
+        };
+        localStorage.setItem(
+          "currentRestaurant",
+          JSON.stringify(restaurantData),
+        );
+        console.log("✅ Restaurant data refreshed:", freshRestaurant.name);
+        return freshRestaurant;
+      }
+    } catch (error) {
+      console.error("Failed to refresh restaurant data:", error);
+    }
+    return null;
+  };
+
+  // ✅ FIX: Handle proceed to checkout with fresh data validation
+  const handleProceedToCheckout = async () => {
+    // Refresh restaurant data first to get latest settings
+    const freshRestaurant = await refreshRestaurantData();
+
+    // Use fresh restaurant or current one
+    const restaurantToCheck = freshRestaurant || currentRestaurant;
+
+    if (!restaurantToCheck) {
+      alert("Restaurant information not available. Please try again.");
+      return;
+    }
+
+    // Check if ordering is paused
+    if (restaurantToCheck.isOrderingPaused) {
+      alert(
+        `${restaurantToCheck.name} is currently not accepting orders. Please try again later.`,
+      );
+      return;
+    }
+
+    // Check if restaurant is open using fresh data
+    const isOpenNow = (() => {
+      if (!restaurantToCheck.businessHours) return true;
+
+      const now = new Date();
+      const dayNames = [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+      ];
+      const currentDay = dayNames[now.getDay()];
+      const dayHours =
+        restaurantToCheck.businessHours[
+          currentDay as keyof typeof restaurantToCheck.businessHours
+        ];
+
+      if (!dayHours || !dayHours.isOpen) return false;
+
+      const parseTime = (timeStr: string) => {
+        const [time, modifier] = timeStr.split(" ");
+        const [hours, minutes] = time.split(":");
+        let hour = parseInt(hours);
+        if (modifier === "PM" && hour !== 12) hour += 12;
+        if (modifier === "AM" && hour === 12) hour = 0;
+        return { hour, minute: parseInt(minutes) };
+      };
+
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+
+      const openTime = parseTime(dayHours.openTime);
+      const closeTime = parseTime(dayHours.closeTime);
+
+      let isOpen = false;
+      if (
+        closeTime.hour < openTime.hour ||
+        (closeTime.hour === openTime.hour && closeTime.minute < openTime.minute)
+      ) {
+        isOpen =
+          currentHour > openTime.hour ||
+          (currentHour === openTime.hour && currentMinute >= openTime.minute) ||
+          currentHour < closeTime.hour ||
+          (currentHour === closeTime.hour && currentMinute < closeTime.minute);
+      } else {
+        isOpen =
+          (currentHour > openTime.hour ||
+            (currentHour === openTime.hour &&
+              currentMinute >= openTime.minute)) &&
+          (currentHour < closeTime.hour ||
+            (currentHour === closeTime.hour &&
+              currentMinute < closeTime.minute));
+      }
+
+      return isOpen;
+    })();
+
+    if (!isOpenNow) {
+      const now = new Date();
+      const dayNames = [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+      ];
+      const currentDay = dayNames[now.getDay()];
+      const dayHours =
+        restaurantToCheck.businessHours?.[
+          currentDay as keyof typeof restaurantToCheck.businessHours
+        ];
+      const hoursStr = dayHours
+        ? `${dayHours.openTime} - ${dayHours.closeTime}`
+        : "business hours";
+      alert(
+        `${restaurantToCheck.name} is currently closed. We are open from ${hoursStr} on ${currentDay}.`,
+      );
+      return;
+    }
+
+    // All checks passed, proceed to checkout
+    setCheckoutStep("checkout");
+  };
+
   // Set default pickup option based on allowed parameters
   useEffect(() => {
     if (currentRestaurant) {
@@ -1065,6 +1208,24 @@ export default function CustomerOrdering() {
     // Ensure we have the correct restaurant ID
     if (!currentRestaurant || !currentRestaurant.id) {
       alert("Restaurant information is missing. Please try again.");
+      return;
+    }
+
+    // ✅ FIX: Refresh restaurant data before placing order to ensure latest settings
+    await refreshRestaurantData();
+
+    // Double-check restaurant is still open and accepting orders
+    if (currentRestaurant.isOrderingPaused) {
+      alert(
+        `${currentRestaurant.name} is currently not accepting orders. Please try again later.`,
+      );
+      return;
+    }
+
+    if (!isRestaurantOpen()) {
+      alert(
+        `${currentRestaurant.name} is currently closed. Please check back during business hours.`,
+      );
       return;
     }
 
@@ -1567,7 +1728,7 @@ export default function CustomerOrdering() {
                     ) : (
                       <button
                         id="proceed-to-checkout-btn"
-                        onClick={() => setCheckoutStep("checkout")}
+                        onClick={handleProceedToCheckout}
                         className="w-full bg-[#C42348] hover:bg-[#E84C6B] active:translate-y-px text-white py-3 rounded-xl font-semibold text-xs tracking-wider uppercase transition-all cursor-pointer flex items-center justify-center gap-2 font-['Inter','Segoe UI',system-ui,sans-serif]"
                       >
                         <span>Proceed to Checkout</span>
@@ -2283,10 +2444,7 @@ export default function CustomerOrdering() {
                   </div>
                 ) : (
                   <button
-                    onClick={() => {
-                      setIsCartSheetOpen(false);
-                      setCheckoutStep("checkout");
-                    }}
+                    onClick={handleProceedToCheckout}
                     className="w-full bg-[#C42348] hover:bg-[#E84C6B] text-white font-bold py-3.5 rounded-xl transition-all text-sm"
                   >
                     Proceed to Checkout

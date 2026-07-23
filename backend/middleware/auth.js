@@ -128,6 +128,40 @@ const authenticate = async (req, res, next) => {
       }
     }
 
+    // ✅ FIX: If still null and user is restaurant_owner, try to find restaurant by matching restaurant name (fallback)
+    if (!restaurantId && userObj.role === "restaurant_owner") {
+      try {
+        // Try to find a restaurant where the user is the owner (last resort)
+        const restaurants = await Restaurant.find({});
+        for (const restaurant of restaurants) {
+          // Check if this restaurant has any owner with the same email or userId
+          const owner = await User.findOne({
+            $or: [
+              { restaurantId: restaurant._id, role: "restaurant_owner" },
+              { _id: userObj._id, role: "restaurant_owner" },
+            ],
+          });
+          if (
+            owner &&
+            (owner.email === userObj.email ||
+              owner._id.toString() === userObj._id.toString())
+          ) {
+            restaurantId = restaurant._id.toString();
+            console.log(
+              "🔄 Auth: Found restaurant by owner match (last resort):",
+              restaurantId,
+            );
+            break;
+          }
+        }
+      } catch (err) {
+        console.log(
+          "⚠️ Auth: Could not find restaurant by owner match:",
+          err.message,
+        );
+      }
+    }
+
     userObj.restaurantId = restaurantId;
 
     // ✅ Log authentication success

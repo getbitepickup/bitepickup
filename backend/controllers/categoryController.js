@@ -10,6 +10,34 @@ const {
 const logger = require("../utils/logger");
 
 /**
+ * Helper function to resolve restaurantId from user object
+ */
+const resolveRestaurantId = (user) => {
+  if (!user) return null;
+
+  if (typeof user.restaurantId === "string") {
+    return user.restaurantId;
+  }
+
+  if (user.restaurantId && typeof user.restaurantId === "object") {
+    if (user.restaurantId._id) {
+      return user.restaurantId._id.toString();
+    }
+    if (user.restaurantId.id) {
+      return user.restaurantId.id.toString();
+    }
+    if (
+      user.restaurantId.toString &&
+      user.restaurantId.toString() !== "[object Object]"
+    ) {
+      return user.restaurantId.toString();
+    }
+  }
+
+  return null;
+};
+
+/**
  * @desc    Get all categories
  * @route   GET /api/categories
  * @access  Public
@@ -172,6 +200,39 @@ exports.createCategory = async (req, res) => {
       });
     }
 
+    // ✅ FIX: Check if user has permission to create category for this restaurant
+    if (req.user && req.user.role !== "admin") {
+      let userRestaurantId = resolveRestaurantId(req.user);
+
+      if (!userRestaurantId) {
+        // Try to find restaurant by createdBy
+        const restaurant = await Restaurant.findOne({
+          createdBy: req.user._id,
+        });
+        if (restaurant) {
+          userRestaurantId = restaurant._id.toString();
+        }
+      }
+
+      if (!userRestaurantId) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message: "You do not have a restaurant assigned",
+        });
+      }
+
+      const userRestaurantIdStr = userRestaurantId.toString();
+      const requestedRestaurantIdStr = restaurantId.toString();
+
+      if (userRestaurantIdStr !== requestedRestaurantIdStr) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message:
+            "You do not have permission to create categories for this restaurant",
+        });
+      }
+    }
+
     const category = await Category.create({
       restaurantId,
       name,
@@ -209,6 +270,37 @@ exports.updateCategory = async (req, res) => {
       });
     }
 
+    // ✅ FIX: Check if user has permission to update this category
+    if (req.user && req.user.role !== "admin") {
+      let userRestaurantId = resolveRestaurantId(req.user);
+
+      if (!userRestaurantId) {
+        const restaurant = await Restaurant.findOne({
+          createdBy: req.user._id,
+        });
+        if (restaurant) {
+          userRestaurantId = restaurant._id.toString();
+        }
+      }
+
+      if (!userRestaurantId) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message: "You do not have a restaurant assigned",
+        });
+      }
+
+      const userRestaurantIdStr = userRestaurantId.toString();
+      const categoryRestaurantIdStr = category.restaurantId.toString();
+
+      if (userRestaurantIdStr !== categoryRestaurantIdStr) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message: "You do not have permission to update this category",
+        });
+      }
+    }
+
     if (name) category.name = name;
     if (displayOrder !== undefined) category.displayOrder = displayOrder;
     category.updatedAt = new Date();
@@ -243,6 +335,53 @@ exports.deleteCategory = async (req, res) => {
         success: false,
         message: ERROR_MESSAGES.NOT_FOUND("Category"),
       });
+    }
+
+    // ✅ FIX: Check if user has permission to delete this category
+    if (req.user && req.user.role !== "admin") {
+      let userRestaurantId = resolveRestaurantId(req.user);
+
+      if (!userRestaurantId) {
+        // Try to find restaurant by createdBy
+        const restaurant = await Restaurant.findOne({
+          createdBy: req.user._id,
+        });
+        if (restaurant) {
+          userRestaurantId = restaurant._id.toString();
+        }
+      }
+
+      // Try email match if still null
+      if (!userRestaurantId) {
+        const restaurants = await Restaurant.find({});
+        for (const restaurant of restaurants) {
+          const owner = await User.findOne({
+            restaurantId: restaurant._id,
+            role: "restaurant_owner",
+          });
+          if (owner && owner.email === req.user.email) {
+            userRestaurantId = restaurant._id.toString();
+            break;
+          }
+        }
+      }
+
+      if (!userRestaurantId) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message: "You do not have a restaurant assigned",
+        });
+      }
+
+      const userRestaurantIdStr = userRestaurantId.toString();
+      const categoryRestaurantIdStr = category.restaurantId.toString();
+
+      if (userRestaurantIdStr !== categoryRestaurantIdStr) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message: "You do not have permission to delete this category",
+        });
+      }
     }
 
     // Delete all menu items in this category

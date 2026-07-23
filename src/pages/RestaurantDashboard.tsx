@@ -842,7 +842,9 @@ export default function RestaurantDashboard() {
         // Update the menu item in the list
         setMenuItems((prev) =>
           prev.map((item) =>
-            item.id === editingItemId ? { ...item, image: data.data.url } : item,
+            item.id === editingItemId
+              ? { ...item, image: data.data.url }
+              : item,
           ),
         );
         alert("✅ Menu item image uploaded successfully!");
@@ -966,13 +968,23 @@ export default function RestaurantDashboard() {
       // ✅ FIX: Load business hours - preserve all days even if some are undefined
       if (currentRestaurant.businessHours) {
         const loadedHours = { ...defaultBusinessHours };
-        const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-        days.forEach(day => {
+        const days = [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+          "Sunday",
+        ];
+        days.forEach((day) => {
           if (currentRestaurant.businessHours[day]) {
             loadedHours[day] = {
               isOpen: currentRestaurant.businessHours[day].isOpen !== false,
-              openTime: currentRestaurant.businessHours[day].openTime || "09:00 AM",
-              closeTime: currentRestaurant.businessHours[day].closeTime || "10:00 PM",
+              openTime:
+                currentRestaurant.businessHours[day].openTime || "09:00 AM",
+              closeTime:
+                currentRestaurant.businessHours[day].closeTime || "10:00 PM",
             };
           }
         });
@@ -1038,12 +1050,20 @@ export default function RestaurantDashboard() {
     window.print();
   };
 
+  // ✅ FIX: Handle saving settings with data refresh
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentRestaurant) return;
 
     try {
-      console.log("💾 Saving business hours:", businessHours);
+      console.log("💾 Saving restaurant settings:", {
+        isOrderingPaused,
+        businessHours,
+        pickupSettings,
+        taxesAndFees,
+        categorySortOrder,
+      });
+
       await updateRestaurant(currentRestaurant.id, {
         ...currentRestaurant,
         isOrderingPaused,
@@ -1052,6 +1072,75 @@ export default function RestaurantDashboard() {
         taxesAndFees,
         categorySortOrder,
       });
+
+      // ✅ FIX: Refresh restaurant data to reflect changes
+      const resData = await getRestaurants();
+      setRestaurants(resData);
+
+      // Find the updated restaurant and update localStorage
+      const updatedRestaurant = resData.find(
+        (r) => r.id === currentRestaurant.id,
+      );
+      if (updatedRestaurant) {
+        const restaurantData = {
+          name: updatedRestaurant.name,
+          logo: updatedRestaurant.logo || "",
+          id: updatedRestaurant.id,
+          slug: updatedRestaurant.slug,
+          subdomain: updatedRestaurant.subdomain,
+        };
+        localStorage.setItem(
+          "currentRestaurant",
+          JSON.stringify(restaurantData),
+        );
+
+        // Update active restaurant ID and current restaurant reference
+        setActiveRestaurantId(updatedRestaurant.id);
+        setCurrentRestaurantId(updatedRestaurant.id);
+
+        // Also update the local state with the saved values
+        setIsOrderingPaused(updatedRestaurant.isOrderingPaused || false);
+
+        if (updatedRestaurant.businessHours) {
+          const loadedHours = { ...defaultBusinessHours };
+          const days = [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday",
+          ];
+          days.forEach((day) => {
+            if (updatedRestaurant.businessHours[day]) {
+              loadedHours[day] = {
+                isOpen: updatedRestaurant.businessHours[day].isOpen !== false,
+                openTime:
+                  updatedRestaurant.businessHours[day].openTime || "09:00 AM",
+                closeTime:
+                  updatedRestaurant.businessHours[day].closeTime || "10:00 PM",
+              };
+            }
+          });
+          setBusinessHours(loadedHours);
+        }
+
+        if (updatedRestaurant.pickupSettings) {
+          setPickupSettings(updatedRestaurant.pickupSettings);
+        }
+
+        if (updatedRestaurant.taxesAndFees) {
+          setTaxesAndFees(updatedRestaurant.taxesAndFees);
+        }
+
+        if (updatedRestaurant.categorySortOrder) {
+          setCategorySortOrder(updatedRestaurant.categorySortOrder);
+        }
+
+        console.log("✅ Restaurant settings updated and data refreshed");
+      }
+
       alert("Restaurant settings updated successfully!");
     } catch (error) {
       console.error("Failed to update settings:", error);
@@ -1580,20 +1669,30 @@ export default function RestaurantDashboard() {
                           )}
 
                           {/* ✅ FIX: Item-specific Special Instructions Display */}
-                          {order.items && order.items.some((item: any) => item.specialInstructions) && (
-                            <div className="p-2 bg-[#E8A13B]/10 border border-[#E8A13B]/20 text-[#E8A13B] text-[10px] rounded-lg mb-2">
-                              <span className="block font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
-                                Item Special Instructions:
-                              </span>
-                              {order.items.map((item: any) => (
-                                item.specialInstructions && (
-                                  <p key={item.id || item._id} className="text-[10px] mt-0.5">
-                                    <span className="font-semibold">• {item.name}:</span> "{item.specialInstructions}"
-                                  </p>
-                                )
-                              ))}
-                            </div>
-                          )}
+                          {order.items &&
+                            order.items.some(
+                              (item: any) => item.specialInstructions,
+                            ) && (
+                              <div className="p-2 bg-[#E8A13B]/10 border border-[#E8A13B]/20 text-[#E8A13B] text-[10px] rounded-lg mb-2">
+                                <span className="block font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
+                                  Item Special Instructions:
+                                </span>
+                                {order.items.map(
+                                  (item: any) =>
+                                    item.specialInstructions && (
+                                      <p
+                                        key={item.id || item._id}
+                                        className="text-[10px] mt-0.5"
+                                      >
+                                        <span className="font-semibold">
+                                          • {item.name}:
+                                        </span>{" "}
+                                        "{item.specialInstructions}"
+                                      </p>
+                                    ),
+                                )}
+                              </div>
+                            )}
 
                           <div className="grid grid-cols-2 gap-2 text-[10px] p-2 bg-[#FAF3EA] rounded-lg text-[#8C6B76] border border-[#E7C7CF]">
                             <div>
@@ -1749,20 +1848,30 @@ export default function RestaurantDashboard() {
                           )}
 
                           {/* ✅ FIX: Item-specific Special Instructions Display */}
-                          {order.items && order.items.some((item: any) => item.specialInstructions) && (
-                            <div className="p-2 bg-[#C42348]/10 border border-[#C42348]/20 text-[#C42348] text-[10px] rounded-lg mb-2">
-                              <span className="block font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
-                                Item Special Instructions:
-                              </span>
-                              {order.items.map((item: any) => (
-                                item.specialInstructions && (
-                                  <p key={item.id || item._id} className="text-[10px] mt-0.5">
-                                    <span className="font-semibold">• {item.name}:</span> "{item.specialInstructions}"
-                                  </p>
-                                )
-                              ))}
-                            </div>
-                          )}
+                          {order.items &&
+                            order.items.some(
+                              (item: any) => item.specialInstructions,
+                            ) && (
+                              <div className="p-2 bg-[#C42348]/10 border border-[#C42348]/20 text-[#C42348] text-[10px] rounded-lg mb-2">
+                                <span className="block font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
+                                  Item Special Instructions:
+                                </span>
+                                {order.items.map(
+                                  (item: any) =>
+                                    item.specialInstructions && (
+                                      <p
+                                        key={item.id || item._id}
+                                        className="text-[10px] mt-0.5"
+                                      >
+                                        <span className="font-semibold">
+                                          • {item.name}:
+                                        </span>{" "}
+                                        "{item.specialInstructions}"
+                                      </p>
+                                    ),
+                                )}
+                              </div>
+                            )}
 
                           <div className="grid grid-cols-2 gap-2 text-[10px] p-2 bg-[#FAF3EA] rounded-lg text-[#8C6B76] border border-[#E7C7CF]">
                             <div>
@@ -1916,20 +2025,30 @@ export default function RestaurantDashboard() {
                           )}
 
                           {/* ✅ FIX: Item-specific Special Instructions Display */}
-                          {order.items && order.items.some((item: any) => item.specialInstructions) && (
-                            <div className="p-2 bg-[#E8A13B]/10 border border-[#E8A13B]/20 text-[#E8A13B] text-[10px] rounded-lg mb-2">
-                              <span className="block font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
-                                Item Special Instructions:
-                              </span>
-                              {order.items.map((item: any) => (
-                                item.specialInstructions && (
-                                  <p key={item.id || item._id} className="text-[10px] mt-0.5">
-                                    <span className="font-semibold">• {item.name}:</span> "{item.specialInstructions}"
-                                  </p>
-                                )
-                              ))}
-                            </div>
-                          )}
+                          {order.items &&
+                            order.items.some(
+                              (item: any) => item.specialInstructions,
+                            ) && (
+                              <div className="p-2 bg-[#E8A13B]/10 border border-[#E8A13B]/20 text-[#E8A13B] text-[10px] rounded-lg mb-2">
+                                <span className="block font-bold font-['Inter','Segoe UI',system-ui,sans-serif]">
+                                  Item Special Instructions:
+                                </span>
+                                {order.items.map(
+                                  (item: any) =>
+                                    item.specialInstructions && (
+                                      <p
+                                        key={item.id || item._id}
+                                        className="text-[10px] mt-0.5"
+                                      >
+                                        <span className="font-semibold">
+                                          • {item.name}:
+                                        </span>{" "}
+                                        "{item.specialInstructions}"
+                                      </p>
+                                    ),
+                                )}
+                              </div>
+                            )}
 
                           <div className="grid grid-cols-2 gap-2 text-[10px] p-2 bg-[#FAF3EA] rounded-lg text-[#8C6B76] border border-[#E7C7CF]">
                             <div>
@@ -2298,7 +2417,8 @@ export default function RestaurantDashboard() {
                                 key={state.value}
                                 onClick={async () => {
                                   const newAvailability = state.value as any;
-                                  const newIsAvailable = state.value === "available";
+                                  const newIsAvailable =
+                                    state.value === "available";
                                   await updateMenuItem(item.id, {
                                     ...item,
                                     availability: newAvailability,
@@ -3077,7 +3197,8 @@ export default function RestaurantDashboard() {
                       <span>Category Display Order</span>
                     </h3>
                     <p className="text-xs text-[#8C6B76] mt-1 font-['Inter','Segoe UI',system-ui,sans-serif]">
-                      Choose how categories appear on your customer ordering page.
+                      Choose how categories appear on your customer ordering
+                      page.
                     </p>
                   </div>
 
@@ -3090,23 +3211,30 @@ export default function RestaurantDashboard() {
                         {
                           value: "created",
                           label: "Creation Order",
-                          description: "Categories appear in the order they were added",
+                          description:
+                            "Categories appear in the order they were added",
                         },
                         {
                           value: "alphabetical_asc",
                           label: "Alphabetical (A-Z)",
-                          description: "Categories sorted alphabetically A to Z",
+                          description:
+                            "Categories sorted alphabetically A to Z",
                         },
                         {
                           value: "alphabetical_desc",
                           label: "Alphabetical (Z-A)",
-                          description: "Categories sorted alphabetically Z to A",
+                          description:
+                            "Categories sorted alphabetically Z to A",
                         },
                       ].map((option) => (
                         <button
                           key={option.value}
                           type="button"
-                          onClick={() => setCategorySortOrder(option.value as typeof categorySortOrder)}
+                          onClick={() =>
+                            setCategorySortOrder(
+                              option.value as typeof categorySortOrder,
+                            )
+                          }
                           className={`p-4 rounded-xl border-2 text-left transition-all ${
                             categorySortOrder === option.value
                               ? "border-[#C42348] bg-[#C42348]/5 ring-1 ring-[#C42348]"
@@ -3136,7 +3264,8 @@ export default function RestaurantDashboard() {
                       ))}
                     </div>
                     <p className="text-[10px] text-[#8C6B76] mt-3 font-['Inter','Segoe UI',system-ui,sans-serif]">
-                      💡 Changes will apply immediately to your customer ordering page.
+                      💡 Changes will apply immediately to your customer
+                      ordering page.
                     </p>
                   </div>
                 </div>
@@ -3422,9 +3551,7 @@ export default function RestaurantDashboard() {
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">
                     <span className="text-[#8C6B76]">Subtotal</span>
-                    <span>
-                      ${receiptOrder.subtotal?.toFixed(2) || "0.00"}
-                    </span>
+                    <span>${receiptOrder.subtotal?.toFixed(2) || "0.00"}</span>
                   </div>
                   {receiptOrder.taxAmount && receiptOrder.taxAmount > 0 && (
                     <div className="flex justify-between text-xs font-['Inter','Segoe UI',system-ui,sans-serif]">

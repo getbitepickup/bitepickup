@@ -77,7 +77,12 @@ const normalizeOrder = (order: any): Order => ({
   customerName: order?.customerName || "",
   customerPhone: order?.customerPhone || "",
   customerEmail: order?.customerEmail || "",
-  items: Array.isArray(order?.items) ? order.items : [],
+  items: Array.isArray(order?.items)
+    ? order.items.map((item: any) => ({
+        ...item,
+        specialInstructions: item?.specialInstructions || "",
+      }))
+    : [],
   totalPrice: Number(order?.totalPrice) || 0,
   pickupTimeOption: order?.pickupTimeOption || "ASAP",
   scheduledTime: order?.scheduledTime,
@@ -86,7 +91,7 @@ const normalizeOrder = (order: any): Order => ({
   timestamp: order?.timestamp || new Date().toISOString(),
   specialInstructions: order?.specialInstructions || "",
   taxAmount: order?.taxAmount || 0,
-  serviceFee: order?.serviceFee || 0, // ✅ FIX: Ensure serviceFee defaults to 0
+  serviceFee: order?.serviceFee ?? 0, // ✅ FIX: Ensure serviceFee defaults to 0 (using ?? instead of || to handle 0 correctly)
   finalTotal: order?.finalTotal || 0,
   orderReference: order?.orderReference || "",
   // ✅ Stripe Payment Fields
@@ -363,6 +368,22 @@ export const getOrdersByRestaurant = async (
 
 export const addOrder = async (data: any): Promise<any> => {
   try {
+    // ✅ FIX: Ensure serviceFee is explicitly set to 0 if not provided
+    if (data.serviceFee === undefined) {
+      data.serviceFee = 0;
+    }
+    // ✅ FIX: Ensure specialInstructions is set
+    if (data.specialInstructions === undefined) {
+      data.specialInstructions = "";
+    }
+    // ✅ FIX: Ensure each item has specialInstructions
+    if (data.items && Array.isArray(data.items)) {
+      data.items = data.items.map((item: any) => ({
+        ...item,
+        specialInstructions: item.specialInstructions || "",
+      }));
+    }
+
     const response = await orderAPI.create(data);
     return response.data || response;
   } catch (error: any) {

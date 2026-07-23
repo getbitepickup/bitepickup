@@ -161,6 +161,39 @@ exports.getOrders = async (req, res) => {
           console.log("⚠️ Could not find restaurant by email:", err.message);
         }
       }
+
+      // ✅ FIX: If still null, try to find restaurant by owner match (last resort)
+      if (!userRestaurantId && req.user.role === "restaurant_owner") {
+        try {
+          const restaurants = await Restaurant.find({});
+          for (const restaurant of restaurants) {
+            const owner = await User.findOne({
+              $or: [
+                { restaurantId: restaurant._id, role: "restaurant_owner" },
+                { _id: req.user._id, role: "restaurant_owner" },
+              ],
+            });
+            if (
+              owner &&
+              (owner.email === req.user.email ||
+                owner._id.toString() === req.user._id.toString())
+            ) {
+              userRestaurantId = restaurant._id.toString();
+              req.user.restaurantId = userRestaurantId;
+              console.log(
+                "🔄 Found restaurant by owner match (last resort):",
+                userRestaurantId,
+              );
+              break;
+            }
+          }
+        } catch (err) {
+          console.log(
+            "⚠️ Could not find restaurant by owner match:",
+            err.message,
+          );
+        }
+      }
     }
 
     console.log("🔑 Final resolved userRestaurantId:", userRestaurantId);
@@ -772,6 +805,7 @@ exports.createOrder = async (req, res) => {
     }
 
     // ✅ FIX: Check business hours before allowing order
+    // This ensures the backend also validates business hours (security layer)
     if (restaurantDoc.businessHours) {
       const now = new Date();
       const dayNames = [

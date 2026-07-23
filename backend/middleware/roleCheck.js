@@ -1,4 +1,8 @@
-const { HTTP_STATUS, ERROR_MESSAGES, USER_ROLES } = require('../utils/constants');
+const {
+  HTTP_STATUS,
+  ERROR_MESSAGES,
+  USER_ROLES,
+} = require("../utils/constants");
 
 /**
  * Check if user has any of the allowed roles
@@ -13,7 +17,7 @@ const hasRole = (allowedRoles) => {
     }
 
     const userRole = req.user.role;
-    
+
     if (!allowedRoles.includes(userRole)) {
       return res.status(HTTP_STATUS.FORBIDDEN).json({
         success: false,
@@ -33,12 +37,19 @@ const requireAdmin = hasRole([USER_ROLES.ADMIN]);
 /**
  * Check if user has admin or restaurant owner role
  */
-const requireAdminOrOwner = hasRole([USER_ROLES.ADMIN, USER_ROLES.RESTAURANT_OWNER]);
+const requireAdminOrOwner = hasRole([
+  USER_ROLES.ADMIN,
+  USER_ROLES.RESTAURANT_OWNER,
+]);
 
 /**
  * Check if user is authenticated (any role)
  */
-const requireAuth = hasRole([USER_ROLES.ADMIN, USER_ROLES.RESTAURANT_OWNER, USER_ROLES.CUSTOMER]);
+const requireAuth = hasRole([
+  USER_ROLES.ADMIN,
+  USER_ROLES.RESTAURANT_OWNER,
+  USER_ROLES.CUSTOMER,
+]);
 
 module.exports = {
   hasRole,
