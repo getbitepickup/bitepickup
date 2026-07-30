@@ -8,21 +8,32 @@ const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || "orders@hinarok.com";
 const FROM_NAME = process.env.SENDGRID_FROM_NAME || "Hinarok Orders";
 
 /**
+ * Sanitize a display name for use in the email "from" header
+ * Removes characters that could break the header
+ */
+const sanitizeFromName = (name) => {
+  if (!name || typeof name !== "string") return FROM_NAME;
+  const cleaned = name.replace(/["<>\r\n]/g, "").trim();
+  return cleaned.length > 0 ? cleaned : FROM_NAME;
+};
+
+/**
  * Send an email using SendGrid
  * @param {Object} options - Email options
  * @param {string} options.to - Recipient email
  * @param {string} options.subject - Email subject
  * @param {string} options.html - HTML content
  * @param {string} options.text - Plain text content (optional)
+ * @param {string} options.fromName - Display name for sender (optional, defaults to Hinarok Orders)
  * @returns {Promise}
  */
-const sendEmail = async ({ to, subject, html, text }) => {
+const sendEmail = async ({ to, subject, html, text, fromName }) => {
   try {
     const msg = {
       to,
       from: {
         email: FROM_EMAIL,
-        name: FROM_NAME,
+        name: sanitizeFromName(fromName || FROM_NAME),
       },
       subject,
       text: text || html.replace(/<[^>]*>/g, ""), // Strip HTML for text version
@@ -289,6 +300,7 @@ const sendOrderConfirmationEmail = async (order) => {
       to: order.customerEmail,
       subject,
       html,
+      fromName: restaurantName,
     });
     logger.info(`Order confirmation email sent to ${order.customerEmail}`);
     return info;
@@ -379,6 +391,7 @@ const sendOrderReadyEmail = async (order) => {
       to: order.customerEmail,
       subject,
       html,
+      fromName: restaurantName,
     });
     logger.info(`Order ready email sent to ${order.customerEmail}`);
     return info;
@@ -458,6 +471,7 @@ const sendOrderStatusUpdateEmail = async (order) => {
       to: order.customerEmail,
       subject,
       html,
+      fromName: restaurantName,
     });
     logger.info(`Order status update email sent to ${order.customerEmail}`);
     return info;
