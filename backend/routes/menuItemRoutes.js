@@ -1,24 +1,33 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { body, param, query } = require('express-validator');
-const menuItemController = require('../controllers/menuItemController');
-const { validateRequest } = require('../middleware/validateRequest');
-const { authenticate, isAdmin, ownsRestaurant } = require('../middleware/auth');
+const { body, param, query } = require("express-validator");
+const menuItemController = require("../controllers/menuItemController");
+const { validateRequest } = require("../middleware/validateRequest");
+const { authenticate, isAdmin } = require("../middleware/auth");
 
 /**
  * @route   GET /api/menu-items
- * @desc    Get all menu items
+ * @desc    Get all menu items (with optional filters)
  * @access  Public
  */
 router.get(
-  '/',
+  "/",
   [
-    query('restaurantId').optional().isMongoId().withMessage('Invalid restaurant ID'),
-    query('categoryId').optional().isMongoId().withMessage('Invalid category ID'),
-    query('isAvailable').optional().isBoolean().withMessage('isAvailable must be a boolean'),
+    query("restaurantId")
+      .optional()
+      .isMongoId()
+      .withMessage("Invalid restaurant ID"),
+    query("categoryId")
+      .optional()
+      .isMongoId()
+      .withMessage("Invalid category ID"),
+    query("includeHidden")
+      .optional()
+      .isBoolean()
+      .withMessage("includeHidden must be a boolean"),
   ],
   validateRequest,
-  menuItemController.getMenuItems
+  menuItemController.getMenuItems,
 );
 
 /**
@@ -27,14 +36,16 @@ router.get(
  * @access  Public
  */
 router.get(
-  '/restaurant/:restaurantId',
+  "/restaurant/:restaurantId",
   [
-    param('restaurantId').isMongoId().withMessage('Invalid restaurant ID'),
-    query('categoryId').optional().isMongoId().withMessage('Invalid category ID'),
-    query('includeHidden').optional().isBoolean().withMessage('includeHidden must be a boolean'),
+    param("restaurantId").isMongoId().withMessage("Invalid restaurant ID"),
+    query("includeHidden")
+      .optional()
+      .isBoolean()
+      .withMessage("includeHidden must be a boolean"),
   ],
   validateRequest,
-  menuItemController.getMenuItemsByRestaurant
+  menuItemController.getMenuItemsByRestaurant,
 );
 
 /**
@@ -43,59 +54,40 @@ router.get(
  * @access  Public
  */
 router.get(
-  '/:id',
-  [
-    param('id').isMongoId().withMessage('Invalid menu item ID'),
-  ],
+  "/:id",
+  [param("id").isMongoId().withMessage("Invalid menu item ID")],
   validateRequest,
-  menuItemController.getMenuItemById
+  menuItemController.getMenuItemById,
 );
 
 /**
  * @route   POST /api/menu-items
- * @desc    Create a menu item
+ * @desc    Create a new menu item
  * @access  Admin or Restaurant Owner
  */
 router.post(
-  '/',
+  "/",
   authenticate,
   [
-    body('restaurantId').isMongoId().withMessage('Invalid restaurant ID'),
-    body('categoryId').isMongoId().withMessage('Invalid category ID'),
-    body('name').notEmpty().withMessage('Item name is required'),
-    body('price').isFloat({ min: 0 }).withMessage('Price must be a positive number'),
-    // Make description optional - don't validate it strictly
-    body('description').optional({ nullable: true, checkFalsy: true }).isString().withMessage('Description must be a string'),
-    body('image').optional({ nullable: true, checkFalsy: true }).isString().withMessage('Image must be a string'),
-    body('availability').optional().isIn(['available', 'out_of_stock', 'hidden']).withMessage('Invalid availability status'),
-    body('displayOrder').optional().isInt().withMessage('Display order must be an integer'),
+    body("restaurantId").isMongoId().withMessage("Invalid restaurant ID"),
+    body("categoryId").isMongoId().withMessage("Invalid category ID"),
+    body("name").notEmpty().withMessage("Menu item name is required"),
+    body("price")
+      .isFloat({ min: 0 })
+      .withMessage("Price must be a positive number"),
+    body("description").optional(),
+    body("image").optional().isURL().withMessage("Image must be a valid URL"),
+    body("isAvailable")
+      .optional()
+      .isBoolean()
+      .withMessage("isAvailable must be a boolean"),
+    body("availability")
+      .optional()
+      .isIn(["available", "out_of_stock", "hidden"])
+      .withMessage("Invalid availability status"),
   ],
-  (req, res, next) => {
-    // Ensure description and image are always strings
-    if (req.body.description === undefined || req.body.description === null) {
-      req.body.description = '';
-    }
-    if (req.body.image === undefined || req.body.image === null) {
-      req.body.image = '';
-    }
-    // Ensure name and price are present
-    if (!req.body.name) {
-      return res.status(400).json({
-        success: false,
-        message: 'Item name is required'
-      });
-    }
-    if (req.body.price === undefined || req.body.price === null || req.body.price === '') {
-      return res.status(400).json({
-        success: false,
-        message: 'Price is required'
-      });
-    }
-    next();
-  },
   validateRequest,
-  ownsRestaurant,
-  menuItemController.createMenuItem
+  menuItemController.createMenuItem,
 );
 
 /**
@@ -104,22 +96,32 @@ router.post(
  * @access  Admin or Restaurant Owner
  */
 router.put(
-  '/:id',
+  "/:id",
   authenticate,
   [
-    param('id').isMongoId().withMessage('Invalid menu item ID'),
-    body('categoryId').optional().isMongoId().withMessage('Invalid category ID'),
-    body('name').optional().notEmpty().withMessage('Item name cannot be empty'),
-    body('price').optional().isFloat({ min: 0 }).withMessage('Price must be a positive number'),
-    body('description').optional({ nullable: true, checkFalsy: true }).isString().withMessage('Description must be a string'),
-    body('image').optional({ nullable: true, checkFalsy: true }).isString().withMessage('Image must be a string'),
-    body('availability').optional().isIn(['available', 'out_of_stock', 'hidden']).withMessage('Invalid availability status'),
-    body('isAvailable').optional().isBoolean().withMessage('isAvailable must be a boolean'),
-    body('displayOrder').optional().isInt().withMessage('Display order must be an integer'),
+    param("id").isMongoId().withMessage("Invalid menu item ID"),
+    body("name").optional().notEmpty().withMessage("Name cannot be empty"),
+    body("price")
+      .optional()
+      .isFloat({ min: 0 })
+      .withMessage("Price must be a positive number"),
+    body("description").optional(),
+    body("image").optional().isURL().withMessage("Image must be a valid URL"),
+    body("categoryId")
+      .optional()
+      .isMongoId()
+      .withMessage("Invalid category ID"),
+    body("isAvailable")
+      .optional()
+      .isBoolean()
+      .withMessage("isAvailable must be a boolean"),
+    body("availability")
+      .optional()
+      .isIn(["available", "out_of_stock", "hidden"])
+      .withMessage("Invalid availability status"),
   ],
   validateRequest,
-  ownsRestaurant,
-  menuItemController.updateMenuItem
+  menuItemController.updateMenuItem,
 );
 
 /**
@@ -128,14 +130,11 @@ router.put(
  * @access  Admin or Restaurant Owner
  */
 router.delete(
-  '/:id',
-  authenticate,
-  [
-    param('id').isMongoId().withMessage('Invalid menu item ID'),
-  ],
+  "/:id",
+  authenticate, // ✅ ONLY authenticate - permission check is inside deleteMenuItem
+  [param("id").isMongoId().withMessage("Invalid menu item ID")],
   validateRequest,
-  ownsRestaurant,
-  menuItemController.deleteMenuItem
+  menuItemController.deleteMenuItem,
 );
 
 module.exports = router;

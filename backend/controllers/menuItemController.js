@@ -1,11 +1,55 @@
 const MenuItem = require("../models/MenuItem");
 const Category = require("../models/Category");
+const Restaurant = require("../models/Restaurant");
+const User = require("../models/User");
 const {
   HTTP_STATUS,
   SUCCESS_MESSAGES,
   ERROR_MESSAGES,
 } = require("../utils/constants");
 const logger = require("../utils/logger");
+
+/**
+ * Helper function to resolve restaurantId from user object
+ */
+const resolveRestaurantId = (user) => {
+  if (!user) return null;
+
+  if (typeof user.restaurantId === "string") {
+    if (
+      user.restaurantId &&
+      user.restaurantId !== "null" &&
+      user.restaurantId !== "undefined"
+    ) {
+      return user.restaurantId;
+    }
+  }
+
+  if (user.restaurantId && typeof user.restaurantId === "object") {
+    if (user.restaurantId._id) {
+      return user.restaurantId._id.toString();
+    }
+    if (user.restaurantId.id) {
+      return user.restaurantId.id.toString();
+    }
+    if (
+      user.restaurantId.toString &&
+      user.restaurantId.toString() !== "[object Object]"
+    ) {
+      return user.restaurantId.toString();
+    }
+  }
+
+  if (
+    user.restaurantId &&
+    user.restaurantId !== "null" &&
+    user.restaurantId !== "undefined"
+  ) {
+    return String(user.restaurantId);
+  }
+
+  return null;
+};
 
 /**
  * @desc    Get all menu items
@@ -148,6 +192,52 @@ exports.createMenuItem = async (req, res) => {
       });
     }
 
+    // ✅ FIX: Check if user has permission to create menu item for this restaurant
+    if (req.user && req.user.role !== "admin") {
+      let userRestaurantId = resolveRestaurantId(req.user);
+
+      if (!userRestaurantId) {
+        const restaurant = await Restaurant.findOne({
+          createdBy: req.user._id,
+        });
+        if (restaurant) {
+          userRestaurantId = restaurant._id.toString();
+        }
+      }
+
+      if (!userRestaurantId) {
+        const restaurants = await Restaurant.find({});
+        for (const restaurant of restaurants) {
+          const owner = await User.findOne({
+            restaurantId: restaurant._id,
+            role: "restaurant_owner",
+          });
+          if (owner && owner.email === req.user.email) {
+            userRestaurantId = restaurant._id.toString();
+            break;
+          }
+        }
+      }
+
+      if (!userRestaurantId) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message: "You do not have a restaurant assigned",
+        });
+      }
+
+      const userRestaurantIdStr = userRestaurantId.toString();
+      const requestedRestaurantIdStr = restaurantId.toString();
+
+      if (userRestaurantIdStr !== requestedRestaurantIdStr) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message:
+            "You do not have permission to create menu items for this restaurant",
+        });
+      }
+    }
+
     // Parse price to float
     const parsedPrice = parseFloat(price);
     if (isNaN(parsedPrice) || parsedPrice < 0) {
@@ -223,6 +313,51 @@ exports.updateMenuItem = async (req, res) => {
       });
     }
 
+    // ✅ FIX: Check if user has permission to update this menu item
+    if (req.user && req.user.role !== "admin") {
+      let userRestaurantId = resolveRestaurantId(req.user);
+
+      if (!userRestaurantId) {
+        const restaurant = await Restaurant.findOne({
+          createdBy: req.user._id,
+        });
+        if (restaurant) {
+          userRestaurantId = restaurant._id.toString();
+        }
+      }
+
+      if (!userRestaurantId) {
+        const restaurants = await Restaurant.find({});
+        for (const restaurant of restaurants) {
+          const owner = await User.findOne({
+            restaurantId: restaurant._id,
+            role: "restaurant_owner",
+          });
+          if (owner && owner.email === req.user.email) {
+            userRestaurantId = restaurant._id.toString();
+            break;
+          }
+        }
+      }
+
+      if (!userRestaurantId) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message: "You do not have a restaurant assigned",
+        });
+      }
+
+      const userRestaurantIdStr = userRestaurantId.toString();
+      const menuItemRestaurantIdStr = menuItem.restaurantId.toString();
+
+      if (userRestaurantIdStr !== menuItemRestaurantIdStr) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message: "You do not have permission to update this menu item",
+        });
+      }
+    }
+
     // Update fields
     if (categoryId) menuItem.categoryId = categoryId;
     if (name) menuItem.name = name;
@@ -284,6 +419,53 @@ exports.deleteMenuItem = async (req, res) => {
         success: false,
         message: ERROR_MESSAGES.NOT_FOUND("Menu item"),
       });
+    }
+
+    // ✅ FIX: Check if user has permission to delete this menu item
+    if (req.user && req.user.role !== "admin") {
+      let userRestaurantId = resolveRestaurantId(req.user);
+
+      if (!userRestaurantId) {
+        // Try to find restaurant by createdBy
+        const restaurant = await Restaurant.findOne({
+          createdBy: req.user._id,
+        });
+        if (restaurant) {
+          userRestaurantId = restaurant._id.toString();
+        }
+      }
+
+      // Try email match if still null
+      if (!userRestaurantId) {
+        const restaurants = await Restaurant.find({});
+        for (const restaurant of restaurants) {
+          const owner = await User.findOne({
+            restaurantId: restaurant._id,
+            role: "restaurant_owner",
+          });
+          if (owner && owner.email === req.user.email) {
+            userRestaurantId = restaurant._id.toString();
+            break;
+          }
+        }
+      }
+
+      if (!userRestaurantId) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message: "You do not have a restaurant assigned",
+        });
+      }
+
+      const userRestaurantIdStr = userRestaurantId.toString();
+      const menuItemRestaurantIdStr = menuItem.restaurantId.toString();
+
+      if (userRestaurantIdStr !== menuItemRestaurantIdStr) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message: "You do not have permission to delete this menu item",
+        });
+      }
     }
 
     await menuItem.deleteOne();
