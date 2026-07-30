@@ -1,70 +1,104 @@
 // src/api/auth.js
-import apiClient from './client';
+import apiClient from "./client";
 
 export const authAPI = {
   /**
-   * Register a new user (Public - no auth required)
+   * Login user
    */
-  register: async (userData) => {
-    const response = await apiClient.post('/auth/register', userData, false);
-    if (response.success && response.data?.accessToken) {
-      apiClient.setToken(response.data.accessToken);
+  login: async (email, password) => {
+    const response = await apiClient.post(
+      "/auth/login",
+      { email, password },
+      false,
+    );
+
+    // ✅ FIX: Save token to localStorage
+    if (response.data?.token) {
+      localStorage.setItem("accessToken", response.data.token);
+      apiClient.setToken(response.data.token);
+      console.log("✅ Token saved to localStorage");
+    } else if (response.token) {
+      localStorage.setItem("accessToken", response.token);
+      apiClient.setToken(response.token);
+      console.log("✅ Token saved to localStorage");
+    } else {
+      console.warn("⚠️ No token found in login response");
     }
+
     return response;
   },
 
   /**
-   * Login user (Public - no auth required)
+   * Register user
    */
-  login: async (email, password) => {
-    const response = await apiClient.post('/auth/login', { email, password }, false);
-    if (response.success && response.data?.accessToken) {
-      apiClient.setToken(response.data.accessToken);
+  register: async (userData) => {
+    const response = await apiClient.post("/auth/register", userData, false);
+
+    if (response.data?.token) {
+      localStorage.setItem("accessToken", response.data.token);
+      apiClient.setToken(response.data.token);
+    } else if (response.token) {
+      localStorage.setItem("accessToken", response.token);
+      apiClient.setToken(response.token);
     }
+
     return response;
+  },
+
+  /**
+   * Get current user
+   */
+  getCurrentUser: async () => {
+    return await apiClient.get("/auth/me");
   },
 
   /**
    * Logout user
    */
-  logout: () => {
-    apiClient.setToken(null);
-    localStorage.removeItem('user');
-  },
-
-  /**
-   * Get current user (Auth required)
-   */
-  getCurrentUser: async () => {
-    return await apiClient.get('/auth/me');
-  },
-
-  /**
-   * Refresh token (Auth required)
-   */
-  refreshToken: async () => {
-    const refreshToken = localStorage.getItem('refreshToken');
-    if (!refreshToken) {
-      throw new Error('No refresh token available');
+  logout: async () => {
+    try {
+      await apiClient.post("/auth/logout", {}, true);
+    } catch (error) {
+      console.warn("Logout error:", error);
+    } finally {
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("user");
+      apiClient.setToken(null);
     }
-    const response = await apiClient.post('/auth/refresh-token', { refreshToken });
-    if (response.success && response.data?.accessToken) {
-      apiClient.setToken(response.data.accessToken);
-    }
-    return response;
   },
 
   /**
-   * Forgot password (Public - no auth required)
+   * Forgot password
    */
   forgotPassword: async (email) => {
-    return await apiClient.post('/auth/forgot-password', { email }, false);
+    return await apiClient.post("/auth/forgot-password", { email }, false);
   },
 
   /**
-   * Reset password (Public - no auth required)
+   * Reset password
    */
   resetPassword: async (token, password) => {
-    return await apiClient.post('/auth/reset-password', { token, password }, false);
+    return await apiClient.post(
+      "/auth/reset-password",
+      { token, password },
+      false,
+    );
+  },
+
+  /**
+   * Change password
+   */
+  changePassword: async (currentPassword, newPassword) => {
+    return await apiClient.post("/auth/change-password", {
+      currentPassword,
+      newPassword,
+    });
+  },
+
+  /**
+   * Refresh token
+   */
+  refreshToken: async (refreshToken) => {
+    return await apiClient.post("/auth/refresh-token", { refreshToken }, false);
   },
 };
