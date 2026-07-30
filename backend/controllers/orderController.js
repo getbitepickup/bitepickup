@@ -105,11 +105,6 @@ const resolveRestaurantId = (user) => {
  * @route   GET /api/orders
  * @access  Admin or Restaurant Owner
  */
-/**
- * @desc    Get all orders (with permission check)
- * @route   GET /api/orders
- * @access  Admin or Restaurant Owner
- */
 exports.getOrders = async (req, res) => {
   try {
     const { restaurantId, status, limit = 50, page = 1 } = req.query;
@@ -307,7 +302,6 @@ exports.getOrders = async (req, res) => {
     if (restaurantId) {
       console.log("📍 Using restaurantId from query param:", restaurantId);
 
-      // First, check if the restaurantId matches the user's restaurant
       let resolvedRestaurantId = null;
 
       // Try to find the restaurant by various identifiers
@@ -461,14 +455,9 @@ exports.getOrders = async (req, res) => {
             });
           }
         } else {
+          // ✅ CRITICAL FIX: Use string directly, not ObjectId
           // No restaurant filter, restrict to user's restaurant
-          if (mongoose.Types.ObjectId.isValid(userRestaurantIdStr)) {
-            filter.restaurantId = new mongoose.Types.ObjectId(
-              userRestaurantIdStr,
-            );
-          } else {
-            filter.restaurantId = userRestaurantIdStr;
-          }
+          filter.restaurantId = userRestaurantIdStr;
           console.log(
             "✅ Filter set to user's restaurant:",
             filter.restaurantId,
@@ -850,11 +839,6 @@ exports.getOrderByReference = async (req, res) => {
   }
 };
 
-/**
- * @desc    Create a new order
- * @route   POST /api/orders
- * @access  Public
- */
 /**
  * @desc    Create a new order
  * @route   POST /api/orders
