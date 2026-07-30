@@ -832,6 +832,11 @@ exports.getOrderByReference = async (req, res) => {
  * @route   POST /api/orders
  * @access  Public
  */
+/**
+ * @desc    Create a new order
+ * @route   POST /api/orders
+ * @access  Public
+ */
 exports.createOrder = async (req, res) => {
   try {
     const {
@@ -904,7 +909,7 @@ exports.createOrder = async (req, res) => {
       });
     }
 
-    // ✅ FIXED: Check business hours before allowing order with proper time comparison
+    // ✅ FIXED: Check business hours before allowing order - SIMPLIFIED
     if (restaurantDoc.businessHours) {
       const now = new Date();
       const dayNames = [
@@ -922,9 +927,6 @@ exports.createOrder = async (req, res) => {
       console.log(`📋 Business hours for ${currentDay}:`, dayHours);
 
       if (dayHours && !dayHours.isOpen) {
-        console.log(
-          `❌ Restaurant ${restaurantDoc.name} is closed on ${currentDay}`,
-        );
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
           success: false,
           message: `Sorry, ${restaurantDoc.name} is closed on ${currentDay}. Please check our business hours.`,
@@ -932,62 +934,62 @@ exports.createOrder = async (req, res) => {
       }
 
       if (dayHours && dayHours.isOpen) {
-        // ✅ FIX: Better time parsing that handles various formats
-        const parseTime = (timeStr) => {
+        // ✅ SIMPLIFIED: Parse time using regex
+        const parseTimeSimple = (timeStr) => {
           if (!timeStr) return { hour: 0, minute: 0 };
 
-          // Handle format like "06:00 AM" or "10:00 PM"
-          const parts = timeStr.trim().split(" ");
-          if (parts.length !== 2) {
+          // Match pattern like "06:00 AM" or "10:00 PM"
+          const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+          if (!match) {
             // Try simple format like "06:00"
-            const [h, m] = timeStr.split(":");
-            return { hour: parseInt(h) || 0, minute: parseInt(m) || 0 };
+            const parts = timeStr.split(":");
+            return {
+              hour: parseInt(parts[0]) || 0,
+              minute: parseInt(parts[1]) || 0,
+            };
           }
 
-          const [time, modifier] = parts;
-          const [hours, minutes] = time.split(":");
-          let hour = parseInt(hours) || 0;
+          let hour = parseInt(match[1]);
+          const minute = parseInt(match[2]);
+          const modifier = match[3].toUpperCase();
 
           if (modifier === "PM" && hour !== 12) hour += 12;
           if (modifier === "AM" && hour === 12) hour = 0;
 
-          return { hour, minute: parseInt(minutes) || 0 };
+          return { hour, minute };
         };
 
         const currentHour = now.getHours();
         const currentMinute = now.getMinutes();
 
-        const openTime = parseTime(dayHours.openTime);
-        const closeTime = parseTime(dayHours.closeTime);
+        const openTime = parseTimeSimple(dayHours.openTime);
+        const closeTime = parseTimeSimple(dayHours.closeTime);
 
         console.log(`🔍 Current time: ${currentHour}:${currentMinute}`);
         console.log(`🔍 Open time: ${openTime.hour}:${openTime.minute}`);
         console.log(`🔍 Close time: ${closeTime.hour}:${closeTime.minute}`);
 
-        // Convert everything to minutes for easier comparison
-        const currentTotalMinutes = currentHour * 60 + currentMinute;
-        const openTotalMinutes = openTime.hour * 60 + openTime.minute;
-        const closeTotalMinutes = closeTime.hour * 60 + closeTime.minute;
+        // Convert to minutes
+        const currentMinutes = currentHour * 60 + currentMinute;
+        const openMinutes = openTime.hour * 60 + openTime.minute;
+        const closeMinutes = closeTime.hour * 60 + closeTime.minute;
 
-        let isOpenNow = false;
+        let isOpen = false;
 
-        // Handle cases where close time is past midnight (e.g., open 11:00 PM, close 2:00 AM)
-        if (closeTotalMinutes < openTotalMinutes) {
-          isOpenNow =
-            currentTotalMinutes >= openTotalMinutes ||
-            currentTotalMinutes < closeTotalMinutes;
+        // Check if current time is within business hours
+        if (closeMinutes <= openMinutes) {
+          // Past midnight (e.g., 11:00 PM to 2:00 AM)
+          isOpen =
+            currentMinutes >= openMinutes || currentMinutes < closeMinutes;
         } else {
-          isOpenNow =
-            currentTotalMinutes >= openTotalMinutes &&
-            currentTotalMinutes < closeTotalMinutes;
+          // Normal hours
+          isOpen =
+            currentMinutes >= openMinutes && currentMinutes < closeMinutes;
         }
 
-        console.log(`✅ Is open now: ${isOpenNow}`);
+        console.log(`✅ Is open: ${isOpen}`);
 
-        if (!isOpenNow) {
-          console.log(
-            `❌ Restaurant ${restaurantDoc.name} is currently closed`,
-          );
+        if (!isOpen) {
           return res.status(HTTP_STATUS.BAD_REQUEST).json({
             success: false,
             message: `Sorry, ${restaurantDoc.name} is currently closed. We are open from ${dayHours.openTime} to ${dayHours.closeTime} on ${currentDay}.`,
