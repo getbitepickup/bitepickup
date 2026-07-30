@@ -14,8 +14,12 @@ export const authAPI = {
 
     console.log("📥 Login response:", response);
 
-    // ✅ FIX: Save token to localStorage
-    if (response.data?.token) {
+    // ✅ FIX: Token is at response.data.accessToken (not response.data.token)
+    if (response.data?.accessToken) {
+      localStorage.setItem("accessToken", response.data.accessToken);
+      apiClient.setToken(response.data.accessToken);
+      console.log("✅ Token saved to localStorage from data.accessToken");
+    } else if (response.data?.token) {
       localStorage.setItem("accessToken", response.data.token);
       apiClient.setToken(response.data.token);
       console.log("✅ Token saved to localStorage from data.token");
@@ -23,10 +27,6 @@ export const authAPI = {
       localStorage.setItem("accessToken", response.token);
       apiClient.setToken(response.token);
       console.log("✅ Token saved to localStorage from response.token");
-    } else if (response.data?.data?.token) {
-      localStorage.setItem("accessToken", response.data.data.token);
-      apiClient.setToken(response.data.data.token);
-      console.log("✅ Token saved to localStorage from data.data.token");
     } else {
       console.warn("⚠️ No token found in login response");
       console.log("Response structure:", JSON.stringify(response, null, 2));
@@ -41,7 +41,10 @@ export const authAPI = {
   register: async (userData) => {
     const response = await apiClient.post("/auth/register", userData, false);
 
-    if (response.data?.token) {
+    if (response.data?.accessToken) {
+      localStorage.setItem("accessToken", response.data.accessToken);
+      apiClient.setToken(response.data.accessToken);
+    } else if (response.data?.token) {
       localStorage.setItem("accessToken", response.data.token);
       apiClient.setToken(response.data.token);
     } else if (response.token) {
