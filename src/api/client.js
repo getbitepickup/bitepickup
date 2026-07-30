@@ -18,9 +18,11 @@ class ApiClient {
     this.token = token;
     if (token) {
       localStorage.setItem("accessToken", token);
+      console.log("✅ Token stored in localStorage");
     } else {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("user");
+      console.log("🗑️ Token removed from localStorage");
     }
   }
 
@@ -36,6 +38,9 @@ class ApiClient {
 
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
+      console.log("🔑 Token being sent:", token.substring(0, 20) + "...");
+    } else {
+      console.warn("⚠️ No token found in localStorage");
     }
 
     return headers;

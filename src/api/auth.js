@@ -12,17 +12,24 @@ export const authAPI = {
       false,
     );
 
+    console.log("📥 Login response:", response);
+
     // ✅ FIX: Save token to localStorage
     if (response.data?.token) {
       localStorage.setItem("accessToken", response.data.token);
       apiClient.setToken(response.data.token);
-      console.log("✅ Token saved to localStorage");
+      console.log("✅ Token saved to localStorage from data.token");
     } else if (response.token) {
       localStorage.setItem("accessToken", response.token);
       apiClient.setToken(response.token);
-      console.log("✅ Token saved to localStorage");
+      console.log("✅ Token saved to localStorage from response.token");
+    } else if (response.data?.data?.token) {
+      localStorage.setItem("accessToken", response.data.data.token);
+      apiClient.setToken(response.data.data.token);
+      console.log("✅ Token saved to localStorage from data.data.token");
     } else {
       console.warn("⚠️ No token found in login response");
+      console.log("Response structure:", JSON.stringify(response, null, 2));
     }
 
     return response;

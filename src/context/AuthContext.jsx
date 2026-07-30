@@ -73,8 +73,11 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const response = await authAPI.login(email, password);
+
+    console.log("📥 Login response in AuthContext:", response);
+
     if (response.success) {
-      const userData = response.data.user;
+      const userData = response.data.user || response.data;
       setUser(userData);
       setIsAuthenticated(true);
       localStorage.setItem("user", JSON.stringify(userData));
