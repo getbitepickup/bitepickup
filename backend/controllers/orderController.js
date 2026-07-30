@@ -105,6 +105,11 @@ const resolveRestaurantId = (user) => {
  * @route   GET /api/orders
  * @access  Admin or Restaurant Owner
  */
+/**
+ * @desc    Get all orders (with permission check)
+ * @route   GET /api/orders
+ * @access  Admin or Restaurant Owner
+ */
 exports.getOrders = async (req, res) => {
   try {
     const { restaurantId, status, limit = 50, page = 1 } = req.query;
@@ -298,29 +303,41 @@ exports.getOrders = async (req, res) => {
     // STEP 2: BUILD FILTER
     // ============================================
 
-    // If restaurantId is provided in query params, use it
+    // ✅ FIX: If restaurantId is provided, use it to find the restaurant
     if (restaurantId) {
       console.log("📍 Using restaurantId from query param:", restaurantId);
-      // Try to find the restaurant by various identifiers
-      let restaurantDoc = null;
 
+      // First, check if the restaurantId matches the user's restaurant
+      let resolvedRestaurantId = null;
+
+      // Try to find the restaurant by various identifiers
       if (mongoose.Types.ObjectId.isValid(restaurantId)) {
-        restaurantDoc = await Restaurant.findById(restaurantId);
+        const restaurantDoc = await Restaurant.findById(restaurantId);
+        if (restaurantDoc) {
+          resolvedRestaurantId = restaurantDoc._id;
+          console.log("✅ Found restaurant by ObjectId:", resolvedRestaurantId);
+        }
       }
 
-      if (!restaurantDoc) {
-        restaurantDoc = await Restaurant.findOne({
+      if (!resolvedRestaurantId) {
+        const restaurantDoc = await Restaurant.findOne({
           $or: [
             { slug: restaurantId },
             { subdomain: restaurantId },
             { id: restaurantId },
           ],
         });
+        if (restaurantDoc) {
+          resolvedRestaurantId = restaurantDoc._id;
+          console.log(
+            "✅ Found restaurant by slug/subdomain:",
+            resolvedRestaurantId,
+          );
+        }
       }
 
-      if (restaurantDoc) {
-        filter.restaurantId = restaurantDoc._id;
-        console.log("✅ Found restaurant by ID:", restaurantDoc._id);
+      if (resolvedRestaurantId) {
+        filter.restaurantId = resolvedRestaurantId;
       } else {
         filter.restaurantId = restaurantId;
         console.log("⚠️ Using raw restaurantId:", restaurantId);
@@ -423,9 +440,15 @@ exports.getOrders = async (req, res) => {
 
         const userRestaurantIdStr = userRestaurantId.toString();
 
-        // If filter already has restaurantId, check if user owns it
+        // ✅ FIX: If filter has restaurantId, check if user owns it
         if (filter.restaurantId) {
           const filterRestaurantIdStr = filter.restaurantId.toString();
+
+          console.log("🔍 Comparing restaurant IDs:", {
+            userRestaurantId: userRestaurantIdStr,
+            filterRestaurantId: filterRestaurantIdStr,
+            match: userRestaurantIdStr === filterRestaurantIdStr,
+          });
 
           if (filterRestaurantIdStr !== userRestaurantIdStr) {
             console.log(
