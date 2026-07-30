@@ -1,27 +1,39 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { body, param, query } = require('express-validator');
-const orderController = require('../controllers/orderController');
-const { validateRequest } = require('../middleware/validateRequest');
-const { authenticate, isAdmin, ownsRestaurant } = require('../middleware/auth');
+const { body, param, query } = require("express-validator");
+const orderController = require("../controllers/orderController");
+const { validateRequest } = require("../middleware/validateRequest");
+const {
+  authenticate,
+  isAdmin,
+  isRestaurantOwner,
+} = require("../middleware/auth");
 
 /**
  * @route   GET /api/orders
- * @desc    Get all orders
- * @access  Admin only
+ * @desc    Get all orders (with permission check inside controller)
+ * @access  Admin or Restaurant Owner
  */
 router.get(
-  '/',
+  "/",
   authenticate,
-  isAdmin,
   [
-    query('restaurantId').optional().isMongoId().withMessage('Invalid restaurant ID'),
-    query('status').optional().isIn(['NEW', 'PREPARING', 'READY', 'COMPLETED']).withMessage('Invalid status'),
-    query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
-    query('page').optional().isInt({ min: 1 }).withMessage('Page must be at least 1'),
+    query("restaurantId").optional(),
+    query("status")
+      .optional()
+      .isIn(["NEW", "PREPARING", "READY", "COMPLETED"])
+      .withMessage("Invalid status"),
+    query("limit")
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage("Limit must be between 1 and 100"),
+    query("page")
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage("Page must be at least 1"),
   ],
   validateRequest,
-  orderController.getOrders
+  orderController.getOrders,
 );
 
 /**
@@ -30,17 +42,49 @@ router.get(
  * @access  Restaurant Owner or Admin
  */
 router.get(
-  '/restaurant/:restaurantId',
+  "/restaurant/:restaurantId",
   authenticate,
   [
-    param('restaurantId').isMongoId().withMessage('Invalid restaurant ID'),
-    query('status').optional().isIn(['NEW', 'PREPARING', 'READY', 'COMPLETED']).withMessage('Invalid status'),
-    query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
-    query('page').optional().isInt({ min: 1 }).withMessage('Page must be at least 1'),
+    param("restaurantId").isMongoId().withMessage("Invalid restaurant ID"),
+    query("status")
+      .optional()
+      .isIn(["NEW", "PREPARING", "READY", "COMPLETED"])
+      .withMessage("Invalid status"),
+    query("limit")
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage("Limit must be between 1 and 100"),
+    query("page")
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage("Page must be at least 1"),
   ],
   validateRequest,
-  ownsRestaurant,
-  orderController.getOrdersByRestaurant
+  orderController.getOrdersByRestaurant,
+);
+
+/**
+ * @route   GET /api/orders/track/:reference
+ * @desc    Get order by reference number
+ * @access  Public
+ */
+router.get(
+  "/track/:reference",
+  [param("reference").notEmpty().withMessage("Reference is required")],
+  validateRequest,
+  orderController.getOrderByReference,
+);
+
+/**
+ * @route   GET /api/orders/payment/:orderId
+ * @desc    Get payment status
+ * @access  Public
+ */
+router.get(
+  "/payment/:orderId",
+  [param("orderId").isMongoId().withMessage("Invalid order ID")],
+  validateRequest,
+  orderController.getPaymentStatus,
 );
 
 /**
@@ -49,26 +93,10 @@ router.get(
  * @access  Public
  */
 router.get(
-  '/:id',
-  [
-    param('id').isMongoId().withMessage('Invalid order ID'),
-  ],
+  "/:id",
+  [param("id").isMongoId().withMessage("Invalid order ID")],
   validateRequest,
-  orderController.getOrderById
-);
-
-/**
- * @route   GET /api/orders/track/:reference
- * @desc    Track order by reference
- * @access  Public
- */
-router.get(
-  '/track/:reference',
-  [
-    param('reference').notEmpty().withMessage('Order reference is required'),
-  ],
-  validateRequest,
-  orderController.getOrderByReference
+  orderController.getOrderById,
 );
 
 /**
@@ -77,23 +105,28 @@ router.get(
  * @access  Public
  */
 router.post(
-  '/',
+  "/",
   [
-    body('restaurantId').isMongoId().withMessage('Invalid restaurant ID'),
-    body('customerName').notEmpty().withMessage('Customer name is required'),
-    body('customerPhone').notEmpty().withMessage('Customer phone is required'),
-    body('customerEmail').optional().isEmail().withMessage('Invalid email address'),
-    body('items').isArray({ min: 1 }).withMessage('At least one item is required'),
-    body('items.*.menuItemId').notEmpty().withMessage('Item ID is required'),
-    body('items.*.name').notEmpty().withMessage('Item name is required'),
-    body('items.*.price').isFloat({ min: 0 }).withMessage('Item price must be a positive number'),
-    body('items.*.quantity').isInt({ min: 1 }).withMessage('Item quantity must be at least 1'),
-    body('pickupTimeOption').optional().isIn(['ASAP', 'scheduled']).withMessage('Invalid pickup option'),
-    body('paymentMethod').optional().isIn(['online', 'pickup']).withMessage('Invalid payment method'),
-    body('specialInstructions').optional().isString().trim(),
+    body("restaurantId").notEmpty().withMessage("Restaurant ID is required"),
+    body("customerName").notEmpty().withMessage("Customer name is required"),
+    body("customerPhone").notEmpty().withMessage("Customer phone is required"),
+    body("customerEmail")
+      .isEmail()
+      .withMessage("Valid customer email is required"),
+    body("items")
+      .isArray({ min: 1 })
+      .withMessage("At least one item is required"),
+    body("pickupTimeOption")
+      .optional()
+      .isIn(["ASAP", "scheduled"])
+      .withMessage("Invalid pickup time option"),
+    body("paymentMethod")
+      .optional()
+      .isIn(["online", "pickup"])
+      .withMessage("Invalid payment method"),
   ],
   validateRequest,
-  orderController.createOrder
+  orderController.createOrder,
 );
 
 /**
@@ -102,14 +135,16 @@ router.post(
  * @access  Restaurant Owner or Admin
  */
 router.put(
-  '/:id/status',
+  "/:id/status",
   authenticate,
   [
-    param('id').isMongoId().withMessage('Invalid order ID'),
-    body('status').isIn(['NEW', 'PREPARING', 'READY', 'COMPLETED']).withMessage('Invalid status'),
+    param("id").isMongoId().withMessage("Invalid order ID"),
+    body("status")
+      .isIn(["NEW", "PREPARING", "READY", "COMPLETED"])
+      .withMessage("Invalid status"),
   ],
   validateRequest,
-  orderController.updateOrderStatus
+  orderController.updateOrderStatus,
 );
 
 /**
@@ -118,28 +153,11 @@ router.put(
  * @access  Restaurant Owner or Admin
  */
 router.get(
-  '/restaurant/:restaurantId/statistics',
+  "/restaurant/:restaurantId/statistics",
   authenticate,
-  [
-    param('restaurantId').isMongoId().withMessage('Invalid restaurant ID'),
-  ],
+  [param("restaurantId").isMongoId().withMessage("Invalid restaurant ID")],
   validateRequest,
-  ownsRestaurant,
-  orderController.getOrderStatistics
-);
-
-/**
- * @route   GET /api/orders/payment/:orderId
- * @desc    Get payment status for an order
- * @access  Public
- */
-router.get(
-  '/payment/:orderId',
-  [
-    param('orderId').isMongoId().withMessage('Invalid order ID'),
-  ],
-  validateRequest,
-  orderController.getPaymentStatus
+  orderController.getOrderStatistics,
 );
 
 module.exports = router;
